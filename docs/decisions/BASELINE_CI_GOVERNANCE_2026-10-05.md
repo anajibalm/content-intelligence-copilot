@@ -56,7 +56,7 @@ Run on Node.js `22.18.0`:
 - S3 #4 remains Ready and is next implementation checkpoint.
 - S5 #6 remains Ready and separate.
 - R1 #16 remains Blocked; no runtime handoff implemented here.
-- E1 #18 remains Ready; historical receipt is durable with source hash.
+- E1 #18 is Done; historical receipt is durable with source hash, date, runner, and no media/provider payload.
 - v0.2 remains candidate.
 
 ## Obsidian

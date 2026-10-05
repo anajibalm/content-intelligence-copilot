@@ -21,8 +21,8 @@ GitHub Issues dan Project memegang execution status. Contracts dan decisions tet
 - Persistent worker: belum ada.
 - S3 #4 dan S5 #6: Ready, tetap terpisah.
 - R1 #16: Blocked karena runtime DB/API/durable handoff belum ada.
-- E1 #18: Ready; historical receipt hash sudah dicatat tanpa menyalin media/provider payload.
-- `BASELINE-CI-GOV-001` #21: In Progress, Project custom Tracking Status; delivery lewat feature branch/PR.
+- E1 #18: Done; sanitized receipt durable dengan source SHA-256, date, runner, dan tanpa media/provider payload.
+- `BASELINE-CI-GOV-001` #21: Review, Project custom Tracking Status; delivery lewat feature branch/PR.
 - v0.2: implementation candidate, bukan frozen.
 
 ## GitHub target

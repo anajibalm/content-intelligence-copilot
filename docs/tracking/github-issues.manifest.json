@@ -754,8 +754,8 @@
       "verification_requirements": [
         "Checksum, manifest, and ignore-rule validation"
       ],
-      "proposed_status": "Ready",
-      "status_reason": "Durability is a known tracking gap; live summary currently exists in /tmp.",
+      "proposed_status": "Done",
+      "status_reason": "Sanitized S2 summary is durable in repository with source receipt SHA-256, date/runner, and no media/secrets/provider payloads.",
       "dependency_keys": [],
       "milestone": "P1 Enhancements",
       "estimate_hours": null,
@@ -863,8 +863,8 @@
         "npm run build",
         "git diff --check"
       ],
-      "proposed_status": "In Progress",
-      "status_reason": "Owner-authorized baseline correction is active on feature branch fix/ci-governance-baseline.",
+      "proposed_status": "Review",
+      "status_reason": "Owner-authorized baseline correction is pushed and exact-head CI is green; PR remains open for owner review.",
       "dependency_keys": [],
       "milestone": "Core MVP",
       "estimate_hours": null,
