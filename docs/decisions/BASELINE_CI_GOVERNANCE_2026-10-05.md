@@ -19,7 +19,7 @@
 
 - Base/source HEAD: `2af60f97e6d811621e6d01d52ed15c30f59453c0` on `master`.
 - Branch: `fix/ci-governance-baseline`.
-- Final pushed HEAD: `03d952bcb639975668ab95f850ace6311064674a`.
+- Final pushed SHA and exact-head CI receipt are recorded in GitHub issue #21, PR #22, and actual Obsidian note after delivery; this checkpoint does not chase its own commit SHA.
 - Original CI failure: Node.js 20 executed `npm test`, while `tests/unit/acquisition.test.mjs` imported `.ts` directly and failed with `ERR_UNKNOWN_FILE_EXTENSION`.
 - Local/CI Node.js `22.18.0` executes direct TypeScript imports through native type stripping. CI reads `.node-version`; `package.json` requires `>=22.18.0`.
 
@@ -52,7 +52,7 @@ Run on Node.js `22.18.0`:
 - Baseline issue: https://github.com/anajibalm/content-intelligence-copilot/issues/21 — Review.
 - PR: https://github.com/anajibalm/content-intelligence-copilot/pull/22 — OPEN.
 - Project: https://github.com/users/anajibalm/projects/1 — custom Tracking Status `Review`.
-- Exact-head CI: https://github.com/anajibalm/content-intelligence-copilot/actions/runs/37317891015 — PASS; Build & Test job `111789154616`.
+- Exact-head CI: https://github.com/anajibalm/content-intelligence-copilot/actions/runs/37318349258 — PASS; Build & Test job `111790716936`.
 - S3 #4 remains Ready and is next implementation checkpoint.
 - S5 #6 remains Ready and separate.
 - R1 #16 remains Blocked; no runtime handoff implemented here.
@@ -72,5 +72,6 @@ Run on Node.js `22.18.0`:
   - `d98c940 fix(ci): align Node runtime with TypeScript tests`
   - `2dbb68c docs(governance): reconcile CIC workflow and product claims`
   - `03d952b docs(tracking): record baseline delivery checkpoint`
+  - `0e0d6e2 docs(tracking): record exact-head delivery receipts`
 - Upstream: `origin/fix/ci-governance-baseline`, divergence `0 0` after push.
 - Merge/human review: pending owner review; no merge performed.
