@@ -13,7 +13,8 @@
     "Historical S2 checkpoint evidence; not a new live acquisition run.",
     "No provider payloads, credentials, signed URLs, or media copied.",
     "Paid providers were not called.",
-    "Temporary media was deleted by spike cleanup."
+    "Temporary media was deleted by spike cleanup.",
+    "Source receipt hash recorded from /tmp/cic-s2-live/summary.json at baseline checkpoint: 53d9cb090dbc89f4733081633649785d2d3dddf0bd911a1baca06de46df6cc6f."
   ],
-  "source_sha256": "not computed at tracking checkpoint"
+  "source_sha256": "53d9cb090dbc89f4733081633649785d2d3dddf0bd911a1baca06de46df6cc6f"
 }

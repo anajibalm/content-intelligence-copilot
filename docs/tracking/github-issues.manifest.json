@@ -834,5 +834,47 @@
       "project_item_id": "PVTI_lAHOAz65Rs4Blun5zg-iYZM",
       "sync_result": "created-and-linked"
     }
+,
+    {
+      "stable_key": "BASELINE-CI-GOV-001",
+      "title": "BASELINE-CI-GOV-001 — CI and governance baseline",
+      "source_references": [
+        "OMP_CIC_BASELINE_FIX_PUSH_OBSIDIAN_PROMPT.md",
+        ".github/workflows/ci.yml",
+        "VIBE_CODING_PROTOCOL.md",
+        "docs/decisions/BASELINE_CI_GOVERNANCE_2026-10-05.md"
+      ],
+      "priority": "P0",
+      "area": "platform",
+      "scope": "CI runtime alignment, governance/documentation reconciliation, GitHub delivery, and Obsidian checkpoint note.",
+      "acceptance_criteria": [
+        "Direct TypeScript tests run on documented Node.js runtime",
+        "CI lint/typecheck/tests/fixtures/build pass on exact PR HEAD",
+        "Authority, paths, labels, statuses, and product claims are consistent",
+        "Feature branch PR is ready for owner review",
+        "Obsidian checkpoint is written and read back, or blocker is documented"
+      ],
+      "verification_requirements": [
+        "npm ci",
+        "npm run lint",
+        "npm run typecheck",
+        "npm test",
+        "npm run validate:fixtures",
+        "npm run build",
+        "git diff --check"
+      ],
+      "proposed_status": "In Progress",
+      "status_reason": "Owner-authorized baseline correction is active on feature branch fix/ci-governance-baseline.",
+      "dependency_keys": [],
+      "milestone": "Core MVP",
+      "estimate_hours": null,
+      "issue_body": "docs/tracking/issues/BASELINE-CI-GOV-001.md",
+      "issue": {
+        "url": "https://github.com/anajibalm/content-intelligence-copilot/issues/21",
+        "number": 21
+      },
+      "project_item_id": "PVTI_lAHOAz65Rs4Blun5zg-oxUw",
+      "sync_result": "created-and-linked"
+    }
   ]
 }
