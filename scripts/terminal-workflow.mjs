@@ -470,6 +470,7 @@ function taskDoneCommand(args) {
     const body = readFileSync(bodyPath, 'utf8');
     if (!/##\s+(Problem|Changes)/i.test(body) || !/##\s+(Verification|Acceptance)/i.test(body)) die('PR body must include Problem/Changes and Verification/Acceptance sections');
     const before = git(['rev-parse', 'HEAD']);
+    const changedBefore = statusPaths();
     const commands = [
       ['npm', ['ci']], ['npm', ['run', 'lint']], ['npm', ['run', 'typecheck']], ['npm', ['test']],
       ['npm', ['run', 'validate:fixtures']], ['npm', ['run', 'build']],
@@ -478,15 +479,18 @@ function taskDoneCommand(args) {
       const result = spawnSync(command, commandArgs, { cwd: ROOT, stdio: 'inherit', env: process.env });
       if (result.status !== 0) die(`${command} ${commandArgs.join(' ')} failed`);
     }
-    git(['add', '--', ...exactPaths]);
-    const staged = gitPathList(['diff', '--cached', '--name-only']).sort();
-    if (JSON.stringify(staged) !== JSON.stringify(exactPaths)) die(`staged paths mismatch: expected ${exactPaths.join(', ')}, got ${staged.join(', ')}`);
-    git(['diff', '--cached', '--check']);
-    git(['commit', '-m', flags['commit-message']]);
-    const testedHead = git(['rev-parse', 'HEAD']);
-    if (testedHead === before) die('commit did not advance HEAD');
-    const leftover = statusPaths();
-    if (leftover.length) die(`commit left working-tree changes: ${leftover.join(', ')}`);
+    let testedHead = before;
+    if (changedBefore.length) {
+      git(['add', '--', ...exactPaths]);
+      const staged = gitPathList(['diff', '--cached', '--name-only']).sort();
+      if (JSON.stringify(staged) !== JSON.stringify(exactPaths)) die(`staged paths mismatch: expected ${exactPaths.join(', ')}, got ${staged.join(', ')}`);
+      git(['diff', '--cached', '--check']);
+      git(['commit', '-m', flags['commit-message']]);
+      testedHead = git(['rev-parse', 'HEAD']);
+      if (testedHead === before) die('commit did not advance HEAD');
+      const leftover = statusPaths();
+      if (leftover.length) die(`commit left working-tree changes: ${leftover.join(', ')}`);
+    }
     const branch = git(['branch', '--show-current']);
     if (!branch || branch === CONFIG.base_branch || branch === 'master') die(`delivery cannot push branch ${branch || 'detached HEAD'}`);
     git(['push', '--set-upstream', 'origin', branch]);
