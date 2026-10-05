@@ -27,8 +27,8 @@ test('issue identity accepts only repository URL', () => {
 
 test('CI guard rejects pending, failed, and empty check sets', () => {
   assert.match(exitsWithFailure('mod.validateChecks([])'), /no checks/);
-  assert.match(exitsWithFailure("mod.validateChecks([{ name: 'Build', state: 'PENDING', bucket: 'pending' }])"), /not green/);
-  assert.match(exitsWithFailure("mod.validateChecks([{ name: 'Build', state: 'COMPLETED', bucket: 'fail' }])"), /not green/);
+  assert.match(exitsWithFailure("mod.validateChecks([{ name: 'Build & Test', state: 'PENDING', bucket: 'pending' }])"), /not green/);
+  assert.match(exitsWithFailure("mod.validateChecks([{ name: 'Build & Test', state: 'SUCCESS', bucket: 'fail' }])"), /not green/);
 });
 
 test('merge guard rejects wrong head and non-master base', () => {

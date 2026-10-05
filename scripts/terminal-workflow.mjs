@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { execFileSync, spawnSync } from 'node:child_process';
-import { existsSync, readFileSync, writeFileSync, mkdirSync, unlinkSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync, mkdirSync, unlinkSync, renameSync, rmSync } from 'node:fs';
 import { dirname, join, basename, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -21,6 +21,22 @@ function die(message) {
   process.exit(1);
 }
 
+function gitRaw(args, cwd = ROOT) {
+  try {
+    return execFileSync('git', args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+  } catch (error) {
+    die(`git ${args.join(' ')} failed: ${error.stderr?.toString().trim() || error.message}`);
+  }
+}
+
+function git(args, cwd = ROOT) {
+  return gitRaw(args, cwd).trim();
+}
+
+function gitPathList(args, cwd = ROOT) {
+  return gitRaw([...args, '-z'], cwd).split('\0').filter(Boolean);
+}
+
 function gh(args, options = {}) {
   const scopedArgs = args[0] === 'api' || args[0] === 'project' ? args : ['--repo', REPO, ...args];
   try {
@@ -37,13 +53,42 @@ function gh(args, options = {}) {
   }
 }
 
-function git(args, cwd = ROOT) {
-  try {
-    return execFileSync('git', args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
-  } catch (error) {
-    die(`git ${args.join(' ')} failed: ${error.stderr?.toString().trim() || error.message}`);
-  }
+function assertOrigin() {
+  const origin = git(['remote', 'get-url', 'origin']);
+  const normalized = origin.replace(/\.git$/, '').replace(/^git@github\.com:/, 'https://github.com/');
+  const expected = `https://github.com/${REPO}`;
+  if (normalized !== expected) die(`origin ${origin} does not match ${expected}`);
 }
+
+function assertRepoContext() {
+  assertOrigin();
+  const branch = git(['branch', '--show-current']);
+  if (!branch) die('write requires non-detached branch');
+  return branch;
+}
+
+function assertWriteContext(issue, { requireTaskState = true } = {}) {
+  const branch = assertRepoContext();
+  if (branch === CONFIG.base_branch || branch === 'master') die(`write requires non-base branch, got ${branch}`);
+  const state = readState(issue.number);
+  if (requireTaskState && !state) die(`no task state for ${issue.url}`);
+  if (state && (state.repo !== REPO || state.issue !== issue.url || state.number !== issue.number)) die(`task state identity mismatch for ${issue.url}`);
+  if (state && (resolve(state.worktree) !== resolve(ROOT) || state.branch !== branch)) die(`task state worktree/branch mismatch for ${issue.url}`);
+  if (requireTaskState && resolve(ROOT) === resolve(MAIN_ROOT)) die('write requires isolated task worktree');
+  return state;
+}
+
+function withLock(action) {
+  mkdirSync(STATE_ROOT, { recursive: true });
+  const lockPath = join(STATE_ROOT, '.lock');
+  try {
+    mkdirSync(lockPath);
+  } catch {
+    die(`workflow lock exists: ${lockPath}`);
+  }
+  try { return action(); } finally { rmSync(lockPath, { recursive: true, force: true }); }
+}
+
 
 function parseArgs(argv) {
   const positional = [];
@@ -81,7 +126,7 @@ function assertRepoUrl(url) {
 function resolveIssue(input) {
   const url = /^https:\/\//.test(input) ? assertRepoUrl(input) : issueUrl(Number.parseInt(input, 10));
   if (!/\/\d+$/.test(url)) die(`invalid issue identifier: ${input}`);
-  const issue = json(gh(['issue', 'view', url, '--json', 'number,title,state,url,body,labels,milestone']));
+  const issue = json(gh(['issue', 'view', url, '--json', 'number,title,state,stateReason,url,body,labels,milestone']));
   if (issue.url !== url || issue.number === undefined) die(`issue identity mismatch for ${url}`);
   return issue;
 }
@@ -168,20 +213,29 @@ function updateLabels(issue, add = [], remove = []) {
   if (add.length || remove.length) gh(args);
 }
 
+function activeDependencies(dependencies) {
+  if (!Array.isArray(dependencies)) die('native dependency response is not an array');
+  return dependencies.filter((dependency) => {
+    if (dependency.state === 'open') return true;
+    if (dependency.state === 'closed' && dependency.state_reason === 'completed') return false;
+    die(`native dependency #${dependency.number || dependency.id || 'unknown'} has unverified state ${dependency.state}/${dependency.state_reason || 'unknown'}`);
+  });
+}
+
 function nativeBlockers(issueNumber) {
   let raw;
   try {
-    raw = execFileSync('gh', ['--repo', REPO, 'api', `repos/${REPO}/issues/${issueNumber}/dependencies/blocked_by`, '--paginate'], { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
+    raw = execFileSync('gh', ['--repo', REPO, 'api', `repos/${REPO}/issues/${issueNumber}/dependencies/blocked_by`, '--paginate', '--slurp'], { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
   } catch (error) {
-    const stderr = error.stderr?.toString().trim() || '';
-    if (/not found|must be authenticated|forbidden/i.test(stderr)) die(`cannot verify native issue dependencies: ${stderr}`);
-    return [];
+    die(`cannot verify native issue dependencies: ${error.stderr?.toString().trim() || error.message}`);
   }
-  if (!raw) return [];
-  const parsed = raw.split('\n').filter(Boolean).flatMap((line) => {
-    try { return [JSON.parse(line)]; } catch { return []; }
-  });
-  return parsed.flatMap((value) => Array.isArray(value) ? value : [value]);
+  let pages;
+  try { pages = JSON.parse(raw); } catch (error) { die(`malformed native dependency response: ${error.message}`); }
+  if (!Array.isArray(pages)) die('native dependency response is not paginated JSON');
+  return activeDependencies(pages.flatMap((page) => {
+    if (!Array.isArray(page)) die('native dependency page is not an array');
+    return page;
+  }));
 }
 
 function assertPickable(issue) {
@@ -199,12 +253,27 @@ function shellSafePath(path) {
   return path;
 }
 
+function statusPaths() {
+  const records = gitRaw(['status', '--porcelain=v1', '-z']).split('\0').filter(Boolean);
+  const paths = [];
+  for (let index = 0; index < records.length; index += 1) {
+    const record = records[index];
+    const status = record.slice(0, 2);
+    paths.push(record.slice(3));
+    if (status.includes('R') || status.includes('C')) {
+      index += 1;
+      paths.push(records[index]);
+    }
+  }
+  return paths.filter(Boolean);
+}
+
 function checkExactPaths(paths) {
   const expected = [...new Set(paths.map(shellSafePath))].sort();
   if (!expected.length) die('at least one explicit --path is required');
-  const staged = git(['diff', '--cached', '--name-only']).split('\n').filter(Boolean).sort();
+  const staged = gitPathList(['diff', '--cached', '--name-only']).sort();
   if (staged.length) die(`index already has staged paths: ${staged.join(', ')}`);
-  const changed = git(['status', '--porcelain=v1']).split('\n').filter(Boolean).map((line) => line.slice(3)).filter(Boolean).sort();
+  const changed = statusPaths().sort();
   const outside = changed.filter((path) => !expected.includes(path));
   if (outside.length) die(`working tree changes outside explicit paths: ${outside.join(', ')}`);
   return expected;
@@ -212,7 +281,9 @@ function checkExactPaths(paths) {
 
 function validateChecks(checks, prNumber = 'PR') {
   if (!Array.isArray(checks) || checks.length === 0) die(`${prNumber} has no checks; cannot claim CI green`);
-  const incomplete = checks.filter((check) => check.bucket !== 'pass');
+  const expected = checks.filter((check) => check.name === 'Build & Test');
+  if (expected.length !== 1) die(`${prNumber} expected one CIC Build & Test check, found ${expected.length}`);
+  const incomplete = checks.filter((check) => check.bucket !== 'pass' || check.state !== 'SUCCESS');
   if (incomplete.length) die(`${prNumber} checks are not green: ${incomplete.map((check) => `${check.name}:${check.state}/${check.bucket}`).join(', ')}`);
   return checks;
 }
@@ -237,19 +308,44 @@ function waitForCi(prNumber) {
 
 function baseline() {
   const pr = json(gh(['pr', 'view', String(CONFIG.baseline_pr), '--json', 'state,headRefName,headRefOid,baseRefName,url']));
-  if (pr.state === 'OPEN') return { ...pr, baseForStack: pr.headRefName };
-  if (pr.state === 'MERGED') return { ...pr, baseForStack: CONFIG.base_branch };
-  die(`baseline PR #${CONFIG.baseline_pr} is ${pr.state}; cannot choose automation base`);
+  if (pr.state === 'OPEN' && pr.baseRefName === CONFIG.base_branch) return { ...pr, baseForStack: pr.headRefName };
+  if (pr.state === 'MERGED' && pr.baseRefName === CONFIG.base_branch) return { ...pr, baseForStack: CONFIG.base_branch };
+  die(`baseline PR #${CONFIG.baseline_pr} is ${pr.state}/${pr.baseRefName}; cannot choose automation base`);
+}
+function remoteBaseSha(branch) {
+  const output = gitRaw(['ls-remote', 'origin', `refs/heads/${branch}`]).trim();
+  const sha = output.split(/\s+/)[0];
+  if (!/^[0-9a-f]{40}$/.test(sha)) die(`cannot verify remote base ${branch}`);
+  return sha;
+}
+
+function taskBase() {
+  const dependency = baseline();
+  return dependency.state === 'OPEN' ? { base: dependency.baseForStack, sha: dependency.headRefOid } : { base: CONFIG.base_branch, sha: remoteBaseSha(CONFIG.base_branch) };
 }
 
 function writeState(issue, data) {
   mkdirSync(STATE_ROOT, { recursive: true });
-  writeFileSync(join(STATE_ROOT, `${issue.number}.json`), `${JSON.stringify(data, null, 2)}\n`);
+  const path = join(STATE_ROOT, `${issue.number}.json`);
+  const temporary = `${path}.${process.pid}.tmp`;
+  writeFileSync(temporary, `${JSON.stringify(data, null, 2)}\n`, { mode: 0o600 });
+  renameSync(temporary, path);
 }
 
 function readState(issueNumber) {
   const path = join(STATE_ROOT, `${issueNumber}.json`);
   return existsSync(path) ? JSON.parse(readFileSync(path, 'utf8')) : null;
+}
+
+function validateDelivery(issue, pr) {
+  if (pr.state !== 'MERGED' || !pr.mergedAt || !pr.mergeCommit) die(`PR #${pr.number || 'unknown'} is not fully merged`);
+  if (pr.baseRefName !== CONFIG.base_branch) die(`PR #${pr.number} base is ${pr.baseRefName}, expected ${CONFIG.base_branch}`);
+  if (pr.url && !pr.url.startsWith(`https://github.com/${REPO}/pull/`)) die(`PR belongs to another repository: ${pr.url}`);
+  const linked = Array.isArray(pr.closingIssuesReferences) && pr.closingIssuesReferences.some((ref) => ref.number === issue.number && (!ref.repository?.nameWithOwner || ref.repository.nameWithOwner === REPO));
+  if (!linked) die(`PR #${pr.number} is not linked to ${issue.url}`);
+  if (issue.state !== 'CLOSED' || (issue.stateReason && issue.stateReason !== 'COMPLETED')) die(`issue ${issue.url} is not completed after merge`);
+  if (!pr.body || !/##\s+(Verification|Acceptance)/i.test(pr.body)) die(`PR #${pr.number} lacks acceptance/verification evidence`);
+  return { issue, pr };
 }
 
 function listCommand() {
@@ -268,6 +364,7 @@ function readyCommand() {
 function importCommand(args) {
   const { positional, flags } = parseArgs(args);
   const issue = resolveIssue(positional[0]);
+  if (!flags['dry-run']) assertWriteContext(issue, { requireTaskState: false });
   const snapshot = projectSnapshot();
   const existing = issueItems(snapshot).filter((item) => item.content.number === issue.number);
   if (existing.length > 1) die(`duplicate Project items for ${issue.url}`);
@@ -283,34 +380,37 @@ function importCommand(args) {
   gh(['project', 'item-add', String(CONFIG.project_number), '--owner', CONFIG.owner, '--url', issue.url, '--format', 'json']);
   const after = projectSnapshot();
   findProjectItem(after, issue.number);
-  mutateStatus(issue, 'Ready', false);
+  mutateStatus(issue, 'Ready');
   console.log(`imported: ${issue.url}`);
 }
 
 function pickCommand(args) {
-  const { positional, flags } = parseArgs(args);
-  const issue = resolveIssue(positional[0]);
-  assertPickable(issue);
-  const state = readState(issue.number);
-  if (state && (state.repo !== REPO || state.issue !== issue.url || state.number !== issue.number)) die(`task state identity mismatch for ${issue.url}`);
-  const worktree = state?.worktree || join(dirname(MAIN_ROOT), `${basename(MAIN_ROOT)}-task-${issue.number}`);
-  const branch = state?.branch || `task/${issue.number}`;
-  if (existsSync(worktree)) {
-    const known = git(['-C', worktree, 'rev-parse', '--show-toplevel']);
-    if (resolve(known) !== resolve(worktree)) die(`existing task path is not expected worktree: ${worktree}`);
-    if (state?.branch && git(['-C', worktree, 'branch', '--show-current']) !== branch) die(`existing task branch does not match state: ${branch}`);
-  } else if (!flags['dry-run']) {
-    git(['worktree', 'add', '-b', branch, worktree, git(['rev-parse', 'HEAD'])]);
-  } else {
-    console.log(`[dry-run] create worktree ${worktree} on ${branch}`);
-  }
-  if (!flags['dry-run']) {
-    const baseSha = git(['-C', worktree, 'rev-parse', 'HEAD']);
-    writeState(issue, { repo: REPO, issue: issue.url, number: issue.number, branch, worktree, baseSha, stage: 'worktree-created' });
-    mutateStatus(issue, 'In Progress');
-    writeState(issue, { repo: REPO, issue: issue.url, number: issue.number, branch, worktree, baseSha, stage: 'in-progress' });
-    console.log(JSON.stringify({ issue: issue.url, branch, worktree, baseSha, status: 'In Progress' }, null, 2));
-  }
+  return withLock(() => {
+    const { positional, flags } = parseArgs(args);
+    const issue = resolveIssue(positional[0]);
+    assertPickable(issue);
+    const state = readState(issue.number);
+    if (state && (state.repo !== REPO || state.issue !== issue.url || state.number !== issue.number)) die(`task state identity mismatch for ${issue.url}`);
+    const worktree = state?.worktree || join(dirname(MAIN_ROOT), `${basename(MAIN_ROOT)}-task-${issue.number}`);
+    const branch = state?.branch || `task/${issue.number}`;
+    const base = state ? { base: state.base, sha: state.baseSha } : taskBase();
+    if (existsSync(worktree)) {
+      const known = git(['-C', worktree, 'rev-parse', '--show-toplevel']);
+      if (resolve(known) !== resolve(worktree)) die(`existing task path is not expected worktree: ${worktree}`);
+      if (git(['-C', worktree, 'remote', 'get-url', 'origin']).replace(/\.git$/, '') !== `https://github.com/${REPO}`) die(`existing worktree origin does not match ${REPO}`);
+      if (state?.branch && git(['-C', worktree, 'branch', '--show-current']) !== branch) die(`existing task branch does not match state: ${branch}`);
+    } else if (!flags['dry-run']) {
+      git(['worktree', 'add', '-b', branch, worktree, base.sha]);
+    } else {
+      console.log(`[dry-run] create worktree ${worktree} on ${branch} from ${base.sha}`);
+    }
+    if (!flags['dry-run']) {
+      writeState(issue, { repo: REPO, issue: issue.url, number: issue.number, branch, worktree, base: base.base, baseSha: base.sha, stage: 'worktree-created' });
+      mutateStatus(issue, 'In Progress');
+      writeState(issue, { repo: REPO, issue: issue.url, number: issue.number, branch, worktree, base: base.base, baseSha: base.sha, stage: 'in-progress' });
+      console.log(JSON.stringify({ issue: issue.url, branch, worktree, baseSha: base.sha, status: 'In Progress' }, null, 2));
+    }
+  });
 }
 
 function reviewCommand(args) {
@@ -320,6 +420,7 @@ function reviewCommand(args) {
     mutateStatus(issue, 'Review', true);
     return;
   }
+  assertWriteContext(issue);
   updateLabels(issue, ['status:review'], ['status:ready', 'status:blocked']);
   mutateStatus(issue, 'Review');
   console.log(`Review: ${issue.url}`);
@@ -334,6 +435,7 @@ function blockedCommand(args) {
     console.log(`[dry-run] reason: ${flags.reason}`);
     return;
   }
+  assertWriteContext(issue);
   updateLabels(issue, ['status:blocked'], ['status:ready', 'status:review']);
   mutateStatus(issue, 'Blocked');
   console.log(`Blocked: ${issue.url}\nReason: ${flags.reason}`);
@@ -343,11 +445,10 @@ function doneCommand(args) {
   const { positional, flags } = parseArgs(args);
   if (!flags.pr) die('done requires --pr <number>');
   const issue = resolveIssue(positional[0]);
-  const pr = json(gh(['pr', 'view', String(flags.pr), '--json', 'state,mergedAt,baseRefName,headRefOid,closingIssuesReferences,url']));
-  if (!Array.isArray(pr.closingIssuesReferences) || !pr.closingIssuesReferences.some((ref) => ref.number === issue.number)) die(`PR #${flags.pr} is not linked to ${issue.url}`);
-  if (issue.state !== 'CLOSED') die(`issue ${issue.url} is not closed after merge`);
+  const pr = json(gh(['pr', 'view', String(flags.pr), '--json', 'number,state,mergedAt,mergeCommit,baseRefName,headRefOid,closingIssuesReferences,url,body']));
+  validateDelivery(issue, pr);
   if (flags['dry-run']) {
-    mutateStatus(issue, 'Done', true);
+    console.log(`[dry-run] reconcile ${issue.url} and PR #${flags.pr} to Done`);
     return;
   }
   mutateStatus(issue, 'Done');
@@ -356,74 +457,87 @@ function doneCommand(args) {
 }
 
 function taskDoneCommand(args) {
-  const { positional, flags } = parseArgs(args);
-  const issue = resolveIssue(positional[0]);
-  const paths = String(flags.paths || '').split(',').filter(Boolean);
-  const exactPaths = checkExactPaths(paths);
-  if (!flags['commit-message']) die('task-done requires --commit-message');
-  if (git(['status', '--porcelain=v1']).split('\n').some((line) => line.startsWith('??'))) die('untracked files present; include exact paths explicitly or remove them');
-  const testedHead = git(['rev-parse', 'HEAD']);
-  const commands = [
-    ['npm', ['ci']],
-    ['npm', ['run', 'lint']],
-    ['npm', ['run', 'typecheck']],
-    ['npm', ['test']],
-    ['npm', ['run', 'validate:fixtures']],
-    ['npm', ['run', 'build']],
-  ];
-  for (const [command, commandArgs] of commands) {
-    const result = spawnSync(command, commandArgs, { cwd: ROOT, stdio: 'inherit', env: process.env });
-    if (result.status !== 0) die(`${command} ${commandArgs.join(' ')} failed`);
-  }
-  git(['add', '--', ...exactPaths]);
-  const staged = git(['diff', '--cached', '--name-only']).split('\n').filter(Boolean).sort();
-  if (JSON.stringify(staged) !== JSON.stringify(exactPaths)) die(`staged paths mismatch: expected ${exactPaths.join(', ')}, got ${staged.join(', ')}`);
-  git(['diff', '--cached', '--check']);
-  git(['commit', '-m', flags['commit-message']]);
-  const branch = git(['branch', '--show-current']);
-  git(['push', '--set-upstream', 'origin', branch]);
-  const base = baseline().baseForStack;
-  let prs = json(gh(['pr', 'list', '--head', branch, '--json', 'number,url,state,baseRefName,headRefOid']));
-  let pr = prs.find((candidate) => candidate.state === 'OPEN');
-  if (!pr) {
-    const bodyPath = `/tmp/cic-terminal-pr-${issue.number}.md`;
-    writeFileSync(bodyPath, `## Problem\n\nDeliver issue ${issue.url} through isolated terminal workflow.\n\n## Changes\n\nAutomation commands, exact-path delivery, CI gates, and owner-gated merge.\n\n## Dependency\n\nBaseline PR #${CONFIG.baseline_pr} must merge before this PR targets master.\n\n## Verification\n\nCommands executed by task-done.\n\nCloses #${issue.number}\n`);
-    const createArgs = ['pr', 'create', '--base', base, '--head', branch, '--title', flags.title || flags['commit-message'], '--body-file', bodyPath];
-    if (base !== CONFIG.base_branch) createArgs.push('--draft');
-    const url = gh(createArgs);
-    unlinkSync(bodyPath);
-    pr = json(gh(['pr', 'view', url, '--json', 'number,url,state,baseRefName,headRefOid']));
-  }
-  if (pr.baseRefName !== base) die(`PR #${pr.number} base ${pr.baseRefName} does not match ${base}`);
-  if (pr.headRefOid !== testedHead) die(`PR #${pr.number} HEAD ${pr.headRefOid} does not match tested HEAD ${testedHead}`);
-  waitForCi(pr.number);
-  const verifiedHead = json(gh(['pr', 'view', String(pr.number), '--json', 'headRefOid'])).headRefOid;
-  if (verifiedHead !== testedHead) die(`PR #${pr.number} HEAD changed during CI: ${verifiedHead}`);
-  updateLabels(issue, ['status:review'], ['status:ready', 'status:blocked']);
-  mutateStatus(issue, 'Review');
-  writeState(issue, { repo: REPO, issue: issue.url, number: issue.number, branch, worktree: ROOT, head: git(['rev-parse', 'HEAD']), pr: pr.url, base, stage: 'review' });
-  console.log(JSON.stringify({ issue: issue.url, pr: pr.url, base, head: git(['rev-parse', 'HEAD']), status: 'Review' }, null, 2));
+  return withLock(() => {
+    const { positional, flags } = parseArgs(args);
+    const issue = resolveIssue(positional[0]);
+    assertWriteContext(issue);
+    const paths = String(flags.paths || '').split(',').filter(Boolean);
+    const exactPaths = checkExactPaths(paths);
+    if (!flags['commit-message']) die('task-done requires --commit-message');
+    if (!flags['body-file']) die('task-done requires --body-file with task-specific PR body');
+    const bodyPath = resolve(ROOT, flags['body-file']);
+    if (!existsSync(bodyPath)) die(`PR body file not found: ${flags['body-file']}`);
+    const body = readFileSync(bodyPath, 'utf8');
+    if (!/##\s+(Problem|Changes)/i.test(body) || !/##\s+(Verification|Acceptance)/i.test(body)) die('PR body must include Problem/Changes and Verification/Acceptance sections');
+    const before = git(['rev-parse', 'HEAD']);
+    const commands = [
+      ['npm', ['ci']], ['npm', ['run', 'lint']], ['npm', ['run', 'typecheck']], ['npm', ['test']],
+      ['npm', ['run', 'validate:fixtures']], ['npm', ['run', 'build']],
+    ];
+    for (const [command, commandArgs] of commands) {
+      const result = spawnSync(command, commandArgs, { cwd: ROOT, stdio: 'inherit', env: process.env });
+      if (result.status !== 0) die(`${command} ${commandArgs.join(' ')} failed`);
+    }
+    git(['add', '--', ...exactPaths]);
+    const staged = gitPathList(['diff', '--cached', '--name-only']).sort();
+    if (JSON.stringify(staged) !== JSON.stringify(exactPaths)) die(`staged paths mismatch: expected ${exactPaths.join(', ')}, got ${staged.join(', ')}`);
+    git(['diff', '--cached', '--check']);
+    git(['commit', '-m', flags['commit-message']]);
+    const testedHead = git(['rev-parse', 'HEAD']);
+    if (testedHead === before) die('commit did not advance HEAD');
+    const leftover = statusPaths();
+    if (leftover.length) die(`commit left working-tree changes: ${leftover.join(', ')}`);
+    const branch = git(['branch', '--show-current']);
+    if (!branch || branch === CONFIG.base_branch || branch === 'master') die(`delivery cannot push branch ${branch || 'detached HEAD'}`);
+    git(['push', '--set-upstream', 'origin', branch]);
+    const base = baseline().baseForStack;
+    const prs = json(gh(['pr', 'list', '--head', branch, '--json', 'number,url,state,baseRefName,headRefOid,body']));
+    let pr = prs.filter((candidate) => candidate.state === 'OPEN').find((candidate) => candidate.baseRefName === base);
+    if (!pr) {
+      const createArgs = ['pr', 'create', '--base', base, '--head', branch, '--title', flags.title || flags['commit-message'], '--body-file', bodyPath];
+      if (base !== CONFIG.base_branch) createArgs.push('--draft');
+      const url = gh(createArgs);
+      pr = json(gh(['pr', 'view', url, '--json', 'number,url,state,baseRefName,headRefOid,body']));
+    }
+    if (pr.baseRefName !== base) die(`PR #${pr.number} base ${pr.baseRefName} does not match ${base}`);
+    if (pr.headRefOid !== testedHead) die(`PR #${pr.number} HEAD ${pr.headRefOid} does not match tested HEAD ${testedHead}`);
+    waitForCi(pr.number);
+    const verified = json(gh(['pr', 'view', String(pr.number), '--json', 'headRefOid']));
+    if (verified.headRefOid !== testedHead) die(`PR #${pr.number} HEAD changed during CI: ${verified.headRefOid}`);
+    updateLabels(issue, ['status:review'], ['status:ready', 'status:blocked']);
+    mutateStatus(issue, 'Review');
+    writeState(issue, { repo: REPO, issue: issue.url, number: issue.number, branch, worktree: ROOT, head: testedHead, pr: pr.url, base, stage: 'review' });
+    console.log(JSON.stringify({ issue: issue.url, pr: pr.url, base, head: testedHead, status: 'Review' }, null, 2));
+  });
 }
 
 function mergeCommand(args) {
-  const { positional, flags } = parseArgs(args);
-  if (!flags.pr || !flags['approved-head']) die('task-merge requires --pr <number> --approved-head <sha>');
-  const issue = resolveIssue(positional[0]);
-  const pr = json(gh(['pr', 'view', String(flags.pr), '--json', 'state,baseRefName,headRefOid,url']));
-  validateMergeGuard(pr, flags['approved-head']);
-  ciChecks(flags.pr);
-  if (flags['dry-run']) {
-    console.log(`[dry-run] merge PR #${flags.pr} at ${flags['approved-head']}`);
-    return;
-  }
-  gh(['pr', 'merge', String(flags.pr), '--squash', '--match-head-commit', flags['approved-head']]);
-  const after = json(gh(['pr', 'view', String(flags.pr), '--json', 'state,mergedAt,mergeCommit,baseRefName']));
-  if (after.state !== 'MERGED' || !after.mergedAt || after.baseRefName !== CONFIG.base_branch) die(`merge readback failed for PR #${flags.pr}`);
-  const issueAfter = resolveIssue(issue.number.toString());
-  if (issueAfter.state !== 'CLOSED') die(`merged PR #${flags.pr} did not close ${issue.url}`);
-  mutateStatus(issueAfter, 'Done');
-  updateLabels(issueAfter, [], ['status:ready', 'status:review', 'status:blocked']);
-  console.log(JSON.stringify({ issue: issue.url, pr: pr.url, state: 'MERGED', status: 'Done' }, null, 2));
+  return withLock(() => {
+    const { positional, flags } = parseArgs(args);
+    if (!flags.pr || !flags['approved-head']) die('task-merge requires --pr <number> --approved-head <sha>');
+    const issue = resolveIssue(positional[0]);
+    const fields = 'number,state,mergedAt,mergeCommit,baseRefName,headRefOid,closingIssuesReferences,url,body';
+    let pr = json(gh(['pr', 'view', String(flags.pr), '--json', fields]));
+    if (pr.state === 'MERGED') {
+      validateDelivery(issue, pr);
+      if (flags['dry-run']) { console.log(`[dry-run] reconcile merged PR #${flags.pr}`); return; }
+      mutateStatus(issue, 'Done');
+      updateLabels(issue, [], ['status:ready', 'status:review', 'status:blocked']);
+      console.log(JSON.stringify({ issue: issue.url, pr: pr.url, state: 'MERGED', status: 'Done' }, null, 2));
+      return;
+    }
+    assertWriteContext(issue);
+    validateMergeGuard(pr, flags['approved-head']);
+    ciChecks(flags.pr);
+    if (flags['dry-run']) { console.log(`[dry-run] merge PR #${flags.pr} at ${flags['approved-head']}`); return; }
+    gh(['pr', 'merge', String(flags.pr), '--squash', '--match-head-commit', flags['approved-head']]);
+    pr = json(gh(['pr', 'view', String(flags.pr), '--json', fields]));
+    const issueAfter = resolveIssue(issue.number.toString());
+    validateDelivery(issueAfter, pr);
+    mutateStatus(issueAfter, 'Done');
+    updateLabels(issueAfter, [], ['status:ready', 'status:review', 'status:blocked']);
+    console.log(JSON.stringify({ issue: issue.url, pr: pr.url, state: 'MERGED', status: 'Done' }, null, 2));
+  });
 }
 
 function usage() {
@@ -435,7 +549,7 @@ function usage() {
   kanban.sh review <issue> [--dry-run]
   kanban.sh blocked <issue> --reason REASON [--dry-run]
   kanban.sh done <issue> --pr NUMBER [--dry-run]
-  task-done.sh <issue> --paths path1,path2 --commit-message MESSAGE
+  task-done.sh <issue> --paths path1,path2 --commit-message MESSAGE --body-file PR_BODY [--title "PR title"]
   task-merge.sh <issue> --pr NUMBER --approved-head SHA [--dry-run]`);
 }
 
@@ -454,5 +568,5 @@ function main() {
   die('unknown command; use --help');
 }
 
-export { assertRepoUrl, checkExactPaths, ciChecks, parseArgs, projectSnapshot, trackingStatus, validateChecks, validateMergeGuard };
+export { activeDependencies, assertRepoUrl, checkExactPaths, ciChecks, parseArgs, projectSnapshot, trackingStatus, validateChecks, validateDelivery, validateMergeGuard };
 if (process.argv[1] === fileURLToPath(import.meta.url)) main();

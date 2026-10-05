@@ -15,7 +15,7 @@ scripts/kanban.sh review 23 [--dry-run]
 scripts/kanban.sh blocked 23 --reason "dependency pending" [--dry-run]
 scripts/kanban.sh done 23 --pr 24 [--dry-run]
 scripts/task.sh 23 [--dry-run]
-scripts/task-done.sh 23 --paths path/to/file,path/to/test --commit-message "feat(scope): describe behavior" [--title "PR title"]
+scripts/task-done.sh 23 --paths path/to/file,path/to/test --commit-message "feat(scope): describe behavior" --body-file /tmp/task-23-pr.md [--title "PR title"]
 scripts/task-merge.sh 23 --pr 24 --approved-head SHA [--dry-run]
 ```
 
@@ -29,6 +29,8 @@ Issue arguments accept CIC issue numbers or full URLs. URL inputs must belong to
 
 `task-done.sh` runs `npm ci`, lint, typecheck, tests, fixture validation, build, whitespace checks, stages only explicit paths, commits, pushes feature branch, creates or reuses PR, waits for checks, and moves issue to `Review`. It never merges. PRs stack on baseline PR #22 while baseline remains open; after baseline merges, new delivery targets `master`.
 
+
+Write commands require repository origin, non-base branch, issue-bound state, isolated worktree, and stable task lock. `task-done.sh` requires `--body-file`; body must describe actual Problem/Changes and Verification/Acceptance, and must not promise closure for partial work.
 Retries read Git/GitHub state first. Existing Project items, worktrees, open PRs, and state files are reused only after identity/base checks. Failed auth, network, verification, commit, or push commands stop with non-success output.
 
 ## Merge boundary
