@@ -1,0 +1,838 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-10-05",
+  "repository": {
+    "owner": "anajibalm",
+    "name": "content-intelligence-copilot",
+    "url": "https://github.com/anajibalm/content-intelligence-copilot",
+    "visibility": "public",
+    "default_branch": "master"
+  },
+  "project": {
+    "title": "Content Intelligence Copilot MVP",
+    "visibility": "private",
+    "number": 1,
+    "url": "https://github.com/users/anajibalm/projects/1",
+    "id": "PVT_kwHOAz65Rs4Blun5"
+  },
+  "labels": [
+    {
+      "name": "priority:p0",
+      "description": "Core MVP or required runtime gate",
+      "color": "B60205"
+    },
+    {
+      "name": "priority:p1",
+      "description": "P1 enhancement",
+      "color": "D93F0B"
+    },
+    {
+      "name": "priority:p2",
+      "description": "Later backlog",
+      "color": "FBCA04"
+    },
+    {
+      "name": "area:engine",
+      "description": "Processing, domain, metrics, comparison, evidence",
+      "color": "1D76DB"
+    },
+    {
+      "name": "area:ui",
+      "description": "Application and analyst interface",
+      "color": "5319E7"
+    },
+    {
+      "name": "area:qa",
+      "description": "Verification, E2E, golden labels, acceptance",
+      "color": "0E8A16"
+    },
+    {
+      "name": "area:platform",
+      "description": "Runtime, persistence, provider, tracking platform",
+      "color": "006B75"
+    },
+    {
+      "name": "type:story",
+      "description": "Product implementation story",
+      "color": "C5DEF5"
+    },
+    {
+      "name": "type:integration",
+      "description": "Runtime or system integration gap",
+      "color": "BFDADC"
+    },
+    {
+      "name": "type:decision",
+      "description": "Product or contract decision",
+      "color": "D4C5F9"
+    },
+    {
+      "name": "type:chore",
+      "description": "Tracking, evidence, or maintenance task",
+      "color": "EDEDED"
+    },
+    {
+      "name": "status:ready",
+      "description": "Prerequisites for scoped work are met",
+      "color": "0E8A16"
+    },
+    {
+      "name": "status:review",
+      "description": "Evidence or product decision needs review",
+      "color": "FBCA04"
+    },
+    {
+      "name": "status:blocked",
+      "description": "Required dependency is incomplete",
+      "color": "B60205"
+    }
+  ],
+  "milestones": [
+    {
+      "title": "Core MVP",
+      "description": "S0-S10, S13, and required P0 runtime integration."
+    },
+    {
+      "title": "P1 Enhancements",
+      "description": "S11/S12 and explicit P1 additions."
+    },
+    {
+      "title": "P2",
+      "description": "Later backlog without Core MVP commitment."
+    }
+  ],
+  "items": [
+    {
+      "stable_key": "S0",
+      "title": "S0 — Bootstrap and source-of-truth lock",
+      "source_references": [
+        "docs/source/IMPLEMENTATION_PLAN_v0.1.md",
+        "docs/decisions/S0_S1_VERIFICATION.md"
+      ],
+      "priority": "P0",
+      "area": "qa",
+      "scope": "Canonical app, contracts, fixtures, and verification commands.",
+      "acceptance_criteria": [
+        "Frozen contracts remain visible",
+        "Candidate status is explicit",
+        "Fixtures validate",
+        "Recorded required commands pass"
+      ],
+      "verification_requirements": [
+        "Use dated S0 verification record"
+      ],
+      "proposed_status": "Done",
+      "status_reason": "S0 PASS is recorded with command evidence.",
+      "dependency_keys": [],
+      "milestone": "Core MVP",
+      "estimate_hours": null,
+      "issue_body": "docs/tracking/issues/S0.md",
+      "issue": {
+        "url": "https://github.com/anajibalm/content-intelligence-copilot/issues/1",
+        "number": 1,
+        "node_id": "I_kwDOU791uc8AAAABVBrmrQ"
+      },
+      "project_item_id": "PVTI_lAHOAz65Rs4Blun5zg-iX3E",
+      "sync_result": "created-and-linked"
+    },
+    {
+      "stable_key": "S1",
+      "title": "S1 — Schema and canonical types",
+      "source_references": [
+        "lib/domain/types.ts",
+        "supabase/migrations/0001_canonical_schema.sql",
+        "supabase/migrations/0002_discovery_candidate.sql",
+        "docs/decisions/S0_S1_VERIFICATION.md"
+      ],
+      "priority": "P0",
+      "area": "engine",
+      "scope": "Canonical types, migrations, candidate persistence, seed, and probes.",
+      "acceptance_criteria": [
+        "Organic/Paid stays on metric snapshots",
+        "Raw/derived separation holds",
+        "AI originals and append-only history are protected",
+        "Unknown config remains unconfigured"
+      ],
+      "verification_requirements": [
+        "Disposable PostgreSQL migration, idempotent seed, positive and negative probes"
+      ],
+      "proposed_status": "Done",
+      "status_reason": "S1 PASS is recorded; database is verification-only.",
+      "dependency_keys": [
+        "S0"
+      ],
+      "milestone": "Core MVP",
+      "estimate_hours": null,
+      "issue_body": "docs/tracking/issues/S1.md",
+      "issue": {
+        "url": "https://github.com/anajibalm/content-intelligence-copilot/issues/2",
+        "number": 2,
+        "node_id": "I_kwDOU791uc8AAAABVBroRg"
+      },
+      "project_item_id": "PVTI_lAHOAz65Rs4Blun5zg-iX4g",
+      "sync_result": "created-and-linked"
+    },
+    {
+      "stable_key": "S2",
+      "title": "S2 — TikTok URL ingestion and acquisition",
+      "source_references": [
+        "lib/acquisition/index.ts",
+        "lib/acquisition/ytdlp.ts",
+        "tests/unit/acquisition.test.mjs",
+        "docs/decisions/S2_CHECKPOINT_2026-10-05.md"
+      ],
+      "priority": "P0",
+      "area": "engine",
+      "scope": "URL normalization, provider-neutral adapters, retries, cleanup, and live spike boundary.",
+      "acceptance_criteria": [
+        "Invalid URLs reject",
+        "Canonical identity is stable",
+        "Raw payload is isolated",
+        "Retry and cleanup semantics are safe",
+        "Credentialed adapters are gated"
+      ],
+      "verification_requirements": [
+        "12/12 adapter tests and dated 10/10 yt-dlp spike evidence"
+      ],
+      "proposed_status": "Done",
+      "status_reason": "S2 deterministic and live spike gates PASS; runtime wiring remains R1.",
+      "dependency_keys": [
+        "S1"
+      ],
+      "milestone": "Core MVP",
+      "estimate_hours": null,
+      "issue_body": "docs/tracking/issues/S2.md",
+      "issue": {
+        "url": "https://github.com/anajibalm/content-intelligence-copilot/issues/3",
+        "number": 3,
+        "node_id": "I_kwDOU791uc8AAAABVBrqCw"
+      },
+      "project_item_id": "PVTI_lAHOAz65Rs4Blun5zg-iX5s",
+      "sync_result": "created-and-linked"
+    },
+    {
+      "stable_key": "S3",
+      "title": "S3 — Actual media processing and temporal evidence",
+      "source_references": [
+        "docs/source/IMPLEMENTATION_PLAN_v0.1.md",
+        "supabase/migrations/0001_canonical_schema.sql",
+        "supabase/migrations/0002_discovery_candidate.sql"
+      ],
+      "priority": "P0",
+      "area": "engine",
+      "scope": "ffprobe/ffmpeg/faster-whisper, transcript, frames, per-second inventory, and anchors.",
+      "acceptance_criteria": [
+        "Normalized acquisition output is consumed",
+        "Temporary media cleanup is safe",
+        "Observed facts stay separate",
+        "Transcript and frame timestamps are valid",
+        "AWT is not retention or causality"
+      ],
+      "verification_requirements": [
+        "Deterministic fake-tool tests and controlled actual-media smoke"
+      ],
+      "proposed_status": "Ready",
+      "status_reason": "S2 prerequisite is proven; S3 has not started.",
+      "dependency_keys": [
+        "S2"
+      ],
+      "milestone": "Core MVP",
+      "estimate_hours": null,
+      "issue_body": "docs/tracking/issues/S3.md",
+      "issue": {
+        "url": "https://github.com/anajibalm/content-intelligence-copilot/issues/4",
+        "number": 4,
+        "node_id": "I_kwDOU791uc8AAAABVBrsZA"
+      },
+      "project_item_id": "PVTI_lAHOAz65Rs4Blun5zg-iX7g",
+      "sync_result": "created-and-linked"
+    },
+    {
+      "stable_key": "S4",
+      "title": "S4 — Fingerprint extraction and correction",
+      "source_references": [
+        "lib/domain/types.ts",
+        "docs/contracts/MVP_CONTRACT_v0.1_FROZEN.md",
+        "docs/source/IMPLEMENTATION_PLAN_v0.1.md"
+      ],
+      "priority": "P0",
+      "area": "engine",
+      "scope": "Structured extraction, versioning, AI originals, corrections, and review history.",
+      "acceptance_criteria": [
+        "AI output is versioned and immutable",
+        "Reviewed value is separate",
+        "Corrections append history",
+        "Confidence cap is deterministic",
+        "Preferences stay separate"
+      ],
+      "verification_requirements": [
+        "Extraction, correction, and confidence-cap tests"
+      ],
+      "proposed_status": "Blocked",
+      "status_reason": "Requires S3 media evidence.",
+      "dependency_keys": [
+        "S3"
+      ],
+      "milestone": "Core MVP",
+      "estimate_hours": null,
+      "issue_body": "docs/tracking/issues/S4.md",
+      "issue": {
+        "url": "https://github.com/anajibalm/content-intelligence-copilot/issues/5",
+        "number": 5,
+        "node_id": "I_kwDOU791uc8AAAABVBrvrA"
+      },
+      "project_item_id": "PVTI_lAHOAz65Rs4Blun5zg-iX9k",
+      "sync_result": "created-and-linked"
+    },
+    {
+      "stable_key": "S5",
+      "title": "S5 — Metrics, KPI, ranking, and rules",
+      "source_references": [
+        "docs/decisions/DISCOVERY_DELTA_2026-10-05.md",
+        "supabase/migrations/0002_discovery_candidate.sql",
+        "lib/domain/types.ts"
+      ],
+      "priority": "P0",
+      "area": "engine",
+      "scope": "Metric quality, derived metrics, KPI assessment, ranking config, and sample guards.",
+      "acceptance_criteria": [
+        "Organic/Paid baselines stay separate",
+        "Access missing differs from error",
+        "KPI targets differ from benchmarks",
+        "AWT requires brand approval",
+        "No universal Best Overall"
+      ],
+      "verification_requirements": [
+        "Pure rule tests and persistence probes"
+      ],
+      "proposed_status": "Ready",
+      "status_reason": "S1 persistence is proven; S5 has not started.",
+      "dependency_keys": [
+        "S1"
+      ],
+      "milestone": "Core MVP",
+      "estimate_hours": null,
+      "issue_body": "docs/tracking/issues/S5.md",
+      "issue": {
+        "url": "https://github.com/anajibalm/content-intelligence-copilot/issues/6",
+        "number": 6,
+        "node_id": "I_kwDOU791uc8AAAABVBryCQ"
+      },
+      "project_item_id": "PVTI_lAHOAz65Rs4Blun5zg-iX_4",
+      "sync_result": "created-and-linked"
+    },
+    {
+      "stable_key": "S6",
+      "title": "S6 — Batch Workspace UI",
+      "source_references": [
+        "app/page.tsx",
+        "docs/architecture/README.md",
+        "docs/source/IMPLEMENTATION_PLAN_v0.1.md"
+      ],
+      "priority": "P0",
+      "area": "ui",
+      "scope": "Contract-defined batch workspace, content surface, states, and analyst entry points.",
+      "acceptance_criteria": [
+        "Batch membership is explicit",
+        "Organic/Paid is visible",
+        "States are truthful",
+        "Empty/error/unavailable states are accessible",
+        "Runtime data replaces fixture-only path"
+      ],
+      "verification_requirements": [
+        "Fixture browser smoke and post-R1 runtime smoke"
+      ],
+      "proposed_status": "Review",
+      "status_reason": "Fixture shell exists; runtime surface is incomplete.",
+      "dependency_keys": [
+        "S1"
+      ],
+      "milestone": "Core MVP",
+      "estimate_hours": null,
+      "issue_body": "docs/tracking/issues/S6.md",
+      "issue": {
+        "url": "https://github.com/anajibalm/content-intelligence-copilot/issues/7",
+        "number": 7,
+        "node_id": "I_kwDOU791uc8AAAABVBr0yw"
+      },
+      "project_item_id": "PVTI_lAHOAz65Rs4Blun5zg-iYBg",
+      "sync_result": "created-and-linked"
+    },
+    {
+      "stable_key": "S7",
+      "title": "S7 — Controlled Compare",
+      "source_references": [
+        "lib/domain/types.ts",
+        "docs/contracts/MVP_CONTRACT_v0.1_FROZEN.md",
+        "docs/decisions/DISCOVERY_DELTA_2026-10-05.md"
+      ],
+      "priority": "P0",
+      "area": "engine",
+      "scope": "Pair/group/batch compare with explicit variables and frozen snapshots.",
+      "acceptance_criteria": [
+        "Selection order is preserved",
+        "Snapshot IDs are frozen",
+        "Distribution is explicit",
+        "Variables are recorded",
+        "No universal winner"
+      ],
+      "verification_requirements": [
+        "Pair/group/batch, quality, immutability, and empty-selection tests"
+      ],
+      "proposed_status": "Blocked",
+      "status_reason": "Requires S4, S5, and S6.",
+      "dependency_keys": [
+        "S4",
+        "S5",
+        "S6"
+      ],
+      "milestone": "Core MVP",
+      "estimate_hours": null,
+      "issue_body": "docs/tracking/issues/S7.md",
+      "issue": {
+        "url": "https://github.com/anajibalm/content-intelligence-copilot/issues/8",
+        "number": 8,
+        "node_id": "I_kwDOU791uc8AAAABVBr3gA"
+      },
+      "project_item_id": "PVTI_lAHOAz65Rs4Blun5zg-iYD8",
+      "sync_result": "created-and-linked"
+    },
+    {
+      "stable_key": "S8",
+      "title": "S8 — Evidence and hypothesis",
+      "source_references": [
+        "lib/domain/types.ts",
+        "supabase/migrations/0001_canonical_schema.sql",
+        "docs/source/IMPLEMENTATION_PLAN_v0.1.md"
+      ],
+      "priority": "P0",
+      "area": "engine",
+      "scope": "Provenance-linked evidence and hypotheses with deterministic caps.",
+      "acceptance_criteria": [
+        "Evidence layers stay distinct",
+        "Hypotheses cite evidence",
+        "Sources are immutable",
+        "Caps override LLM output",
+        "Suspect metrics cannot support strong claims"
+      ],
+      "verification_requirements": [
+        "Missing-source, layer, cap, and provenance tests"
+      ],
+      "proposed_status": "Blocked",
+      "status_reason": "Requires S4, S5, and S7.",
+      "dependency_keys": [
+        "S4",
+        "S5",
+        "S7"
+      ],
+      "milestone": "Core MVP",
+      "estimate_hours": null,
+      "issue_body": "docs/tracking/issues/S8.md",
+      "issue": {
+        "url": "https://github.com/anajibalm/content-intelligence-copilot/issues/9",
+        "number": 9,
+        "node_id": "I_kwDOU791uc8AAAABVBr5rA"
+      },
+      "project_item_id": "PVTI_lAHOAz65Rs4Blun5zg-iYGs",
+      "sync_result": "created-and-linked"
+    },
+    {
+      "stable_key": "S9",
+      "title": "S9 — Analyst review and golden labels",
+      "source_references": [
+        "lib/domain/types.ts",
+        "supabase/migrations/0001_canonical_schema.sql",
+        "docs/source/IMPLEMENTATION_PLAN_v0.1.md"
+      ],
+      "priority": "P0",
+      "area": "qa",
+      "scope": "Review decisions, corrections, append-only history, and golden labels.",
+      "acceptance_criteria": [
+        "Decisions and reasons are explicit",
+        "AI originals remain",
+        "History is append-only",
+        "Golden labels are traceable",
+        "Edited hypotheses retain evidence"
+      ],
+      "verification_requirements": [
+        "Transition, append-only, and golden-set tests"
+      ],
+      "proposed_status": "Blocked",
+      "status_reason": "Requires S4 and S8.",
+      "dependency_keys": [
+        "S4",
+        "S8"
+      ],
+      "milestone": "Core MVP",
+      "estimate_hours": null,
+      "issue_body": "docs/tracking/issues/S9.md",
+      "issue": {
+        "url": "https://github.com/anajibalm/content-intelligence-copilot/issues/10",
+        "number": 10,
+        "node_id": "I_kwDOU791uc8AAAABVBr8aQ"
+      },
+      "project_item_id": "PVTI_lAHOAz65Rs4Blun5zg-iYIg",
+      "sync_result": "created-and-linked"
+    },
+    {
+      "stable_key": "S10",
+      "title": "S10 — Notes and Next Test",
+      "source_references": [
+        "lib/domain/types.ts",
+        "docs/contracts/MVP_CONTRACT_v0.1_FROZEN.md",
+        "docs/source/IMPLEMENTATION_PLAN_v0.1.md"
+      ],
+      "priority": "P0",
+      "area": "ui",
+      "scope": "Human notes and structured Next Test persistence.",
+      "acceptance_criteria": [
+        "Notes are not automatic evidence",
+        "Next Test has structured fields",
+        "Statuses persist",
+        "Reload retains state"
+      ],
+      "verification_requirements": [
+        "Persistence and reload tests"
+      ],
+      "proposed_status": "Blocked",
+      "status_reason": "Requires S8 and S9.",
+      "dependency_keys": [
+        "S8",
+        "S9"
+      ],
+      "milestone": "Core MVP",
+      "estimate_hours": null,
+      "issue_body": "docs/tracking/issues/S10.md",
+      "issue": {
+        "url": "https://github.com/anajibalm/content-intelligence-copilot/issues/11",
+        "number": 11,
+        "node_id": "I_kwDOU791uc8AAAABVBr-FQ"
+      },
+      "project_item_id": "PVTI_lAHOAz65Rs4Blun5zg-iYKg",
+      "sync_result": "created-and-linked"
+    },
+    {
+      "stable_key": "S11",
+      "title": "S11 — Ads CSV and paid enrichment",
+      "source_references": [
+        "docs/source/IMPLEMENTATION_PLAN_v0.1.md",
+        "docs/contracts/MVP_CONTRACT_v0.1_FROZEN.md"
+      ],
+      "priority": "P1",
+      "area": "engine",
+      "scope": "Paid observation import with quality and provenance.",
+      "acceptance_criteria": [
+        "Paid context is explicit",
+        "Raw/derived separation holds",
+        "CSV errors are reported",
+        "Organic isolation holds"
+      ],
+      "verification_requirements": [
+        "Import fixtures and isolation probes"
+      ],
+      "proposed_status": "Backlog",
+      "status_reason": "P1; does not block Core MVP.",
+      "dependency_keys": [
+        "S5"
+      ],
+      "milestone": "P1 Enhancements",
+      "estimate_hours": null,
+      "issue_body": "docs/tracking/issues/S11.md",
+      "issue": {
+        "url": "https://github.com/anajibalm/content-intelligence-copilot/issues/12",
+        "number": 12,
+        "node_id": "I_kwDOU791uc8AAAABVBsApg"
+      },
+      "project_item_id": "PVTI_lAHOAz65Rs4Blun5zg-iYMk",
+      "sync_result": "created-and-linked"
+    },
+    {
+      "stable_key": "S12",
+      "title": "S12 — Consumer Says Lite",
+      "source_references": [
+        "docs/source/IMPLEMENTATION_PLAN_v0.1.md",
+        "docs/decisions/DISCOVERY_DELTA_2026-10-05.md"
+      ],
+      "priority": "P1",
+      "area": "ui",
+      "scope": "Sentiment with sample guards, counts, quotes, and empty state.",
+      "acceptance_criteria": [
+        "Sentiment stays separate from themes",
+        "Counts/quotes retain provenance",
+        "Insufficient sample is explicit",
+        "No seed comments invented"
+      ],
+      "verification_requirements": [
+        "Sentiment and sample guard fixture tests"
+      ],
+      "proposed_status": "Backlog",
+      "status_reason": "P1; does not block Core MVP.",
+      "dependency_keys": [
+        "S6"
+      ],
+      "milestone": "P1 Enhancements",
+      "estimate_hours": null,
+      "issue_body": "docs/tracking/issues/S12.md",
+      "issue": {
+        "url": "https://github.com/anajibalm/content-intelligence-copilot/issues/13",
+        "number": 13,
+        "node_id": "I_kwDOU791uc8AAAABVBsDUA"
+      },
+      "project_item_id": "PVTI_lAHOAz65Rs4Blun5zg-iYPQ",
+      "sync_result": "created-and-linked"
+    },
+    {
+      "stable_key": "S13",
+      "title": "S13 — Core E2E and freeze",
+      "source_references": [
+        "docs/source/IMPLEMENTATION_PLAN_v0.1.md",
+        "docs/decisions/S2_CHECKPOINT_2026-10-05.md"
+      ],
+      "priority": "P0",
+      "area": "qa",
+      "scope": "Real URL to reviewed hypothesis, Next Test, reload, and final acceptance.",
+      "acceptance_criteria": [
+        "Real content completes path",
+        "Runtime DB and worker are exercised",
+        "Failure states are truthful",
+        "Reload persists",
+        "Freeze follows explicit decision"
+      ],
+      "verification_requirements": [
+        "Permanent E2E, acceptance checklist, golden-set evaluation"
+      ],
+      "proposed_status": "Blocked",
+      "status_reason": "Requires S1-S10 and R1.",
+      "dependency_keys": [
+        "S1",
+        "S2",
+        "S3",
+        "S4",
+        "S5",
+        "S6",
+        "S7",
+        "S8",
+        "S9",
+        "S10",
+        "R1"
+      ],
+      "milestone": "Core MVP",
+      "estimate_hours": null,
+      "issue_body": "docs/tracking/issues/S13.md",
+      "issue": {
+        "url": "https://github.com/anajibalm/content-intelligence-copilot/issues/14",
+        "number": 14,
+        "node_id": "I_kwDOU791uc8AAAABVBsFnw"
+      },
+      "project_item_id": "PVTI_lAHOAz65Rs4Blun5zg-iYQg",
+      "sync_result": "created-and-linked"
+    },
+    {
+      "stable_key": "A0",
+      "title": "A0 — Architecture delivery retrospective",
+      "source_references": [
+        "docs/architecture/README.md",
+        "docs/architecture/current-through-s2.visual-check.json",
+        "docs/architecture/target-mvp.visual-check.json"
+      ],
+      "priority": "P2",
+      "area": "qa",
+      "scope": "Human review of architecture diagrams after automated evidence.",
+      "acceptance_criteria": [
+        "Current/target boundaries match source",
+        "Pending work is marked",
+        "Human review is separate from automation"
+      ],
+      "verification_requirements": [
+        "Review visual-check receipts and record human decision"
+      ],
+      "proposed_status": "Review",
+      "status_reason": "Automated evidence passed; human perceptual review pending.",
+      "dependency_keys": [],
+      "milestone": "P2",
+      "estimate_hours": null,
+      "issue_body": "docs/tracking/issues/A0.md",
+      "issue": {
+        "url": "https://github.com/anajibalm/content-intelligence-copilot/issues/15",
+        "number": 15,
+        "node_id": "I_kwDOU791uc8AAAABVBsG6A"
+      },
+      "project_item_id": "PVTI_lAHOAz65Rs4Blun5zg-iYSE",
+      "sync_result": "created-and-linked"
+    },
+    {
+      "stable_key": "R1",
+      "title": "R1 — Application runtime integration",
+      "source_references": [
+        "app/page.tsx",
+        "lib/acquisition/index.ts",
+        "docs/architecture/README.md",
+        "docs/source/IMPLEMENTATION_PLAN_v0.1.md"
+      ],
+      "priority": "P0",
+      "area": "platform",
+      "scope": "Runtime DB, Next.js ingestion boundary, durable dispatch/state, and worker handoff.",
+      "acceptance_criteria": [
+        "Route uses canonical acquisition boundary",
+        "Runtime DB is truthful",
+        "State survives reload/restart",
+        "Worker handoff is durable without Redis/Kafka",
+        "Fixture path is isolated"
+      ],
+      "verification_requirements": [
+        "Disposable DB + fake-provider integration and failure scenarios"
+      ],
+      "proposed_status": "Blocked",
+      "status_reason": "Not started; required for real E2E.",
+      "dependency_keys": [
+        "S1",
+        "S2"
+      ],
+      "milestone": "Core MVP",
+      "estimate_hours": null,
+      "issue_body": "docs/tracking/issues/R1.md",
+      "issue": {
+        "url": "https://github.com/anajibalm/content-intelligence-copilot/issues/16",
+        "number": 16,
+        "node_id": "I_kwDOU791uc8AAAABVBsIMw"
+      },
+      "project_item_id": "PVTI_lAHOAz65Rs4Blun5zg-iYTc",
+      "sync_result": "created-and-linked"
+    },
+    {
+      "stable_key": "C1",
+      "title": "C1 — Candidate contract conflict audit and product decision",
+      "source_references": [
+        "docs/contracts/DATA_CONTRACT_v0.2_CANDIDATE.md",
+        "docs/decisions/DISCOVERY_DELTA_2026-10-05.md",
+        "docs/contracts/MVP_CONTRACT_v0.1_FROZEN.md"
+      ],
+      "priority": "P0",
+      "area": "platform",
+      "scope": "Decide candidate discovery additions before any contract freeze.",
+      "acceptance_criteria": [
+        "AWT/ranking decision explicit",
+        "KPI/benchmark distinction explicit",
+        "Access/data error distinction explicit",
+        "Temporal causality boundary explicit",
+        "Language/comparison decisions explicit"
+      ],
+      "verification_requirements": [
+        "Decision record with accepted, rejected, and unknown items"
+      ],
+      "proposed_status": "Review",
+      "status_reason": "Candidate audit remains open; v0.2 is not frozen.",
+      "dependency_keys": [],
+      "milestone": "Core MVP",
+      "estimate_hours": null,
+      "issue_body": "docs/tracking/issues/C1.md",
+      "issue": {
+        "url": "https://github.com/anajibalm/content-intelligence-copilot/issues/17",
+        "number": 17,
+        "node_id": "I_kwDOU791uc8AAAABVBsKIA"
+      },
+      "project_item_id": "PVTI_lAHOAz65Rs4Blun5zg-iYUs",
+      "sync_result": "created-and-linked"
+    },
+    {
+      "stable_key": "E1",
+      "title": "E1 — Durable sanitized S1/S2 receipts",
+      "source_references": [
+        "docs/decisions/S0_S1_VERIFICATION.md",
+        "docs/decisions/S2_CHECKPOINT_2026-10-05.md",
+        "/tmp/cic-s2-live/summary.json"
+      ],
+      "priority": "P1",
+      "area": "qa",
+      "scope": "Preserve safe verification summaries and hashes outside /tmp.",
+      "acceptance_criteria": [
+        "Evidence is durable or explicitly unavailable",
+        "Hashes are recorded",
+        "No media/secrets/payloads copied",
+        "Historical date/runner remains visible"
+      ],
+      "verification_requirements": [
+        "Checksum, manifest, and ignore-rule validation"
+      ],
+      "proposed_status": "Ready",
+      "status_reason": "Durability is a known tracking gap; live summary currently exists in /tmp.",
+      "dependency_keys": [],
+      "milestone": "P1 Enhancements",
+      "estimate_hours": null,
+      "issue_body": "docs/tracking/issues/E1.md",
+      "issue": {
+        "url": "https://github.com/anajibalm/content-intelligence-copilot/issues/18",
+        "number": 18,
+        "node_id": "I_kwDOU791uc8AAAABVBsMMA"
+      },
+      "project_item_id": "PVTI_lAHOAz65Rs4Blun5zg-iYWs",
+      "sync_result": "created-and-linked"
+    },
+    {
+      "stable_key": "P1-ADDITIONS",
+      "title": "P1 additions — Brand Overview, provider fallback, richer retry UI",
+      "source_references": [
+        "docs/source/IMPLEMENTATION_PLAN_v0.1.md",
+        "lib/acquisition/index.ts",
+        "app/page.tsx"
+      ],
+      "priority": "P1",
+      "area": "ui",
+      "scope": "Track explicit P1 enhancements not duplicated by S11/S12.",
+      "acceptance_criteria": [
+        "Brand Overview is objective-aware",
+        "Fallback is credential-gated and reason-aware",
+        "Retry UI reflects canonical states"
+      ],
+      "verification_requirements": [
+        "Focused UI/provider tests after runtime state contract"
+      ],
+      "proposed_status": "Backlog",
+      "status_reason": "P1 backlog; runtime state contract absent.",
+      "dependency_keys": [
+        "S5",
+        "R1"
+      ],
+      "milestone": "P1 Enhancements",
+      "estimate_hours": null,
+      "issue_body": "docs/tracking/issues/P1-ADDITIONS.md",
+      "issue": {
+        "url": "https://github.com/anajibalm/content-intelligence-copilot/issues/19",
+        "number": 19,
+        "node_id": "I_kwDOU791uc8AAAABVBsOdg"
+      },
+      "project_item_id": "PVTI_lAHOAz65Rs4Blun5zg-iYX4",
+      "sync_result": "created-and-linked"
+    },
+    {
+      "stable_key": "P2-BACKLOG",
+      "title": "P2 — Later backlog",
+      "source_references": [
+        "docs/source/IMPLEMENTATION_PLAN_v0.1.md"
+      ],
+      "priority": "P2",
+      "area": "platform",
+      "scope": "Explicit later backlog without Core MVP commitment.",
+      "acceptance_criteria": [
+        "Each item receives product, discovery, security, and acceptance review before Ready",
+        "No P2 item blocks Core MVP"
+      ],
+      "verification_requirements": [
+        "Create child issues only after scope is known"
+      ],
+      "proposed_status": "Backlog",
+      "status_reason": "Plan explicitly excludes these from today’s build.",
+      "dependency_keys": [],
+      "milestone": "P2",
+      "estimate_hours": null,
+      "issue_body": "docs/tracking/issues/P2-BACKLOG.md",
+      "issue": {
+        "url": "https://github.com/anajibalm/content-intelligence-copilot/issues/20",
+        "number": 20,
+        "node_id": "I_kwDOU791uc8AAAABVBsP0w"
+      },
+      "project_item_id": "PVTI_lAHOAz65Rs4Blun5zg-iYZM",
+      "sync_result": "created-and-linked"
+    }
+  ]
+}

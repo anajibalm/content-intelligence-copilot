@@ -1,0 +1,19 @@
+{
+  "evidence_date": "2026-10-05",
+  "runner": "python3 spikes/video-acquisition/video-acquisition-spike/spike_acquisition.py",
+  "source": "spikes/video-acquisition/video-acquisition-spike/barakat_batch8_urls.csv",
+  "limit": 10,
+  "total": 10,
+  "completed": 10,
+  "success_rate": 1.0,
+  "human_handoffs": 0,
+  "median_latency_s": 9.404,
+  "routes": {"yt-dlp": 10},
+  "notes": [
+    "Historical S2 checkpoint evidence; not a new live acquisition run.",
+    "No provider payloads, credentials, signed URLs, or media copied.",
+    "Paid providers were not called.",
+    "Temporary media was deleted by spike cleanup."
+  ],
+  "source_sha256": "not computed at tracking checkpoint"
+}
