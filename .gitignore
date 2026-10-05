@@ -14,3 +14,10 @@ temp/
 *.wav
 spike_output/
 _bmad/render/
+
+# TypeScript build info
+*.tsbuildinfo
+
+# BMAD tool (local only)
+_bmad/
+_bmad-output/
