@@ -2,7 +2,7 @@
 
 ## Prasyarat
 
-- Node.js 20+
+- Node.js `22.18.0` dari `.node-version`
 - npm
 - Git
 
@@ -12,25 +12,28 @@
 
 Sebelum ngoding, baca:
 
-- `AGENTS.md` — aturan domain
-- `docs/source/PRD_v0.1_Content_Intelligence_Copilot.md`
-- `docs/source/IMPLEMENTATION_PLAN_v0.1.md`
+- `AGENTS.md`
+- `VIBE_CODING_PROTOCOL.md`
 - `docs/contracts/MVP_CONTRACT_v0.1_FROZEN.md`
 - `docs/contracts/DONOR_MAP_FROZEN_v0.1.md`
+- `docs/contracts/DATA_CONTRACT_v0.2_CANDIDATE.md`
+- `docs/source/PRD_v0.1_Content_Intelligence_Copilot.md`
+- `docs/source/IMPLEMENTATION_PLAN_v0.1.md`
+- `docs/decisions/`
 - `docs/tracking/PLAN_COVERAGE.md`
 - `docs/tracking/resume.md`
 - `docs/tracking/github-issues.manifest.json`
 
 ### 2. Ambil Task
 
-- Cek `docs/tracking/github-issues.manifest.json`
-- Cek `docs/tracking/issues/` untuk detail task
-- Hanya kerjakan task yang sudah disetujui
-- Maksimal 1 task aktif
+- Cek issue dengan stable marker dan `docs/tracking/github-issues.manifest.json`.
+- Cek `docs/tracking/issues/` untuk detail task.
+- Maksimal satu task aktif.
+- Selaraskan issue status dengan custom Project `Tracking Status`: Backlog, Ready, In Progress, Review, Blocked, Done.
 
 ### 3. Bikin Branch
 
-Format: `<type>/<scope>`
+Format: `<type>/<scope>`; delivery ke `master` selalu melalui PR.
 
 - `feat/<scope>` — fitur baru
 - `fix/<scope>` — bug fix
@@ -39,109 +42,93 @@ Format: `<type>/<scope>`
 - `test/<scope>` — test
 - `refactor/<scope>` — refactor
 
-Contoh: `feat/s2-live-summary`, `fix/supabase-rls`
-
 ### 4. Commit
 
-Conventional Commits:
+Conventional Commits: `feat(scope):`, `fix(scope):`, `docs(scope):`, `chore(scope):`, `test(scope):`, `refactor(scope):`.
 
-- `feat(<scope>): ...`
-- `fix(<scope>): ...`
-- `docs(<scope>): ...`
-- `chore(<scope>): ...`
-- `test(<scope>): ...`
-- `refactor(<scope>): ...`
-
-Aturan:
-
-- Satu logical change per commit
-- Jangan campur feature/bug/cleanup/dependency/documentation
-- Commit message bahasa Inggris, imperatif
-- Body boleh bahasa Indonesia
+- Satu logical change per commit.
+- Jangan campur feature/bug/cleanup/dependency/documentation.
+- Commit message bahasa Inggris, imperatif.
 
 ### 5. Sebelum Push
 
-Wajib jalankan:
-
+    npm ci
     npm run lint
     npm run typecheck
     npm test
+    npm run validate:fixtures
     npm run build
+    git diff --check
 
-Semua harus lulus. Kalau gagal, perbaiki dulu.
+Semua harus lulus pada Node.js `22.18.0`. CI tidak memanggil paid acquisition providers atau production DB.
 
 ### 6. PR
 
-- Push ke branch yang sama
-- Bikin PR ke `master`
-- Isi deskripsi PR dengan link ke issue
-- Link ke contract kalau relevan
-- Screenshot kalau ada perubahan UI
+- Push ke feature branch, bukan `master`.
+- Bikin PR ke `master`.
+- Isi template dengan task ID, scope, acceptance, verification, decision, dan remaining limits.
+- Link contract/decision relevan.
+- Jangan klaim merged sebelum owner review dan merge aktual.
 
-### 7. Review
+### 7. Review dan Merge
 
-- Reviewer: owner
-- Cek: scope, acceptance criteria, verification
-- Tidak merge tanpa approval
+- Reviewer: owner.
+- Cek: scope, authority, acceptance criteria, verification, dan remaining limits.
+- Tidak merge tanpa approval owner.
+- Squash merge ke `master` hanya setelah approval.
 
-### 8. Merge
-
-- Squash merge ke `master`
-- Hapus branch setelah merge
-
-## Arti Label GitHub
-
-### Tipe
-- `bug` — perbaikan bug
-- `feat` — fitur baru
-- `docs` — dokumentasi
-- `chore` — housekeeping
-- `test` — test
-- `refactor` — refactor
+## Label GitHub Aktual
 
 ### Prioritas
-- `priority:high` — urgent
-- `priority:medium` — normal
-- `priority:low` — nice to have
 
-### Status
-- `ready` — siap dikerjakan
-- `in-progress` — sedang dikerjakan
-- `blocked` — terblokir
-- `done` — selesai
+- `priority:p0`, `priority:p1`, `priority:p2`
+
+### Area
+
+- `area:engine`, `area:ui`, `area:qa`, `area:platform`
+
+### Tipe
+
+- `type:story`, `type:integration`, `type:decision`, `type:chore`
+
+### Status label dan Project status
+
+- `status:ready`, `status:review`, `status:blocked`
+- Project custom `Tracking Status`: `Backlog`, `Ready`, `In Progress`, `Review`, `Blocked`, `Done`.
+- GitHub issue open/closed tetap dibaca sebagai state issue; jangan menyamakan built-in Project `Status` dengan custom `Tracking Status`.
 
 ## Definition of Done
 
-- [ ] Scope files jelas & terpenuhi
-- [ ] Acceptance criteria terpenuhi
-- [ ] `npm run lint` lulus
-- [ ] `npm run typecheck` lulus
-- [ ] `npm test` lulus
-- [ ] `npm run build` lulus
-- [ ] Docs diupdate kalau perlu
-- [ ] Tidak ada secret/artifact yang ke-commit
-- [ ] Owner approval (untuk perubahan material)
+- [ ] Scope files jelas dan terpenuhi.
+- [ ] Acceptance criteria terpenuhi.
+- [ ] `npm run lint` lulus.
+- [ ] `npm run typecheck` lulus.
+- [ ] `npm test` lulus.
+- [ ] `npm run validate:fixtures` lulus.
+- [ ] `npm run build` lulus.
+- [ ] `git diff --check` lulus.
+- [ ] Docs/tracking/decision diupdate bila authority, path, status, atau evidence berubah.
+- [ ] Tidak ada secret, transient URL, media, atau runtime artifact yang di-commit.
 
 ## Yang Tidak Boleh Dilakukan
 
-- Push langsung ke `master`
-- Merge tanpa approval owner
-- Commit secrets, `.env`, atau transient CDN URLs
-- Commit `node_modules/`, `.next/`, `*.tsbuildinfo`
-- Campur feature/bug/cleanup dalam satu commit
-- Ubah contract tanpa approval
+- Push langsung ke `master` atau force push.
+- `git add .` tanpa review exact paths.
+- Commit secrets, `.env`, `node_modules/`, `.next/`, `*.tsbuildinfo`, provider payloads, atau downloaded media.
+- Campur feature/bug/cleanup/dependency/documentation dalam satu commit.
+- Ubah frozen contract atau donor boundary tanpa decision/approval.
+- Klaim runtime DB, provider live proof, UI functionality, atau CI green tanpa evidence aktual.
 
 ## Setup Development
 
-1. Clone repo
-2. `cp .env.example .env` — isi credentials
-3. `npm install`
-4. `npm run dev`
-5. Buka http://localhost:3000
+1. Clone repository.
+2. Pastikan Node.js `22.18.0` aktif dari `.node-version`.
+3. `cp .env.example .env` hanya untuk path yang membutuhkan environment.
+4. `npm ci`.
+5. `npm run dev` untuk fixture-backed current UI.
 
 ## Butuh Bantuan?
 
-- Baca `AGENTS.md`
-- Baca `docs/source/` dan `docs/contracts/`
-- Tanya owner
-- Jangan nebak
+- Baca `AGENTS.md`, `VIBE_CODING_PROTOCOL.md`, contracts, decisions, dan tracking docs.
+- Tanya owner hanya untuk keputusan produk/authority yang belum terselesaikan.
+- Jangan menebak.

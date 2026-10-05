@@ -2,7 +2,7 @@
 name: Bug Report
 about: Laporkan bug di Content Intelligence Copilot
 title: '[BUG] '
-labels: 'bug, priority:high'
+labels: 'priority:p0, area:platform, type:integration'
 assignees: ''
 ---
 
