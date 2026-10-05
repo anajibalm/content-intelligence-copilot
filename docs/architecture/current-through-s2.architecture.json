@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {"title":"Content Intelligence Copilot — Current Through S2","output":"current-through-s2.html","quality_profile":"showcase","views":[{"id":"surface","label":"App surface","focus":["analyst","next","fixtures","types"],"note":"Fixture-backed route and domain modules."},{"id":"acquisition","label":"Acquisition","focus":["tiktok","runner","ytdlp","media"],"note":"Live-tested spike path and temporary media."},{"id":"verification","label":"Verification","focus":["migration","pg","probes"],"note":"Disposable database only."}]},
+  "components":[
+    {"id":"analyst","type":"external","label":"Analyst","sublabel":"browser user","pos":[40,60],"size":[140,50],"tag":"current"},
+    {"id":"next","type":"frontend","label":"Next.js app","sublabel":"app/page.tsx","pos":[240,60],"size":[160,50],"tag":"fixture-backed"},
+    {"id":"fixtures","type":"backend","label":"Canonical fixtures","sublabel":"JSON validator","pos":[460,60],"size":[170,50],"tag":"fixture-only"},
+    {"id":"types","type":"backend","label":"Domain types","sublabel":"S1 TypeScript","pos":[680,60],"size":[160,50],"tag":"implemented"},
+    {"id":"tiktok","type":"external","label":"TikTok URLs","sublabel":"public source","pos":[40,220],"size":[150,50],"tag":"external"},
+    {"id":"runner","type":"backend","label":"Acquisition spike","sublabel":"Python runner","pos":[260,220],"size":[180,50],"tag":"live-tested"},
+    {"id":"ytdlp","type":"external","label":"yt-dlp","sublabel":"10/10 live","pos":[500,220],"size":[160,50],"tag":"live-tested"},
+    {"id":"media","type":"cloud","label":"Temporary media","sublabel":"delete after derivatives","pos":[720,220],"size":[190,50],"tag":"temporary"},
+    {"id":"migration","type":"backend","label":"Migrations + seed","sublabel":"SQL","pos":[40,380],"size":[170,50],"tag":"verified"},
+    {"id":"pg","type":"database","label":"Disposable PostgreSQL","sublabel":"Docker verification","pos":[280,380],"size":[190,50],"tag":"verification-only"},
+    {"id":"probes","type":"backend","label":"Integrity probes","sublabel":"positive + negative","pos":[540,380],"size":[170,50],"tag":"verified"},
+    {"id":"adapters","type":"backend","label":"S2 adapters","sublabel":"TypeScript, not wired","pos":[780,380],"size":[180,50],"tag":"tested / not wired"}
+  ],
+  "boundaries":[{"kind":"region","label":"Repository","wraps":["next","fixtures","types","runner","media","migration","probes","adapters"]},{"kind":"security-group","label":"Disposable verification only","wraps":["migration","pg","probes"]}],
+  "connections":[
+    {"from":"analyst","to":"next","route":"straight"},{"from":"next","to":"fixtures","route":"straight"},{"from":"fixtures","to":"types","route":"straight"},
+    {"from":"tiktok","to":"runner","route":"straight"},{"from":"runner","to":"ytdlp","route":"straight"},{"from":"ytdlp","to":"media","route":"straight"},
+    {"from":"migration","to":"pg","route":"straight"},{"from":"pg","to":"probes","route":"straight"}
+  ],
+  "cards":[{"dot":"cyan","title":"Actual","items":["Fixture-backed Next.js route","S2 adapters tested but not wired to app","yt-dlp live gate 10/10"]},{"dot":"rose","title":"Boundary","items":["Disposable PostgreSQL is verification-only","No worker runtime exists","Temporary MP4 is deleted after derivatives"]}]
+}

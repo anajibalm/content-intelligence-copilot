@@ -1,0 +1,45 @@
+:root {
+  color-scheme: light;
+  --ink: #1f2924;
+  --muted: #66736c;
+  --line: #d9e1dc;
+  --paper: #f5f7f3;
+  --surface: #ffffff;
+  --accent: #246b52;
+  --accent-soft: #e4f0e9;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--paper); color: var(--ink); font-family: Arial, sans-serif; }
+a { color: var(--accent); }
+.workspace { max-width: 1180px; margin: 0 auto; padding: 48px 28px 72px; }
+.topbar, .summary, .card-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; }
+.topbar { padding-bottom: 42px; border-bottom: 1px solid var(--line); }
+.eyebrow { margin: 0 0 10px; color: var(--muted); font-size: 11px; font-weight: 700; letter-spacing: .12em; }
+h1, h2, p { margin-top: 0; }
+h1 { margin-bottom: 0; font-size: clamp(2.1rem, 5vw, 4.6rem); line-height: .98; letter-spacing: -.05em; }
+h2 { margin-bottom: 8px; font-size: 1.35rem; line-height: 1.15; }
+.status, .state { display: inline-flex; align-items: center; padding: 7px 10px; border: 1px solid var(--line); border-radius: 6px; color: var(--muted); font-size: 12px; white-space: nowrap; }
+.summary { align-items: end; padding: 44px 0 30px; }
+.summary h2 { font-size: 1.7rem; }
+.muted, .footer-note { color: var(--muted); }
+.muted { margin-bottom: 0; }
+.summary-value { min-width: 150px; padding-left: 18px; border-left: 3px solid var(--accent); }
+.summary-value strong { display: block; color: var(--accent); font-size: 2.4rem; line-height: 1; }
+.summary-value span { color: var(--muted); font-size: 13px; }
+.content-grid { display: grid; grid-template-columns: 1.2fr .8fr; gap: 18px; }
+.content-card, .metric-card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 24px; }
+.facts, .metrics { display: grid; gap: 16px; margin: 34px 0 0; }
+.metrics { grid-template-columns: 1fr 1fr; }
+dl div { min-width: 0; }
+dt { color: var(--muted); font-size: 12px; }
+dd { margin: 5px 0 0; font-size: 15px; font-weight: 700; overflow-wrap: anywhere; }
+.state { border-color: #b8d6c5; background: var(--accent-soft); color: var(--accent); }
+.footer-note { margin-top: 24px; font-size: 13px; }
+@media (max-width: 720px) {
+  .workspace { padding: 28px 18px 52px; }
+  .topbar, .summary { display: block; }
+  .status, .summary-value { margin-top: 20px; }
+  .summary-value { padding: 14px 0 0; border-top: 3px solid var(--accent); border-left: 0; }
+  .content-grid { grid-template-columns: 1fr; }
+}

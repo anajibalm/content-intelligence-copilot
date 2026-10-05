@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {"title":"Content Intelligence Copilot — Target MVP After S2","output":"target-mvp.html","quality_profile":"showcase","views":[{"id":"processing","label":"Processing","focus":["app","worker","media","processing","frames","fingerprint"],"note":"S3/S4 pending."},{"id":"analysis","label":"Analysis","focus":["db","metrics","config","kpi","compare"],"note":"S5/S7 pending."},{"id":"review","label":"Review","focus":["compare","hypothesis","review","nexttest"],"note":"S8-S10 pending."}]},
+  "components":[
+    {"id":"analyst","type":"external","label":"Analyst","pos":[40,300],"size":[140,60]},
+    {"id":"app","type":"frontend","label":"Next.js app","pos":[240,300],"size":[190,60],"tag":"planned"},
+    {"id":"worker","type":"backend","label":"Processing worker","pos":[480,100],"size":[190,60],"tag":"planned"},
+    {"id":"media","type":"cloud","label":"Temporary MP4","pos":[720,100],"size":[170,60],"tag":"S3 input"},
+    {"id":"processing","type":"backend","label":"Media processing","pos":[720,220],"size":[210,60],"tag":"S3 pending"},
+    {"id":"frames","type":"backend","label":"Temporal evidence","pos":[980,100],"size":[210,60],"tag":"S3 pending"},
+    {"id":"fingerprint","type":"backend","label":"Fingerprint extraction","pos":[980,220],"size":[210,60],"tag":"S4 pending"},
+    {"id":"db","type":"database","label":"Canonical PostgreSQL","pos":[480,430],"size":[190,60],"tag":"S1 schema"},
+    {"id":"metrics","type":"backend","label":"Metrics + quality","pos":[720,380],"size":[190,60],"tag":"S5 pending"},
+    {"id":"config","type":"backend","label":"Brand config","pos":[980,380],"size":[190,60],"tag":"candidate"},
+    {"id":"kpi","type":"backend","label":"KPI assessment","pos":[980,500],"size":[180,60],"tag":"S5 pending"},
+    {"id":"compare","type":"backend","label":"Controlled Compare","pos":[1220,300],"size":[190,60],"tag":"S7 pending"},
+    {"id":"hypothesis","type":"backend","label":"Evidence-linked hypothesis","pos":[1220,420],"size":[210,60],"tag":"S8 pending"},
+    {"id":"review","type":"backend","label":"Review + corrections","pos":[1220,540],"size":[190,60],"tag":"S9 pending"},
+    {"id":"nexttest","type":"backend","label":"Notes + Next Test","pos":[980,620],"size":[190,60],"tag":"S10 pending"}
+  ],
+  "boundaries":[{"kind":"region","label":"Planned MVP","wraps":["app","worker","processing","frames","fingerprint","db","metrics","config","kpi","compare","hypothesis","review","nexttest"]}],
+  "connections":[
+    {"from":"analyst","to":"app","route":"orthogonal-h"},{"from":"app","to":"worker","route":"orthogonal-h"},{"from":"worker","to":"media","route":"orthogonal-h"},{"from":"media","to":"processing","route":"orthogonal-h"},{"from":"processing","to":"frames","route":"orthogonal-h"},{"from":"processing","to":"fingerprint","route":"orthogonal-h"},{"from":"processing","to":"db","route":"orthogonal-h"},{"from":"metrics","to":"db","route":"orthogonal-h"},{"from":"config","to":"metrics","route":"orthogonal-h"},{"from":"config","to":"kpi","route":"orthogonal-h"},{"from":"metrics","to":"kpi","route":"orthogonal-h"},{"from":"compare","to":"hypothesis","route":"orthogonal-h"},{"from":"hypothesis","to":"review","route":"orthogonal-h"},{"from":"review","to":"nexttest","route":"orthogonal-h"}
+  ],
+  "cards":[{"dot":"cyan","title":"Pending","items":["S3 temporal processing","S4 fingerprint extraction","S5 metrics and KPI assessment","S7-S10 compare, evidence, review, Next Test"]},{"dot":"rose","title":"Boundaries","items":["Organic/Paid remain separate","Evidence retains provenance","No Redis, Kafka, microservices, donors, or autonomous publish"]}]
+}

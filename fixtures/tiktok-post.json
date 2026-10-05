@@ -1,0 +1,49 @@
+{
+  "fixture": "tiktok-post",
+  "description": "Canonical normalized TikTok content record per frozen MVP Contract. Domain shape, not a provider response. Transient CDN URLs, raw provider payloads, and downloaded media are excluded by contract.",
+  "content": {
+    "content_id": "content_barakat_008_01",
+    "workspace_id": "workspace_barakat",
+    "brand_id": "brand_barakat",
+    "batch_id": "batch_8",
+    "objective_id": "objective_awareness",
+    "pillar_id": "pillar_hook_proof_cta",
+    "caption": "3 detik pertama ini yang bikin orang berhenti scroll. Simak sampai habis.",
+    "canonical_url": "https://www.tiktok.com/@barakat.id/video/7420000000000000001",
+    "external_post_id": "7420000000000000001",
+    "published_at": "2026-10-03T08:15:00.000Z",
+    "duration_seconds": 34
+  },
+  "content_source": {
+    "content_source_id": "csrc_barakat_008_01",
+    "content_id": "content_barakat_008_01",
+    "source_type": "tiktok_public_url",
+    "canonical_url": "https://www.tiktok.com/@barakat.id/video/7420000000000000001",
+    "external_post_id": "7420000000000000001",
+    "added_at": "2026-10-03T09:02:11.000Z"
+  },
+  "acquisition_run": {
+    "acquisition_run_id": "acq_barakat_008_01_attempt_1",
+    "content_source_id": "csrc_barakat_008_01",
+    "content_id": "content_barakat_008_01",
+    "provider": "fixture",
+    "status": "completed",
+    "attempt_number": 1,
+    "failure_reason": null,
+    "latency_ms": 4200,
+    "media_size_bytes": 5242880,
+    "acquired_at": "2026-10-03T09:02:15.200Z"
+  },
+  "evidence": [
+    {
+      "evidence_id": "ev_barakat_008_01_duration",
+      "evidence_type": "OBSERVED",
+      "claim": "Video duration is 34 seconds.",
+      "source_ref": {
+        "entity": "content",
+        "id": "content_barakat_008_01",
+        "field": "duration_seconds"
+      }
+    }
+  ]
+}

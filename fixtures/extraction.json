@@ -1,0 +1,131 @@
+{
+  "fixture": "extraction",
+  "description": "Canonical multimodal fingerprint extraction run per frozen MVP Contract. All features are AI-original and unreviewed. AI output is never ground truth; human corrections preserve the original value. No performance conclusions, metrics, pillar, or duration in the AI feature set.",
+  "extraction_run": {
+    "extraction_run_id": "exr_barakat_008_01_run_1",
+    "content_id": "content_barakat_008_01",
+    "transcript_id": "tr_barakat_008_01",
+    "hook_frame_ids": [
+      "frame_barakat_008_01_0s",
+      "frame_barakat_008_01_1_5s",
+      "frame_barakat_008_01_3s"
+    ],
+    "representative_frame_ids": [
+      "frame_barakat_008_01_25pct",
+      "frame_barakat_008_01_50pct",
+      "frame_barakat_008_01_75pct"
+    ],
+    "model_provider": "multimodal-fixture",
+    "model_name": "fingerprint-fixture-v1",
+    "prompt_version": "fingerprint-v1",
+    "schema_version": "fingerprint-v0.1",
+    "input_hash": "sha256:0f0e2c4b6a8d9e1f3a5b7c9d0e2f4a6b8c0d2e4f6a8b0c2d4e6f8a0b2c4d6e8f",
+    "status": "completed",
+    "review_state": "unreviewed"
+  },
+  "content_features": [
+    {
+      "content_feature_id": "cfeat_barakat_008_01_topic",
+      "feature_key": "topic",
+      "ai_original_value": "herbal_supplement",
+      "review_state": "unreviewed",
+      "corrected_value": null
+    },
+    {
+      "content_feature_id": "cfeat_barakat_008_01_format",
+      "feature_key": "format",
+      "ai_original_value": "talking_head_demonstration",
+      "review_state": "unreviewed",
+      "corrected_value": null
+    },
+    {
+      "content_feature_id": "cfeat_barakat_008_01_hook_type",
+      "feature_key": "hook_type",
+      "ai_original_value": "pattern_interrupt",
+      "review_state": "unreviewed",
+      "corrected_value": null
+    },
+    {
+      "content_feature_id": "cfeat_barakat_008_01_hook_subject",
+      "feature_key": "hook_subject",
+      "ai_original_value": "retention_warning",
+      "review_state": "unreviewed",
+      "corrected_value": null
+    },
+    {
+      "content_feature_id": "cfeat_barakat_008_01_talent_type",
+      "feature_key": "talent_type",
+      "ai_original_value": "single_presenter",
+      "review_state": "unreviewed",
+      "corrected_value": null
+    },
+    {
+      "content_feature_id": "cfeat_barakat_008_01_talent_familiarity",
+      "feature_key": "talent_familiarity",
+      "ai_original_value": "brand_owned",
+      "review_state": "unreviewed",
+      "corrected_value": null
+    },
+    {
+      "content_feature_id": "cfeat_barakat_008_01_opening_style",
+      "feature_key": "opening_style",
+      "ai_original_value": "direct_claim",
+      "review_state": "unreviewed",
+      "corrected_value": null
+    },
+    {
+      "content_feature_id": "cfeat_barakat_008_01_pacing",
+      "feature_key": "pacing",
+      "ai_original_value": "fast",
+      "review_state": "unreviewed",
+      "corrected_value": null
+    },
+    {
+      "content_feature_id": "cfeat_barakat_008_01_narrative_structure",
+      "feature_key": "narrative_structure",
+      "ai_original_value": "hook_claim_proof_cta",
+      "review_state": "unreviewed",
+      "corrected_value": null
+    },
+    {
+      "content_feature_id": "cfeat_barakat_008_01_emotional_trigger",
+      "feature_key": "emotional_trigger",
+      "ai_original_value": "curiosity",
+      "review_state": "unreviewed",
+      "corrected_value": null
+    },
+    {
+      "content_feature_id": "cfeat_barakat_008_01_tension_type",
+      "feature_key": "tension_type",
+      "ai_original_value": "problem_solution",
+      "review_state": "unreviewed",
+      "corrected_value": null
+    },
+    {
+      "content_feature_id": "cfeat_barakat_008_01_product_placement",
+      "feature_key": "product_placement",
+      "ai_original_value": "explicit_demonstration",
+      "review_state": "unreviewed",
+      "corrected_value": null
+    },
+    {
+      "content_feature_id": "cfeat_barakat_008_01_cta_type",
+      "feature_key": "cta_type",
+      "ai_original_value": "shop_prompt",
+      "review_state": "unreviewed",
+      "corrected_value": null
+    }
+  ],
+  "evidence": [
+    {
+      "evidence_id": "ev_barakat_008_01_hook_type",
+      "evidence_type": "EXTRACTED",
+      "claim": "AI extraction classified hook_type as pattern_interrupt from hook frames and transcript; state is unreviewed.",
+      "source_ref": {
+        "entity": "content_feature",
+        "id": "cfeat_barakat_008_01_hook_type",
+        "field": "ai_original_value"
+      }
+    }
+  ]
+}

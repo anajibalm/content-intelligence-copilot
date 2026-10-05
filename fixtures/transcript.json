@@ -1,0 +1,68 @@
+{
+  "fixture": "transcript",
+  "description": "Canonical timestamped transcript per frozen MVP Contract. Segments carry hook/setup/main_claim/evidence/payoff/cta roles with preserved timestamps. No provider payload.",
+  "transcript": {
+    "transcript_id": "tr_barakat_008_01",
+    "content_id": "content_barakat_008_01",
+    "language": "id",
+    "model": "faster-whisper",
+    "created_at": "2026-10-03T09:10:00.000Z",
+    "quality_warning": null,
+    "segments": [
+      {
+        "transcript_segment_id": "trseg_barakat_008_01_01",
+        "start_ms": 0,
+        "end_ms": 2800,
+        "role": "hook",
+        "text": "Tiga detik pertama ini menentukan apakah orang tetap menonton atau scroll."
+      },
+      {
+        "transcript_segment_id": "trseg_barakat_008_01_02",
+        "start_ms": 2800,
+        "end_ms": 9500,
+        "role": "setup",
+        "text": "Kebanyakan suplemen menjanjikan hasil, tapi jarang menunjukkan cara pakainya."
+      },
+      {
+        "transcript_segment_id": "trseg_barakat_008_01_03",
+        "start_ms": 9500,
+        "end_ms": 17200,
+        "role": "main_claim",
+        "text": "Barakat menunjukkan takaran harian dalam bentuk cair, tanpa perlu menebak dosis."
+      },
+      {
+        "transcript_segment_id": "trseg_barakat_008_01_04",
+        "start_ms": 17200,
+        "end_ms": 24600,
+        "role": "evidence",
+        "text": "Lihat sendiri: satu sendok makan, langsung diminum, tanpa bau aneh."
+      },
+      {
+        "transcript_segment_id": "trseg_barakat_008_01_05",
+        "start_ms": 24600,
+        "end_ms": 30100,
+        "role": "payoff",
+        "text": "Rasanya seperti jus delima, jadi tidak terasa seperti obat."
+      },
+      {
+        "transcript_segment_id": "trseg_barakat_008_01_06",
+        "start_ms": 30100,
+        "end_ms": 34000,
+        "role": "cta",
+        "text": "Klik keranjang kuning sekarang sebelum stok Batch 8 habis."
+      }
+    ]
+  },
+  "evidence": [
+    {
+      "evidence_id": "ev_barakat_008_01_hook_segment",
+      "evidence_type": "OBSERVED",
+      "claim": "Transcript hook at 0-2.8s warns that the first three seconds decide whether viewers keep watching.",
+      "source_ref": {
+        "entity": "transcript_segment",
+        "id": "trseg_barakat_008_01_01",
+        "field": "text"
+      }
+    }
+  ]
+}

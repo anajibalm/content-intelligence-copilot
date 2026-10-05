@@ -1,0 +1,16 @@
+.env
+.env.*
+!.env.example
+node_modules/
+.next/
+dist/
+coverage/
+playwright-report/
+test-results/
+local-evidence/
+tmp/
+temp/
+*.mp4
+*.wav
+spike_output/
+_bmad/render/

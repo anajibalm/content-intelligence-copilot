@@ -1,0 +1,80 @@
+{
+  "fixture": "metric-snapshot",
+  "description": "Canonical metric snapshot per frozen MVP Contract. Distribution (organic/paid) lives here, never on content. Raw metrics never contain derived metrics such as ER. Value 0 is never automatically a valid zero.",
+  "metric_snapshot": {
+    "metric_snapshot_id": "ms_barakat_008_01_organic_20261005",
+    "content_id": "content_barakat_008_01",
+    "distribution": "organic",
+    "source": "tiktok_public",
+    "captured_at": "2026-10-05T09:00:00.000Z",
+    "content_age_hours": 48.75,
+    "raw_metrics": {
+      "views": {
+        "value": 1315,
+        "quality": "VALID"
+      },
+      "likes": {
+        "value": 214,
+        "quality": "VALID"
+      },
+      "comments": {
+        "value": 0,
+        "quality": "SUSPECT",
+        "quality_note": "zero cannot be assumed a valid zero without source confirmation"
+      },
+      "shares": {
+        "value": 12,
+        "quality": "VALID"
+      },
+      "saves": {
+        "value": 31,
+        "quality": "VALID"
+      },
+      "avg_watch_time_seconds": {
+        "value": 3.55,
+        "quality": "VALID"
+      },
+      "new_followers": {
+        "value": null,
+        "quality": "UNAVAILABLE",
+        "quality_note": "not reported by source for this snapshot"
+      }
+    },
+    "derived_metrics": {
+      "engagement_rate": {
+        "value": 0.1962,
+        "formula_version": "metrics-v1",
+        "formula": "(likes + comments + shares + saves) / views",
+        "inputs": {
+          "likes": 214,
+          "comments": 0,
+          "shares": 12,
+          "saves": 31,
+          "views": 1315
+        }
+      }
+    }
+  },
+  "evidence": [
+    {
+      "evidence_id": "ev_barakat_008_01_views",
+      "evidence_type": "OBSERVED",
+      "claim": "Organic snapshot reports 1315 views at capture time.",
+      "source_ref": {
+        "entity": "metric_snapshot",
+        "id": "ms_barakat_008_01_organic_20261005",
+        "field": "raw_metrics.views"
+      }
+    },
+    {
+      "evidence_id": "ev_barakat_008_01_er",
+      "evidence_type": "DERIVED",
+      "claim": "Engagement rate is 0.1962, computed deterministically from raw metrics (formula metrics-v1).",
+      "source_ref": {
+        "entity": "metric_snapshot",
+        "id": "ms_barakat_008_01_organic_20261005",
+        "field": "derived_metrics.engagement_rate"
+      }
+    }
+  ]
+}
