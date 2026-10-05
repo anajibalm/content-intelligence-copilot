@@ -2,7 +2,7 @@
 
 ## Verdict
 
-**PARTIAL until PR exact-head CI completes.** Local correction is implemented and verified. GitHub delivery and Obsidian note are in progress; merge remains pending owner review.
+**PASS for baseline correction, GitHub delivery, and Obsidian write.** PR remains open for owner review; merge not performed.
 
 ## Authority
 
@@ -19,20 +19,20 @@
 
 - Base/source HEAD: `2af60f97e6d811621e6d01d52ed15c30f59453c0` on `master`.
 - Branch: `fix/ci-governance-baseline`.
+- Final pushed HEAD: `03d952bcb639975668ab95f850ace6311064674a`.
 - Original CI failure: Node.js 20 executed `npm test`, while `tests/unit/acquisition.test.mjs` imported `.ts` directly and failed with `ERR_UNKNOWN_FILE_EXTENSION`.
-- Local Node.js `22.18.0` executes direct TypeScript imports through native type stripping. CI now reads `.node-version`; `package.json` requires `>=22.18.0`.
-- `npm ci` was run after dependency metadata update.
+- Local/CI Node.js `22.18.0` executes direct TypeScript imports through native type stripping. CI reads `.node-version`; `package.json` requires `>=22.18.0`.
 
 ## Corrections
 
 - `.node-version` pins `22.18.0`.
 - `.github/workflows/ci.yml` uses `node-version-file` and preserves lint, typecheck, test, fixture validation, and build steps.
 - `VIBE_CODING_PROTOCOL.md` uses actual CIC paths, custom Project `Tracking Status`, snapshot/upstream rules that avoid documentation self-loop, owner scope approval, feature-branch delivery, and correct multiline-body guidance.
-- `README.md`, `CONTRIBUTING.md`, `docs/setup.md`, and `docs/faq-agent.md` state agency/brand analyst scope, evidence-backed analyst-reviewed hypotheses, fixture-backed UI, disposable DB verification boundary, yt-dlp proof, candidate contract status, and pending S3/S5/R1 scope.
+- `README.md`, `CONTRIBUTING.md`, `docs/setup.md`, `docs/faq-agent.md`, `docs/glossary.md`, and `docs/runbook.md` state agency/brand analyst scope, evidence-backed analyst-reviewed hypotheses, fixture-backed UI, disposable DB verification boundary, yt-dlp proof, candidate contract status, and pending S3/S5/R1 scope.
 - `docs/architecture.md` and `docs/data-contract.md` provide short entrypoints without duplicating authoritative bodies.
 - Issue templates use actual repository labels.
 - E1 receipt records source summary SHA-256 without copying media, provider payloads, credentials, or transient URLs.
-- Manifest records baseline stable key `BASELINE-CI-GOV-001` and issue #21.
+- Manifest and local issue body record stable key `BASELINE-CI-GOV-001` and issue #21.
 
 ## Local verification
 
@@ -45,23 +45,32 @@ Run on Node.js `22.18.0`:
 - `npm run validate:fixtures` — PASS.
 - `npm run build` — PASS.
 - `git diff --check` — PASS.
-- Manifest parse/dependency-cycle check — PASS, 20 existing items; baseline stored as checkpoint metadata.
+- Manifest parse/dependency-cycle check — PASS, 21 items including baseline.
 
 ## Tracking state
 
-- Baseline issue: https://github.com/anajibalm/content-intelligence-copilot/issues/21.
-- Project: https://github.com/users/anajibalm/projects/1.
-- Issue label moved to `status:review`; custom Project `Tracking Status` set to `In Progress`.
+- Baseline issue: https://github.com/anajibalm/content-intelligence-copilot/issues/21 — Review.
+- PR: https://github.com/anajibalm/content-intelligence-copilot/pull/22 — OPEN.
+- Project: https://github.com/users/anajibalm/projects/1 — custom Tracking Status `Review`.
+- Exact-head CI: https://github.com/anajibalm/content-intelligence-copilot/actions/runs/37317891015 — PASS; Build & Test job `111789154616`.
 - S3 #4 remains Ready and is next implementation checkpoint.
 - S5 #6 remains Ready and separate.
 - R1 #16 remains Blocked; no runtime handoff implemented here.
-- E1 #18 remains Ready; historical receipt is now durable with source hash.
+- E1 #18 remains Ready; historical receipt is durable with source hash.
 - v0.2 remains candidate.
 
-## Delivery receipt
+## Obsidian
 
-- PR: pending creation.
-- Final pushed SHA: pending push.
-- Exact-head CI: pending PR push.
-- Obsidian note: `/home/anajibalm/Documents/Obsidian Vault/projects/content-intelligence-copilot.md`; checkpoint content read back successfully.
-- Merge: pending owner review; no merge performed.
+- Actual vault: `/home/anajibalm/Documents/Obsidian Vault`.
+- Project note: `/home/anajibalm/Documents/Obsidian Vault/projects/content-intelligence-copilot.md`.
+- Write/readback: PASS. Note contains project/repository URLs, hierarchy, Asia/Jakarta checkpoint, base/final SHA, issue/PR/CI URLs, local verification, runtime, corrections, S3/S5/R1/E1 state, and merge status.
+- No credentials, signed URLs, transient provider payloads, or raw media stored.
+
+## Delivery
+
+- Commits:
+  - `d98c940 fix(ci): align Node runtime with TypeScript tests`
+  - `2dbb68c docs(governance): reconcile CIC workflow and product claims`
+  - `03d952b docs(tracking): record baseline delivery checkpoint`
+- Upstream: `origin/fix/ci-governance-baseline`, divergence `0 0` after push.
+- Merge/human review: pending owner review; no merge performed.
