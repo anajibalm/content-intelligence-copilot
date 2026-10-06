@@ -14,6 +14,7 @@ import {
   type ProcessingTools,
 } from '../processing/index.ts';
 import { buildExtractionInput, extractFingerprint, type ExtractionInput, type ModelOutput } from '../extraction/index.ts';
+import { createMultimodalFingerprintExtractor } from '../extraction/multimodal.ts';
 
 export interface DurableJob {
   id: string;
@@ -464,5 +465,16 @@ export function runtimeConfigFromEnv(): RuntimeConfig {
 
 export function createPostgresRuntimeFromEnv(acquirer: VideoAcquirer, processingTools?: ProcessingTools): DurableRuntime {
   const config = runtimeConfigFromEnv();
-  return createPostgresRuntime({ ...config, acquirer, processingTools });
+  const endpoint = process.env.CIC_FINGERPRINT_ENDPOINT;
+  const apiKey = process.env.CIC_FINGERPRINT_API_KEY;
+  const model = process.env.CIC_FINGERPRINT_MODEL;
+  const fingerprintExtractor = endpoint && apiKey && model
+    ? createMultimodalFingerprintExtractor({
+        endpoint,
+        apiKey,
+        model,
+        provider: process.env.CIC_FINGERPRINT_PROVIDER,
+      })
+    : undefined;
+  return createPostgresRuntime({ ...config, acquirer, processingTools, fingerprintExtractor });
 }

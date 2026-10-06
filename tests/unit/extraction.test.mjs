@@ -1,3 +1,7 @@
+import { mkdtemp, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { createMultimodalFingerprintExtractor } from '../../lib/extraction/multimodal.ts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { buildExtractionInput, extractFingerprint, FINGERPRINT_FIELDS } from '../../lib/extraction/index.ts';
@@ -43,4 +47,26 @@ test('extraction blocks absent multimodal provider instead of inventing heuristi
 test('extraction rejects incomplete model output', () => {
   const input = buildExtractionInput(output, { contentId: 'content-1', title: null, caption: null });
   assert.throws(() => extractFingerprint(input, { ...modelOutput, features: modelOutput.features.slice(1) }), /complete fingerprint schema/);
+});
+
+test('multimodal adapter sends image bytes and parses complete JSON response', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'cic-extraction-'));
+  const framePath = join(directory, 'frame.jpg');
+  const representativePath = join(directory, 'representative.jpg');
+  await writeFile(framePath, Buffer.from([1, 2, 3]));
+  await writeFile(representativePath, Buffer.from([4, 5, 6]));
+  let request;
+  const extractor = createMultimodalFingerprintExtractor({
+    endpoint: 'http://provider.test/v1/chat/completions',
+    apiKey: 'test-key',
+    model: 'test-vision',
+    fetchImpl: async (_url, init) => {
+      request = JSON.parse(String(init?.body));
+      return new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify({ features: modelOutput.features }) } }] }), { status: 200 });
+    },
+  });
+  const result = await extractor(buildExtractionInput({ ...output, hookFrames: [{ ...output.hookFrames[0], storagePath: framePath }], representativeFrames: [{ ...output.representativeFrames[0], storagePath: representativePath }] }, { contentId: 'content-1', title: null, caption: null }));
+  assert.equal(result.features.length, FINGERPRINT_FIELDS.length);
+  assert.match(request.messages[0].content[1].image_url.url, /^data:image\/jpeg;base64,AQID$/);
+  assert.equal(request.model, 'test-vision');
 });
