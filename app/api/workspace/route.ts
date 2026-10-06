@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createMetricsRepository } from '../../../lib/metrics/postgres.ts';
-import { createWorkspaceRepository, workspaceConfigFromEnv } from '../../../lib/workspace/postgres.ts';
+import { createWorkspaceRepository, workspaceConfigFromEnv, WorkspaceNotFoundError } from '../../../lib/workspace/postgres.ts';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,7 +17,8 @@ export async function GET(request: Request) {
     const analysis = await metrics.batch(data.selectedBatch.id);
     return NextResponse.json({ ...data, analysis });
   } catch (error) {
-    return NextResponse.json({ error: String((error as Error).message ?? error) }, { status: 500 });
+    const status = error instanceof WorkspaceNotFoundError ? error.statusCode : 500;
+    return NextResponse.json({ error: String((error as Error).message ?? error) }, { status });
   } finally {
     await workspace.close();
     await metrics.close();

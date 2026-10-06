@@ -1,10 +1,21 @@
 import { Pool, type PoolClient } from 'pg';
 import { relative, resolve as pathResolve } from 'node:path';
 import { normalizeMetricSnapshot } from '../metrics/rules.ts';
+import { resolveAuthorizedArtifact } from '../runtime/artifacts.ts';
+
 export interface WorkspaceRepositoryConfig {
   connectionString: string;
   workspaceId: string;
   storageRoot: string;
+}
+
+export class WorkspaceNotFoundError extends Error {
+  readonly statusCode = 404;
+
+  constructor(message: string) {
+    super(message);
+    this.name = 'WorkspaceNotFoundError';
+  }
 }
 
 interface DbContent {
@@ -16,7 +27,11 @@ interface DbContent {
   duration_ms: number | null;
   width: number | null;
   height: number | null;
+  acquisition_status: string | null;
+  acquisition_error: string | null;
+  acquisition_attempt_count: number | null;
   job_status: string | null;
+  processing_error: string | null;
   attempt_count: number | null;
   error_message: string | null;
 }
@@ -44,6 +59,13 @@ export function workspaceArtifactUrl(storageRoot: string, contentId: string, sto
   return `/api/processing/assets?contentId=${encodeURIComponent(contentId)}&file=${encodeURIComponent(relativePath)}`;
 }
 
+async function authorizedArtifactUrl(config: WorkspaceRepositoryConfig, contentId: string, storagePath: string): Promise<string | null> {
+  const root = pathResolve(config.storageRoot, contentId);
+  const relativePath = relative(root, pathResolve(storagePath));
+  if (!relativePath || relativePath.startsWith('..') || relativePath.includes('/../')) return null;
+  const authorized = await resolveAuthorizedArtifact(config.storageRoot, contentId, relativePath, [storagePath]);
+  return authorized ? workspaceArtifactUrl(config.storageRoot, contentId, authorized) : null;
+}
 
 function adaptSnapshot(row: DbSnapshot) {
   const qualityJson = jsonObject(row.quality_json);
@@ -70,9 +92,11 @@ function contentView(row: DbContent, snapshots: ReturnType<typeof adaptSnapshot>
     title: row.title,
     permalink: row.permalink,
     processingState: row.processing_state,
-    acquisitionState: row.job_status ?? 'UNAVAILABLE',
-    attemptCount: row.attempt_count ?? 0,
-    error: row.error_message,
+    acquisitionState: row.acquisition_status ?? 'UNAVAILABLE',
+    acquisitionError: row.acquisition_error,
+    processingError: row.processing_error ?? row.error_message,
+    attemptCount: row.acquisition_attempt_count ?? row.attempt_count ?? 0,
+    error: row.processing_error ?? row.error_message,
     dimensions: row.width && row.height ? `${row.width}×${row.height}` : null,
     durationSeconds: row.duration_ms == null ? null : Number(row.duration_ms) / 1000,
     snapshots,
@@ -102,17 +126,49 @@ export function createWorkspaceRepository(config: WorkspaceRepositoryConfig) {
        ORDER BY b.created_at DESC, b.id DESC`,
       [config.workspaceId],
     );
-    const batch = batches.rows.find((row) => row.id === batchId) ?? batches.rows[0] ?? null;
+    let batch = batchId ? batches.rows.find((row) => row.id === batchId) : null;
+    if (batchId && !batch) throw new WorkspaceNotFoundError('batch not found in workspace');
+    if (!batch && contentId) {
+      const contentBatch = await pool.query(
+        `SELECT b.id
+         FROM content c JOIN batch b ON b.id = c.batch_id
+         WHERE c.workspace_id = $1 AND c.id = $2 AND b.workspace_id = $1`,
+        [config.workspaceId, contentId],
+      );
+      if (!contentBatch.rows[0]) throw new WorkspaceNotFoundError('content not found in workspace');
+      batch = batches.rows.find((row) => row.id === contentBatch.rows[0].id);
+    }
+    batch ??= batches.rows[0] ?? null;
     if (!batch) return { batches: [], selectedBatch: null, contents: [], selectedContent: null };
+
     const contents = await pool.query<DbContent>(
       `SELECT c.id, c.external_id, c.permalink, c.title, c.processing_state, c.duration_ms, c.width, c.height,
-              job.status AS job_status, job.attempt_count, job.error_message
+              acquisition.status AS acquisition_status, acquisition.error_message AS acquisition_error,
+              acquisition.attempt_count AS acquisition_attempt_count,
+              job.status AS job_status, job.attempt_count, job.error_message,
+              processing.error_message AS processing_error
        FROM content c
+       LEFT JOIN LATERAL (
+         SELECT ar.status, ar.error_message, count(*) OVER ()::int AS attempt_count
+         FROM acquisition_run ar
+         WHERE ar.workspace_id = $1 AND ar.content_id = c.id
+         ORDER BY ar.attempt_number DESC, ar.created_at DESC
+         LIMIT 1
+       ) acquisition ON true
        LEFT JOIN runtime_processing_job job ON job.content_id = c.id AND job.workspace_id = $1
+       LEFT JOIN LATERAL (
+         SELECT cp.error_message
+         FROM content_processing cp
+         WHERE cp.workspace_id = $1 AND cp.content_id = c.id AND cp.state = 'FAILED'
+         ORDER BY cp.updated_at DESC
+         LIMIT 1
+       ) processing ON true
        WHERE c.workspace_id = $1 AND c.batch_id = $2
        ORDER BY c.external_id, c.id`,
       [config.workspaceId, batch.id],
     );
+    if (contentId && !contents.rows.some((row) => row.id === contentId)) throw new WorkspaceNotFoundError('content not found in selected batch');
+
     const snapshots = await pool.query<DbSnapshot>(
       `SELECT DISTINCT ON (ms.content_id, ms.distribution)
               ms.id, ms.content_id, ms.distribution, ms.source, ms.captured_at, ms.content_age_hours,
@@ -130,7 +186,7 @@ export function createWorkspaceRepository(config: WorkspaceRepositoryConfig) {
       snapshotMap.set(row.content_id, list);
     }
     const contentRows = contents.rows.map((row) => contentView(row, snapshotMap.get(row.id) ?? []));
-    const selected = contentRows.find((row) => row.id === contentId) ?? contentRows[0] ?? null;
+    const selected = contentId ? contentRows.find((row) => row.id === contentId) ?? null : contentRows[0] ?? null;
     const detail = selected ? await contentDetail(pool, config, selected.id) : null;
     return {
       batches: batches.rows.map((row) => ({ id: row.id, name: row.name, brandId: row.brand_id, brandName: row.brand_name, createdAt: row.created_at, contractedVideoCount: row.contracted_video_count, contentCount: row.content_count })),
@@ -146,14 +202,31 @@ export function createWorkspaceRepository(config: WorkspaceRepositoryConfig) {
 async function contentDetail(client: Pool | PoolClient, config: WorkspaceRepositoryConfig, contentId: string) {
   const content = await client.query<DbContent>(
     `SELECT c.id, c.external_id, c.permalink, c.title, c.processing_state, c.duration_ms, c.width, c.height,
-            job.status AS job_status, job.attempt_count, job.error_message
+            acquisition.status AS acquisition_status, acquisition.error_message AS acquisition_error,
+            acquisition.attempt_count AS acquisition_attempt_count,
+            job.status AS job_status, job.attempt_count, job.error_message,
+            processing.error_message AS processing_error
      FROM content c
+     LEFT JOIN LATERAL (
+       SELECT ar.status, ar.error_message, count(*) OVER ()::int AS attempt_count
+       FROM acquisition_run ar
+       WHERE ar.workspace_id = $1 AND ar.content_id = c.id
+       ORDER BY ar.attempt_number DESC, ar.created_at DESC
+       LIMIT 1
+     ) acquisition ON true
      LEFT JOIN runtime_processing_job job ON job.content_id = c.id AND job.workspace_id = $1
+     LEFT JOIN LATERAL (
+       SELECT cp.error_message
+       FROM content_processing cp
+       WHERE cp.workspace_id = $1 AND cp.content_id = c.id AND cp.state = 'FAILED'
+       ORDER BY cp.updated_at DESC
+       LIMIT 1
+     ) processing ON true
      WHERE c.workspace_id = $1 AND c.id = $2`,
     [config.workspaceId, contentId],
   );
   const row = content.rows[0];
-  if (!row) return null;
+  if (!row) throw new WorkspaceNotFoundError('content not found in workspace');
   const [frames, transcript, anchors, snapshots, job] = await Promise.all([
     client.query(`SELECT id, frame_type, timestamp_ms, storage_path FROM video_frame WHERE workspace_id = $1 AND content_id = $2 ORDER BY timestamp_ms, id`, [config.workspaceId, contentId]),
     client.query(`SELECT ts.id, ts.start_ms, ts.end_ms, ts.text, ts.role FROM transcript_segment ts JOIN transcript t ON t.id = ts.transcript_id WHERE t.workspace_id = $1 AND t.content_id = $2 ORDER BY ts.start_ms, ts.seq`, [config.workspaceId, contentId]),
@@ -163,10 +236,17 @@ async function contentDetail(client: Pool | PoolClient, config: WorkspaceReposit
   ]);
   const output = jsonObject(job.rows[0]?.result);
   const audioPath = jsonObject(output.audio).storagePath;
+  const frameReferences = await Promise.all(frames.rows.map(async (frame) => ({
+    id: frame.id,
+    type: frame.frame_type,
+    timestampMs: Number(frame.timestamp_ms),
+    url: await authorizedArtifactUrl(config, contentId, String(frame.storage_path)),
+  })));
+  const audioUrl = typeof audioPath === 'string' ? await authorizedArtifactUrl(config, contentId, audioPath) : null;
   return {
     ...contentView(row, snapshots.rows.map(adaptSnapshot)),
-    frames: frames.rows.map((frame) => ({ id: frame.id, type: frame.frame_type, timestampMs: Number(frame.timestamp_ms), url: workspaceArtifactUrl(config.storageRoot, contentId, String(frame.storage_path)), available: workspaceArtifactUrl(config.storageRoot, contentId, String(frame.storage_path)) !== null })),
-    audio: typeof audioPath === 'string' ? { url: workspaceArtifactUrl(config.storageRoot, contentId, audioPath), available: workspaceArtifactUrl(config.storageRoot, contentId, audioPath) !== null } : { url: null, available: false },
+    frames: frameReferences.map((frame) => ({ ...frame, available: frame.url !== null })),
+    audio: { url: audioUrl, available: audioUrl !== null },
     transcript: transcript.rows.map((segment) => ({ id: segment.id, startMs: Number(segment.start_ms), endMs: Number(segment.end_ms), text: segment.text, role: segment.role })),
     anchors: anchors.rows.map((anchor) => ({ id: anchor.id, type: anchor.anchor_type, timestampMs: Number(anchor.timestamp_ms), reviewState: anchor.review_state, note: anchor.note, frameId: anchor.video_frame_id, transcriptSegmentId: anchor.transcript_segment_id })),
   };
