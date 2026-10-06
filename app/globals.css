@@ -53,6 +53,14 @@ button:disabled { cursor: wait; opacity: .6; }
 .transcript-details summary { color: var(--accent); cursor: pointer; font-weight: 700; }
 .transcript-details ol { display: grid; gap: 8px; margin: 16px 0 0; padding-left: 24px; }
 .transcript-details li { color: var(--ink); font-size: 13px; line-height: 1.45; }
+
+.evidence-frames { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 24px; }
+.evidence-frames figure { margin: 0; min-width: 0; }
+.evidence-frames img { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 6px; background: var(--paper); }
+.evidence-frames figcaption { display: grid; gap: 6px; margin-top: 6px; color: var(--muted); font-size: 11px; }
+.evidence-frames button { padding: 6px 8px; font-size: 11px; }
+audio { width: 100%; max-width: 320px; }
+@media (max-width: 720px) { .evidence-frames { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 720px) {
   .workspace { padding: 28px 18px 52px; }
   .topbar, .summary { display: block; }

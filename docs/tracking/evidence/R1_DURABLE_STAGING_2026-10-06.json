@@ -1,0 +1,47 @@
+{
+  "evidence_date": "2026-10-06",
+  "branch": "feat/s3-r1-staging",
+  "provenance": "Executor: OMP (local repo agent); Review guidance: ChatGPT; Merge approval: pending owner",
+  "database": "Disposable PostgreSQL 16 staging on 127.0.0.1:55432; canonical migrations 0001, 0002, 0003 applied",
+  "flow": {
+    "source": "public TikTok URL",
+    "provider": "yt-dlp",
+    "status": "COMPLETED",
+    "canonical_content_rows": 1,
+    "job_rows": 1,
+    "hook_frames": 3,
+    "representative_frames": 4,
+    "scene_frames": 49,
+    "transcript_segments": 23,
+    "audio_persisted": true,
+    "temporary_mp4_persisted": false
+  },
+  "recovery": {
+    "status": "COMPLETED",
+    "worker_claimed_before_restart": true,
+    "attempt_count": 2,
+    "duplicate_canonical_content": false,
+    "duplicate_video_frames": false,
+    "completed_enqueue_reused_result": true
+  },
+  "ui_evidence": {
+    "state_source": "Postgres runtime_processing_job",
+    "frame_source": "persistent CIC_STORAGE_ROOT through /api/processing/assets",
+    "audio_source": "persistent CIC_STORAGE_ROOT through /api/processing/assets",
+    "transcript": "timestamped segments rendered by app/page.tsx",
+    "product_entry_anchor": "analyst-only frame annotation route; automatic anchors empty"
+  },
+  "verification": {
+    "npm_test": "PASS 23/23",
+    "npm_run_typecheck": "PASS",
+    "npm_run_lint": "PASS with Next img warning only",
+    "npm_run_validate_fixtures": "PASS",
+    "npm_run_build": "PASS",
+    "git_diff_check": "PASS"
+  },
+  "limits": [
+    "AWT unavailable; no fabricated AWT value stored.",
+    "Smoke used disposable local Postgres and /tmp storage; deployment needs real persistent DB/volume configuration.",
+    "S4 extraction/review and S5 metrics/ranking not started."
+  ]
+}

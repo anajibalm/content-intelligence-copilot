@@ -20,6 +20,7 @@ export interface TranscriptSegment {
 }
 
 export interface FrameArtifact {
+  id?: string;
   timestampMs: number;
   storagePath: string;
   width?: number;
@@ -217,7 +218,7 @@ async function defaultTools(): Promise<ProcessingTools> {
 export async function runProcessingJob(input: ProcessingJob, options: { store: ProcessingJobStore; tools?: ProcessingTools }): Promise<ProcessingJob> {
   const existing = options.store.read(input.id);
   if (existing?.state === 'COMPLETED' && existing.output) return existing;
-  const job = existing ?? input;
+  const job = existing?.state === 'COMPLETED' ? existing : input;
   const tools = options.tools ?? await defaultTools();
   const running: ProcessingJob = { ...job, state: 'RUNNING', error: null, startedAt: new Date().toISOString(), completedAt: null };
   options.store.write(running);
@@ -242,7 +243,7 @@ export async function runProcessingJob(input: ProcessingJob, options: { store: P
       hookFrames,
       representativeFrames,
       perSecondFrames,
-      productEntryAnchors: hookFrames.map((frame) => ({ timestampMs: frame.timestampMs, sourcePath: frame.storagePath, anchorType: frame.timestampMs <= 3000 ? 'OPENING' : 'REPRESENTATIVE' })),
+      productEntryAnchors: [],
     };
     const completed: ProcessingJob = { ...running, state: 'COMPLETED', output, completedAt: new Date().toISOString() };
     options.store.write(completed);

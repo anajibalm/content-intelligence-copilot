@@ -19,7 +19,7 @@ Status labels reflect evidence available at tracking checkpoint, not historical 
 | S12 | Consumer Says Lite | P1 | P1 Enhancements | Blocked by S6 | Positive/negative/neutral sentiment, sample guards, counts, quotes, empty state |
 | S13 | Core E2E and freeze | P0 | Core MVP | Blocked by S1–S10 and R1 | Real URL to reviewed hypothesis, reload persistence, final acceptance gates |
 | A0 | Architecture delivery retrospective | P2 | P2 | Review | Automated Archify/browser evidence passed; human perceptual review pending |
-| R1 | Application runtime integration | P0 | Core MVP | Blocked | Runtime DB connection, Next.js ingestion API/command, durable dispatch/state, worker handoff |
+| R1 | Application runtime integration | P0 | Core MVP | Partial / Review | Durable Postgres job/content/evidence path and one-worker recovery proven in `docs/tracking/evidence/R1_DURABLE_STAGING_2026-10-06.json`; deployment persistence and AWT remain open |
 | C1 | Candidate contract conflict audit and product decision | P0 | Core MVP | Review | Decide v0.2 candidate deltas before freeze; do not block S3 without evidence |
 | E1 | Durable sanitized S1/S2 receipts | P1 | P1 Enhancements | Ready | Preserve safe summary/hash outside `/tmp`; mark unavailable if source receipt is gone |
 | P1-UI | Brand Overview polish | P1 | P1 Enhancements | Later | Product decision and acceptance needed |

@@ -2,12 +2,10 @@
 
 Content Intelligence Copilot membantu analyst agency/brand membuat hipotesis content intelligence yang evidence-backed dan analyst-reviewed dari konten TikTok, evidence video, serta metric snapshots. Produk bukan campaign war room, viral-tier scorer, autonomous strategist, atau Pattern Memory yang sudah berjalan.
 
-## Status
-
-- **Fase saat ini:** S0, S1, S2, dan actual-media S3/R1 staging checkpoint selesai dengan batas di `docs/tracking/PLAN_COVERAGE.md`.
-- **Current UI:** staging runtime path; Next.js route invokes canonical acquisition and processing service. State/output checkpoint masih local JSON/files under `/tmp`, bukan application DB durable.
-- **Provider proof:** yt-dlp actual-media flow terbukti; faster-whisper tiny dipakai pada temporary Python 3.13 environment.
-- **Next:** Supabase/Postgres runtime persistence dan durable worker handoff R1 belum terbukti; S3 AWT requirement belum dibuktikan; S4/S5 tetap terpisah; v0.2 tetap implementation candidate.
+- **Fase saat ini:** S0, S1, S2, dan durable actual-media staging R1/S3 checkpoint selesai dengan batas di `docs/tracking/PLAN_COVERAGE.md`.
+- **Current UI:** Next.js route enqueues DB job; UI reads Postgres state and opens persistent audio/frame artifacts. One worker runs acquisition/processing.
+- **Provider proof:** yt-dlp actual-media flow terbukti; repeatable `scripts/transcribe.py` pins faster-whisper, `av<19`, and requests through uv script metadata.
+- **Remaining:** AWT requirement belum dibuktikan; S4/S5 tetap terpisah; v0.2 tetap implementation candidate.
 - **Frozen contract:** `docs/contracts/MVP_CONTRACT_v0.1_FROZEN.md`.
 
 ## Stack
