@@ -1,13 +1,13 @@
 {
   "evidence_date": "2026-10-06",
   "branch": "feat/s6-batch-workspace",
-  "review_fix_head": "ba26026",
+  "review_fix_head": "10deb6d",
   "dependency_base": "feat/s5-metrics-kpi-ranking (PR #26 remains OPEN; PR #27 retargeted; no merge approval implied)",
   "executor": "OMP (local repo agent)",
   "review_guidance": "ChatGPT",
   "merge_approval": "pending owner",
   "runtime": {
-    "server_port": 3012,
+    "server_port": 3013,
     "database": "local R1 staging Postgres",
     "storage_root": "/tmp/cic-r1-storage-final",
     "batch_id": "30000000-0000-0000-0000-000000000003",
@@ -27,20 +27,26 @@
     "ranking_groups": 1,
     "kpis": 1
   },
+  "ranking_extremes_smoke": {
+    "basis": "views",
+    "direction": "DESC",
+    "best": [{ "content": "Pengumuman Karyawan Terbaik", "value": 1000, "unit": "views" }],
+    "lowest": [{ "content": "Cek bau mulut", "value": 800, "unit": "views" }],
+    "cross_basis_comparison": false,
+    "ties": "presentation unit covers all ties for Best and Lowest; metrics unit covers ASC/DESC ties"
+  },
+  "selection_smoke": {
+    "active_item_reselection": "second click produced a fresh request path and settled without stale detail",
+    "deep_link_reload": "PASS",
+    "back_forward": "PASS",
+    "invalid_explicit_ids": "HTTP 404 with clear error state",
+    "keyboard_focus": "batch select received focus-visible focus"
+  },
   "boundary_probes": {
     "invalid_batch_with_valid_content": { "status": 404, "error": "batch not found in workspace" },
     "missing_content_in_selected_batch": { "status": 404, "error": "content not found in selected batch" },
     "foreign_workspace_content": "not exposed; workspace query scope applies",
     "explicit_parameters": "no batch/content fallback when supplied"
-  },
-  "ranking_proof": {
-    "summary": "Best by views",
-    "winner_links": ["Pengumuman Karyawan Terbaik"],
-    "winner_value": 1000,
-    "middle_items": "no Best badge",
-    "basis": "views",
-    "direction": "DESC",
-    "ties": "unit regression covers tied winners and ASC lowest"
   },
   "artifact_smoke": {
     "status": 200,
@@ -49,25 +55,31 @@
     "missing_files": "filesystem authorization returns unavailable"
   },
   "browser_smoke": {
-    "surface": "batch selector, KPI/ranking summary, content list, detail evidence, transcript, audio control",
+    "surface": "batch selector, KPI/ranking summary, Best/Lowest links, content list, detail evidence, transcript, audio control",
     "frame_natural_width": 1080,
     "audio_controls": 1,
-    "selection": "A/B selection, deep link, Back, Forward, and stale-detail clearing exercised",
-    "invalid_link": "HTTP 404 with clear error state",
-    "browser_errors": "no page errors; aborted navigation requests expected during rapid selection and do not render stale detail"
+    "browser_errors": 0,
+    "evidence_limit": "current persistent batch has synthetic S5 metric observations; no real brand approval claimed"
   },
   "repository_gates": {
     "lint": "PASS with 2 @next/next/no-img-element warnings",
     "typecheck": "PASS",
-    "test": "PASS: 53 tests",
+    "test": "PASS: 55 tests",
     "validate_fixtures": "PASS",
     "build": "PASS",
     "diff_check": "PASS"
   },
+  "ci": {
+    "code_head": "10deb6d01a61d67288894bc5a8ccb57bea965b0d",
+    "workflow": "CI",
+    "job": "Build & Test",
+    "run_id": "37455196387",
+    "status": "PASS"
+  },
   "limits": [
     "Staging observations use synthetic S5 fixture approval; no real brand approval claimed.",
     "No production deployment durability or public acquisition claim.",
-    "Acquisition-success plus processing-failure fixture was not available in current persistent batch; code exposes separate canonical states and errors.",
-    "S6 PR remains unmerged pending owner review."
+    "Current persistent batch lacks acquisition-success plus processing-failure fixture; code exposes separate canonical states and errors.",
+    "PR #26 remains dependency; PR #27 remains unmerged pending owner review."
   ]
 }
