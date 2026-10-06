@@ -131,6 +131,12 @@ audio { width: 100%; max-width: 320px; }
 .compare-variables { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .compare-variables > div { min-width: 0; padding: 12px; background: var(--paper); border-radius: 6px; }
 .compare-variables pre { max-height: 180px; margin: 8px 0 0; overflow: auto; white-space: pre-wrap; color: var(--muted); font: 11px/1.4 monospace; }
+.compare-metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 14px 0 0; }
+.compare-metrics div { min-width: 0; padding: 8px; background: var(--paper); border-radius: 5px; }
+.compare-metrics dt { font-size: 11px; }
+.compare-metrics dd { margin-top: 3px; font-size: 13px; }
+.compare-metrics small { display: block; margin-top: 3px; color: var(--muted); font-size: 10px; overflow-wrap: anywhere; }
+@media (max-width: 720px) { .compare-metrics { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 720px) { .compare-variables { grid-template-columns: 1fr; } .compare-controls { display: grid; } .compare-controls select, .compare-controls button { width: 100%; } }
 @media (max-width: 720px) {
   .workspace { padding: 28px 18px 52px; }
