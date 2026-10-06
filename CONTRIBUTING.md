@@ -80,7 +80,6 @@ Issue-driven Kanban, isolated task worktrees, exact-path delivery, CI gates, ret
 - Cek: scope, authority, acceptance criteria, verification, dan remaining limits.
 - Tidak merge tanpa approval owner.
 - Squash merge ke `master` hanya setelah approval.
-
 ## Label GitHub Aktual
 
 ### Prioritas
