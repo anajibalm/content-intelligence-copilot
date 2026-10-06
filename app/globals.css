@@ -87,6 +87,8 @@ dd { margin: 5px 0 0; font-size: 15px; font-weight: 700; overflow-wrap: anywhere
 @media (max-width: 720px) { .workspace-context, .workspace-summary { display: block; } .batch-picker { margin-top: 18px; } .batch-picker select { width: 100%; } .summary-block + .summary-block { margin-top: 14px; } .content-row { grid-template-columns: 1fr; } .content-state { text-align: left; } }
 .inline-link { display: inline; padding: 0; border: 0; background: transparent; color: var(--accent); font: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; }
 .inline-link + .inline-link { margin-left: 8px; }
+.extreme-line { display: flex; flex-wrap: wrap; gap: 6px; align-items: baseline; }
+.extreme-line strong { min-width: 52px; color: var(--ink); }
 
 .ingest-form { margin: 6px 0 24px; padding: 20px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
 .ingest-form label { display: block; margin-bottom: 8px; color: var(--muted); font-size: 12px; font-weight: 700; }

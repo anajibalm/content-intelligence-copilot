@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { rankingExtremes, selectionRequestKey } from "../lib/workspace/presentation.ts";
 
 type Snapshot = {
   id: string;
@@ -30,7 +31,7 @@ type Detail = Content & {
   transcript: Array<{ id: string; startMs: number; endMs: number; text: string; role: string | null }>;
   anchors: Array<{ id: string; type: string; timestampMs: number; reviewState: string; note: string | null; frameId: string | null; transcriptSegmentId: string | null }>;
 };
-type RankingItem = { contentId: string; value: number; snapshotId: string; basis: { label: string; metric: string; fallbackUsed?: boolean } };
+type RankingItem = { contentId: string; value: number; snapshotId?: string; basis: { label: string; metric: string; fallbackUsed?: boolean } };
 type RankingGroup = { basis: string; direction: string; items: RankingItem[] };
 type WorkspaceData = {
   batches: Array<{ id: string; name: string; brandName: string; createdAt: string; contentCount: number; contractedVideoCount: number | null }>;
@@ -83,7 +84,8 @@ export default function WorkspaceClient() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const requestNumber = useRef(0);
-
+  const [selectionVersion, setSelectionVersion] = useState(0);
+  const requestKeyRef = useRef("");
   function setSelection(nextBatchId: string | null, nextContentId: string | null, replace = false) {
     const query = new URLSearchParams();
     if (nextBatchId) query.set("batchId", nextBatchId);
@@ -93,6 +95,7 @@ export default function WorkspaceClient() {
     setBatchId(nextBatchId);
     setContentId(nextContentId);
     setData((current) => current ? { ...current, selectedContent: null } : current);
+    setSelectionVersion((version) => version + 1);
     setLoading(true);
     setError(null);
   }
@@ -103,6 +106,7 @@ export default function WorkspaceClient() {
       setBatchId(params.get("batchId"));
       setContentId(params.get("contentId"));
       setData((current) => current ? { ...current, selectedContent: null } : current);
+      setSelectionVersion((version) => version + 1);
       setLoading(true);
       setError(null);
     };
@@ -111,6 +115,7 @@ export default function WorkspaceClient() {
   }, []);
 
   useEffect(() => {
+    requestKeyRef.current = selectionRequestKey(batchId, contentId, selectionVersion);
     const controller = new AbortController();
     const currentRequest = ++requestNumber.current;
     const query = new URLSearchParams();
@@ -136,7 +141,7 @@ export default function WorkspaceClient() {
         if (!controller.signal.aborted && currentRequest === requestNumber.current) setLoading(false);
       });
     return () => controller.abort();
-  }, [batchId, contentId]);
+  }, [batchId, contentId, selectionVersion]);
 
   const rankedByContent = useMemo(() => {
     const map = new Map<string, { label: string; metric: string; value: number; direction: string; winner: boolean }>();
@@ -163,7 +168,7 @@ export default function WorkspaceClient() {
       {loading && <p className="notice" role="status">Loading selected workspace state…</p>}
       <section className="workspace-summary" aria-labelledby="summary-heading">
         <div className="summary-block"><p className="eyebrow">KPI ASSESSMENT</p><h2 id="summary-heading">Targets by distribution</h2>{data.analysis?.kpis.length ? data.analysis.kpis.map((item) => <div className="summary-line" key={item.definition.id}><strong>{item.definition.distribution ?? "Unconfigured"} · {statusLabel(item.assessment.status)}</strong><span>target {item.definition.target_value ?? "—"} · actual {item.assessment.actualValue ?? "—"} · excluded {item.assessment.excludedSnapshotIds.length}</span></div>) : <p className="muted">No KPI target configured.</p>}</div>
-        <div className="summary-block"><p className="eyebrow">BEST / LOWEST BY BASIS</p><h2>Configured ranking cohorts</h2>{data.analysis?.ranking.rankedGroups.length ? data.analysis.ranking.rankedGroups.map((group) => { const first = group.items[0]; const winners = group.items.filter((item) => item.value === first?.value); return <div className="summary-line" key={`${group.basis}-${group.direction}`}><strong>{group.direction === "ASC" ? "Lowest" : "Best"} by {group.basis}</strong><span>{winners.map((item) => <button className="inline-link" type="button" key={item.contentId} onClick={() => setSelection(data.selectedBatch!.id, item.contentId)}>{contentLabel(data.contents.find((content) => content.id === item.contentId))} · {formatMetric(item.value, group.basis)}</button>)} · {group.items.length} eligible · {group.direction}</span></div>; }) : <p className="muted">{data.analysis?.ranking.reason ?? "Ranking unavailable."}</p>}</div>
+        <div className="summary-block"><p className="eyebrow">BEST / LOWEST BY BASIS</p><h2>Configured ranking cohorts</h2>{data.analysis?.ranking.rankedGroups.length ? data.analysis.ranking.rankedGroups.map((group) => { const extremes = rankingExtremes(group); const linkItems = (items: RankingItem[], value: number | null, label: string) => <span className="extreme-line"><strong>{label}</strong>{items.map((item) => <button className="inline-link" type="button" key={`${label}-${item.contentId}`} onClick={() => setSelection(data.selectedBatch!.id, item.contentId)}>{contentLabel(data.contents.find((content) => content.id === item.contentId))} · {value == null ? "unavailable" : formatMetric(value, group.basis)}</button>)}</span>; return <div className="summary-line" key={`${group.basis}-${group.direction}`}><strong>{group.basis} · {group.direction}</strong>{linkItems(extremes.best.items, extremes.best.value, "Best")}{linkItems(extremes.lowest.items, extremes.lowest.value, "Lowest")}<span>{group.items.length} eligible · no cross-basis comparison</span></div>; }) : <p className="muted">{data.analysis?.ranking.reason ?? "Ranking unavailable."}</p>}</div>
       </section>
       <div className="workspace-columns">
         <section className="content-list" aria-labelledby="contents-heading"><div className="section-heading"><div><p className="eyebrow">EXPLICIT BATCH MEMBERSHIP</p><h2 id="contents-heading">All content</h2></div><span className="status">{data.contents.length} members</span></div>{data.contents.length === 0 ? <p className="empty-state">No content in selected batch. Add content through canonical acquisition.</p> : <div className="content-rows">{data.contents.map((content) => { const rank = rankedByContent.get(content.id); return <button className={`content-row ${content.id === detail?.id ? "selected" : ""}`} type="button" key={content.id} onClick={() => setSelection(data.selectedBatch!.id, content.id)}><span className="content-name"><strong>{contentLabel(content)}</strong><small>{content.externalId} · <span>{content.permalink}</span></small></span><span className="content-metrics"><small>Organic</small>{metricText(content, "ORGANIC")}<small>Paid</small>{metricText(content, "PAID")}</span><span className="content-state">Acquisition {statusLabel(content.acquisitionState)}<br />Processing {statusLabel(content.processingState)}</span>{rank && <span className="basis-label">{rank.label} · {formatMetric(rank.value, rank.metric)}</span>}</button>; })}</div>}</section>
