@@ -227,12 +227,13 @@ async function contentDetail(client: Pool | PoolClient, config: WorkspaceReposit
   );
   const row = content.rows[0];
   if (!row) throw new WorkspaceNotFoundError('content not found in workspace');
-  const [frames, transcript, anchors, snapshots, job] = await Promise.all([
+  const [frames, transcript, anchors, snapshots, job, extraction] = await Promise.all([
     client.query(`SELECT id, frame_type, timestamp_ms, storage_path FROM video_frame WHERE workspace_id = $1 AND content_id = $2 ORDER BY timestamp_ms, id`, [config.workspaceId, contentId]),
     client.query(`SELECT ts.id, ts.start_ms, ts.end_ms, ts.text, ts.role FROM transcript_segment ts JOIN transcript t ON t.id = ts.transcript_id WHERE t.workspace_id = $1 AND t.content_id = $2 ORDER BY ts.start_ms, ts.seq`, [config.workspaceId, contentId]),
     client.query(`SELECT a.id, a.anchor_type, a.timestamp_ms, a.review_state, a.note, a.video_frame_id, a.transcript_segment_id FROM temporal_evidence_anchor a WHERE a.workspace_id = $1 AND a.content_id = $2 ORDER BY a.timestamp_ms, a.id`, [config.workspaceId, contentId]),
     client.query<DbSnapshot>(`SELECT DISTINCT ON (ms.distribution) ms.id, ms.content_id, ms.distribution, ms.source, ms.captured_at, ms.content_age_hours, ms.raw_metrics, ms.quality_json FROM metric_snapshot ms WHERE ms.workspace_id = $1 AND ms.content_id = $2 ORDER BY ms.distribution, ms.captured_at DESC NULLS LAST, ms.created_at DESC`, [config.workspaceId, contentId]),
     client.query(`SELECT result FROM runtime_processing_job WHERE workspace_id = $1 AND content_id = $2`, [config.workspaceId, contentId]),
+    client.query(`SELECT er.id AS extraction_run_id, er.provider, er.model, er.prompt_version, er.schema_version, er.input_hash, cf.id, cf.field_name, cf.ai_value, cf.reviewed_value, cf.review_state FROM extraction_run er JOIN content_feature cf ON cf.extraction_run_id = er.id WHERE er.workspace_id = $1 AND er.content_id = $2 ORDER BY er.created_at DESC, cf.field_name`, [config.workspaceId, contentId]),
   ]);
   const output = jsonObject(job.rows[0]?.result);
   const audioPath = jsonObject(output.audio).storagePath;
@@ -249,5 +250,6 @@ async function contentDetail(client: Pool | PoolClient, config: WorkspaceReposit
     audio: { url: audioUrl, available: audioUrl !== null },
     transcript: transcript.rows.map((segment) => ({ id: segment.id, startMs: Number(segment.start_ms), endMs: Number(segment.end_ms), text: segment.text, role: segment.role })),
     anchors: anchors.rows.map((anchor) => ({ id: anchor.id, type: anchor.anchor_type, timestampMs: Number(anchor.timestamp_ms), reviewState: anchor.review_state, note: anchor.note, frameId: anchor.video_frame_id, transcriptSegmentId: anchor.transcript_segment_id })),
+    extraction: extraction.rows.map((feature) => ({ id: feature.id, extractionRunId: feature.extraction_run_id, fieldName: feature.field_name, aiValue: feature.ai_value, reviewedValue: feature.reviewed_value, reviewState: feature.review_state, provider: feature.provider, model: feature.model, promptVersion: feature.prompt_version, schemaVersion: feature.schema_version, inputHash: feature.input_hash })),
   };
 }
