@@ -1,0 +1,46 @@
+{
+  "evidence_date": "2026-10-06",
+  "branch": "feat/s3-r1-staging",
+  "flow": {
+    "source": "public TikTok URL",
+    "provider": "yt-dlp",
+    "status": "COMPLETED",
+    "media_bytes": 8874796,
+    "ffprobe_duration_s": 59.233991,
+    "transcript_segments": 33,
+    "hook_frames": 3,
+    "representative_frames": 4,
+    "per_second_frames": 59,
+    "temporary_mp4_count": 0
+  },
+  "restart_safety": {
+    "status_after_restart": "COMPLETED",
+    "acquisition_attempts_after_restart": 1,
+    "processing_repeated": false
+  },
+  "failure_retry": {
+    "first_status": "FAILED",
+    "first_attempts": 1,
+    "retry_status": "COMPLETED",
+    "retry_attempts": 2,
+    "temporary_mp4_count": 0,
+    "duplicate_output": false
+  },
+  "acceptance": {
+    "normalized_acquisition_boundary": "PASS: runtime calls provider-neutral acquisition adapter",
+    "runtime_db_canonical_schema": "BELUM_DIBUKTIKAN: staging state is local JSON, not Supabase/Postgres",
+    "state_survives_restart": "PASS: runtime JSON reload retained COMPLETED output",
+    "durable_worker_handoff": "BELUM_DIBUKTIKAN: same-process runner; no separate durable worker/queue",
+    "fixture_route_replaced": "PASS: Next.js route calls runtime acquisition/processing service",
+    "observed_extracted_separation": "PASS: ffprobe is under observed; transcript/frames are separate output groups",
+    "transcript_ordering": "PASS: runner rejects overlap; actual 33 segments completed",
+    "frame_anchor_provenance": "PASS: frame timestamps and storage paths persisted; opening anchors generated",
+    "temporary_media_cleanup": "PASS: successful and failed/retry flows left zero MP4 files"
+  },
+  "runtime_limits": [
+    "Output and state live under staging /tmp runtime root; not durable deployment storage.",
+    "Transcription used faster-whisper tiny in a temporary Python 3.13 venv with av<19.",
+    "No Supabase/Postgres runtime persistence or separate worker process was used.",
+    "No secrets, cookies, CDN URLs, or media artifacts are stored in this evidence file."
+  ]
+}

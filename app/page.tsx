@@ -1,87 +1,74 @@
-import { readFile } from "node:fs/promises";
-import path from "node:path";
+import ProcessingForm from "./processing-form";
+import { createDefaultAcquirer } from "../lib/acquisition/index.ts";
+import { createRuntimeService } from "../lib/runtime/service.ts";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
 
-type TikTokPost = {
-  external_id: string;
-  permalink: string;
-  caption: string;
-  duration_seconds: number;
-};
+export const dynamic = "force-dynamic";
 
-type TikTokFixture = { content: TikTokPost };
-
-type MetricSnapshot = {
-  metric_snapshot: {
-    distribution: "organic" | "paid";
-    raw_metrics: Record<string, { value: number | null; quality: "VALID" | "MISSING" | "SUSPECT" | "UNAVAILABLE" }>;
-  };
-};
-
-async function fixture<T>(name: string): Promise<T> {
-  const raw = await readFile(path.join(process.cwd(), "fixtures", name), "utf8");
-  return JSON.parse(raw) as T;
+function runtimeService() {
+  const root = process.env.CIC_RUNTIME_ROOT ?? join(tmpdir(), "cic-staging-runtime");
+  return createRuntimeService({
+    storePath: join(root, "runtime.json"),
+    outputRoot: join(root, "outputs"),
+    acquirer: createDefaultAcquirer(),
+  });
 }
 
-export default async function Home() {
-  const [postFixture, metricsFixture] = await Promise.all([
-    fixture<TikTokFixture>("tiktok-post.json"),
-    fixture<MetricSnapshot>("metric-snapshot.json"),
-  ]);
-  const post = postFixture.content;
-  const metrics = metricsFixture.metric_snapshot;
+export default function Home() {
+  const records = runtimeService().list();
 
   return (
     <main className="workspace">
       <header className="topbar">
         <div>
           <p className="eyebrow">CONTENT INTELLIGENCE COPILOT</p>
-          <h1>Batch 8 / Barakat</h1>
+          <h1>Staging processing</h1>
         </div>
-        <span className="status">Fixture workspace</span>
+        <span className="status">Actual media path</span>
       </header>
       <section className="summary" aria-labelledby="summary-heading">
         <div>
-          <p className="eyebrow">CURRENT BATCH</p>
-          <h2 id="summary-heading">Existing contractual batch</h2>
-          <p className="muted">TikTok-first analysis. Organic and paid observations stay separate.</p>
+          <p className="eyebrow">R1 / S3 CHECKPOINT</p>
+          <h2 id="summary-heading">Paste public TikTok URL</h2>
+          <p className="muted">Acquisition, processing state, transcript, audio, and temporal frames persist in staging state.</p>
         </div>
         <div className="summary-value">
-          <strong>1</strong>
-          <span>fixture content</span>
+          <strong>{records.length}</strong>
+          <span>processed content</span>
         </div>
       </section>
-      <section className="content-grid" aria-label="Content evidence">
-        <article className="content-card">
-          <div className="card-heading">
-            <div>
-              <p className="eyebrow">CONTENT</p>
-              <h2>{post.caption}</h2>
+      <ProcessingForm />
+      <section className="results" aria-label="Processing results">
+        {records.length === 0 ? <p className="muted">No processing jobs yet.</p> : records.map((record) => (
+          <article className="result-card" key={record.id}>
+            <div className="card-heading">
+              <div>
+                <p className="eyebrow">{record.externalId}</p>
+                <h2>{record.permalink}</h2>
+              </div>
+              <span className="state">{record.status}</span>
             </div>
-            <span className="state">Acquired</span>
-          </div>
-          <dl className="facts">
-            <div><dt>External ID</dt><dd>{post.external_id}</dd></div>
-            <div><dt>Duration</dt><dd>{post.duration_seconds}s</dd></div>
-            <div><dt>Source</dt><dd><a href={post.permalink}>TikTok permalink</a></dd></div>
-          </dl>
-        </article>
-        <article className="metric-card">
-          <div className="card-heading">
-            <div>
-              <p className="eyebrow">METRIC SNAPSHOT</p>
-              <h2>{metrics.distribution}</h2>
-            </div>
-            <span className="state">{metrics.raw_metrics.views.quality}</span>
-          </div>
-          <dl className="metrics">
-            <div><dt>Views</dt><dd>{metrics.raw_metrics.views.value?.toLocaleString("id-ID") ?? "—"}</dd></div>
-            <div><dt>Likes</dt><dd>{metrics.raw_metrics.likes.value?.toLocaleString("id-ID") ?? "—"}</dd></div>
-            <div><dt>Comments</dt><dd>{metrics.raw_metrics.comments.value?.toLocaleString("id-ID") ?? "—"}</dd></div>
-            <div><dt>Shares</dt><dd>{metrics.raw_metrics.shares.value?.toLocaleString("id-ID") ?? "—"}</dd></div>
-          </dl>
-        </article>
+            {record.processing?.output ? (
+              <>
+                <div className="result-grid">
+                  <div><dt>Duration</dt><dd>{record.processing.output.observed.ffprobe.format.duration}s OBSERVED</dd></div>
+                  <div><dt>Transcript</dt><dd>{record.processing.output.transcript.segments.length} timestamped segments</dd></div>
+                  <div><dt>Audio</dt><dd>{record.processing.output.audio.storagePath}</dd></div>
+                  <div><dt>Frames / second</dt><dd>{record.processing.output.perSecondFrames.length}</dd></div>
+                  <div><dt>Hook frames</dt><dd>{record.processing.output.hookFrames.map((frame) => `${frame.timestampMs}ms`).join(", ") || "—"}</dd></div>
+                  <div><dt>Representative frames</dt><dd>{record.processing.output.representativeFrames.map((frame) => `${frame.timestampMs}ms`).join(", ") || "—"}</dd></div>
+                </div>
+                <details className="transcript-details">
+                  <summary>Inspect timestamped transcript</summary>
+                  <ol>{record.processing.output.transcript.segments.map((segment, index) => <li key={`${record.id}-segment-${index}`}><strong>{segment.startMs}–{segment.endMs}ms</strong> {segment.text}</li>)}</ol>
+                </details>
+              </>
+            ) : <p className="muted">{record.error ?? "Processing pending."}</p>}
+          </article>
+        ))}
       </section>
-      <footer className="footer-note">Observed facts and metric snapshots remain separate from derived, extracted, and inferred evidence.</footer>
+      <footer className="footer-note">OBSERVED ffprobe facts stay separate from transcript and frame evidence. Temporary MP4 is removed after derivatives persist.</footer>
     </main>
   );
 }

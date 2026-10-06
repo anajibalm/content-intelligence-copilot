@@ -4,10 +4,10 @@ Content Intelligence Copilot membantu analyst agency/brand membuat hipotesis con
 
 ## Status
 
-- **Fase saat ini:** S0, S1, dan S2 selesai dengan batas yang dicatat di `docs/tracking/PLAN_COVERAGE.md`.
-- **Current UI:** fixture-backed; belum terhubung ke acquisition runtime, application database, atau persistent worker.
-- **Provider proof:** yt-dlp terbukti pada Python spike; TikHub/Apify credential-gated dan belum live-verified.
-- **Next:** S3 actual-media processing dan S5 metrics/KPI/ranking tetap terpisah; R1 runtime integration masih blocked; v0.2 tetap implementation candidate.
+- **Fase saat ini:** S0, S1, S2, dan actual-media S3/R1 staging checkpoint selesai dengan batas di `docs/tracking/PLAN_COVERAGE.md`.
+- **Current UI:** staging runtime path; Next.js route invokes canonical acquisition and processing service. State/output checkpoint masih local JSON/files under `/tmp`, bukan application DB durable.
+- **Provider proof:** yt-dlp actual-media flow terbukti; faster-whisper tiny dipakai pada temporary Python 3.13 environment.
+- **Next:** Supabase/Postgres runtime persistence dan durable worker handoff R1 belum terbukti; S3 AWT requirement belum dibuktikan; S4/S5 tetap terpisah; v0.2 tetap implementation candidate.
 - **Frozen contract:** `docs/contracts/MVP_CONTRACT_v0.1_FROZEN.md`.
 
 ## Stack
