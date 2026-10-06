@@ -1,22 +1,39 @@
 import ProcessingForm from "./processing-form";
 import EvidenceFrames from "./evidence-frames";
 import { createDefaultAcquirer } from "../lib/acquisition/index.ts";
-import { createPostgresRuntimeFromEnv } from "../lib/runtime/postgres.ts";
+import { createPostgresRuntimeFromEnv, runtimeConfigFromEnv } from "../lib/runtime/postgres.ts";
+import { createMetricsRepository } from "../lib/metrics/postgres.ts";
 
 export const dynamic = "force-dynamic";
 
 async function runtimeJobs() {
   const runtime = createPostgresRuntimeFromEnv(createDefaultAcquirer());
   try {
-    return (await runtime.list()).map(runtime.toPublic);
+    return (await runtime.list()).map((job) => {
+      try {
+        return runtime.toPublic(job);
+      } catch (error) {
+        return { ...job, result: null, error: `Stored evidence unavailable: ${String((error as Error).message ?? error)}` };
+      }
+    });
   } finally {
     await runtime.close();
+  }
+}
+async function batchMetrics() {
+  const config = runtimeConfigFromEnv();
+  const repository = createMetricsRepository(config);
+  try {
+    return await repository.batchAndPersist(config.batchId);
+  } finally {
+    await repository.close();
   }
 }
 
 export default async function Home() {
   const jobs = await runtimeJobs();
-
+  const metrics = await batchMetrics();
+  if (!metrics) throw new Error("batch analysis unavailable");
   return (
     <main className="workspace">
       <header className="topbar">
@@ -34,6 +51,39 @@ export default async function Home() {
         </div>
         <div className="summary-value"><strong>{jobs.length}</strong><span>durable jobs</span></div>
       </section>
+      {metrics ? (
+        <section className="analysis-panel" aria-labelledby="analysis-heading">
+          <div className="card-heading">
+            <div>
+              <p className="eyebrow">S5 / BATCH ANALYSIS</p>
+              <h2 id="analysis-heading">{metrics.batch.name} metrics, quality, and ranking</h2>
+            </div>
+            <span className="status">{metrics.synthetic ? "Synthetic demo data" : "Source observations"}</span>
+          </div>
+          <p className="muted">Organic and Paid snapshots stay separate. Derived values use versioned rules. Unconfigured brand approval stays visible.</p>
+          <div className="analysis-grid">
+            <div className="metric-card">
+              <h3>Ranking</h3>
+              <p className="muted">{metrics.ranking.status === "READY" ? `${metrics.ranking.rankedGroups?.length ?? 1} configured basis group(s)` : metrics.ranking.reason}</p>
+              {(metrics.ranking.rankedGroups ?? [{ items: metrics.ranking.ranked }]).map((group: { basis?: string; direction?: string; items: Array<{ contentId: string; value: number; basis: { label: string; metric: string } }> }, groupIndex: number) => (
+                <div key={`${group.basis ?? "ranking"}-${groupIndex}`}>
+                  <p className="muted">{group.basis ?? "ranking"} · {group.direction ?? "configured direction"}</p>
+                  {group.items.map((item) => <div className="analysis-row" key={`${item.contentId}-${item.basis.metric}`}><strong>{item.basis.label}</strong><span>{item.contentId} · {item.value}</span></div>)}
+                </div>
+              ))}
+              {metrics.ranking.excluded.map((item: { contentId: string; reason: string }) => <div className="analysis-row excluded" key={item.contentId}><strong>Excluded</strong><span>{item.contentId} · {item.reason}</span></div>)}
+            </div>
+            <div className="metric-card">
+              <h3>KPI assessment</h3>
+              {metrics.kpis.length === 0 ? <p className="muted">No brand KPI target configured.</p> : metrics.kpis.map((item: { definition: { id: string; metric_name: string; distribution: string | null; target_value: number | null }; assessment: { status: string; actualValue: number | null; excludedSnapshotIds: string[] } }) => <div className="analysis-row" key={item.definition.id}><strong>{item.definition.metric_name} · {item.definition.distribution ?? "unconfigured context"} · {item.assessment.status}</strong><span>target {item.definition.target_value ?? "—"} · actual {item.assessment.actualValue ?? "—"} · excluded {item.assessment.excludedSnapshotIds.length}</span></div>)}
+            </div>
+          </div>
+          <div className="analysis-table" role="table" aria-label="Metric snapshots">
+            <div className="analysis-row analysis-head" role="row"><strong>Content</strong><strong>Context</strong><strong>Views</strong><strong>ER</strong><strong>Quality</strong></div>
+            {metrics.snapshots.map((snapshot) => <div className="analysis-row analysis-head" role="row" key={snapshot.id}><span>{snapshot.contentId}</span><span>{snapshot.distribution}</span><span>{(snapshot.rawMetrics as Record<string, number | null>).views ?? "—"}</span><span>{snapshot.derivedMetrics.engagement_rate?.value ?? "—"}</span><span>{snapshot.quality}</span></div>)}
+          </div>
+        </section>
+      ) : <p className="muted">Batch analysis unavailable.</p>}
       <ProcessingForm />
       <section className="results" aria-label="Processing results">
         {jobs.length === 0 ? <p className="muted">No durable jobs yet.</p> : jobs.map((job) => (

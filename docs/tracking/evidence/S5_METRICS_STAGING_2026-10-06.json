@@ -1,0 +1,60 @@
+{
+  "evidence_date": "2026-10-06",
+  "branch": "feat/s5-metrics-kpi-ranking",
+  "provenance": "Executor: OMP (local repo agent); Review guidance: ChatGPT; Merge approval: pending owner",
+  "master_integration": {
+    "pr_22": {"state": "MERGED", "merge_sha": "6199088ebc1bc822d3a3ddb3f2bab836bbb59c01"},
+    "pr_24": {"state": "MERGED", "merge_sha": "0fb2087d5774f582edec45afc87d4355fec2f9cb"},
+    "pr_25": {"state": "MERGED", "merge_sha": "2fc40ceed00088bd48125671c6f40f9f527cb4b4"},
+    "master_sha": "2fc40ceed00088bd48125671c6f40f9f527cb4b4"
+  },
+  "dataset": {
+    "batch_id": "51000000-0000-0000-0000-000000000002",
+    "batch_name": "S5 isolated 12-content demo",
+    "brand": "S5 Rule Review Demo",
+    "content_count": 12,
+    "contexts": {"ORGANIC": 8, "PAID": 4},
+    "source": "synthetic_s5_demo",
+    "synthetic_label_required": true,
+    "coverage": ["primary awt_seconds", "fallback views", "primary DESC", "fallback ASC", "ties", "missing", "suspect", "Organic", "Paid"]
+  },
+  "rules": {
+    "metrics": "metrics-v1",
+    "ranking": "ranking-v1",
+    "kpi": "kpi-v1",
+    "organic_paid_separation": "PASS",
+    "raw_derived_separation": "PASS",
+    "unavailable_vs_error_vs_zero": "PASS",
+    "canonical_quality_reasons": "PASS"
+  },
+  "staging_batch_result": {
+    "probe": "direct metrics repository plus HTTP API against cic-postgres-r1",
+    "api": "GET /api/batches/51000000-0000-0000-0000-000000000002/metrics",
+    "status": 200,
+    "synthetic": true,
+    "snapshot_count": 12,
+    "contexts": {"ORGANIC": 8, "PAID": 4},
+    "quality_counts": {"VALID": 9, "SUSPECT": 3},
+    "ranking": {
+      "status": "READY",
+      "reason": "fallback basis is not approved for cross-basis ordering",
+      "groups": [
+        {"basis": "awt_seconds", "direction": "DESC", "values": [0.3, 0.2, 0.2, 0.1], "tie_count": 1},
+        {"basis": "views", "direction": "ASC", "values": [100, 100, 200], "tie_count": 1}
+      ],
+      "eligible_items": 7,
+      "excluded_items": 5,
+      "exclusion_reasons": ["primary metric awt_seconds unavailable and no eligible fallback", "distribution PAID does not match ORGANIC"]
+    },
+    "kpis": [
+      {"distribution": "ORGANIC", "status": "ACHIEVED", "actual": 571.4285714285714, "contributors": 7, "excluded": 1},
+      {"distribution": "PAID", "status": "ACHIEVED", "actual": 170, "contributors": 3, "excluded": 1}
+    ],
+    "persistence": {"ranking_result_id": "59735f82-34bb-4d60-97ec-9f7eb9057ef2", "eligible_items": 7, "excluded_items": 5, "kpi_assessments": 7, "kpi_assessments_with_exclusions": 7, "synthetic_snapshots": 12, "quality_reasons": ["NOT_ACCESSIBLE", "NOT_PROVIDED", "SOURCE_ERROR", "UNEXPLAINED_ZERO"]},
+    "reload": {"snapshot_ids_stable": true, "ranking_stable": true, "kpis_stable": true}
+  },
+  "approval_boundary": {"non_demo_observation": "manual_real_probe", "status": "UNCONFIGURED", "reason": "synthetic ranking approval cannot be used with non-demo observations"},
+  "ui_smoke": {"url": "http://127.0.0.1:3000/", "http_status": 200, "markers": ["S5 / BATCH ANALYSIS", "S5 isolated 12-content demo", "Synthetic demo data", "2 configured basis group(s)", "awt_seconds · DESC", "views · ASC", "ORGANIC · ACHIEVED", "PAID · ACHIEVED", "target 500 · actual 571.4285714285714", "target 1000 · actual 170"], "reload_stable": true, "console_errors_after_settled_reload": 0},
+  "repo_gates": {"typecheck": "PASS", "lint": "PASS with existing Next img warning", "test": "PASS 49/49", "validate_fixtures": "PASS", "build": "PASS", "diff_check": "PASS"},
+  "limits": ["Synthetic fixture approval is not real brand approval.", "No real brand approval claimed.", "No production deployment claimed.", "No S4/S6/S7 scope added."]
+}

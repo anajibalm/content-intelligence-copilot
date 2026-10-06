@@ -36,6 +36,15 @@ dt { color: var(--muted); font-size: 12px; }
 dd { margin: 5px 0 0; font-size: 15px; font-weight: 700; overflow-wrap: anywhere; }
 .state { border-color: #b8d6c5; background: var(--accent-soft); color: var(--accent); }
 .footer-note { margin-top: 24px; font-size: 13px; }
+.analysis-panel { display: grid; gap: 18px; margin-bottom: 24px; padding: 24px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+.analysis-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.analysis-panel h3 { margin: 0 0 14px; font-size: 1rem; }
+.analysis-row { display: flex; justify-content: space-between; gap: 14px; padding: 10px 0; border-top: 1px solid var(--line); font-size: 13px; }
+.analysis-row span { color: var(--muted); text-align: right; overflow-wrap: anywhere; }
+.analysis-row.excluded { color: #8b4a35; }
+.analysis-table { overflow-x: auto; }
+.analysis-head { display: grid; grid-template-columns: 1.5fr .7fr .7fr .7fr .8fr; min-width: 620px; }
+@media (max-width: 720px) { .analysis-grid { grid-template-columns: 1fr; } }
 
 .ingest-form { margin: 6px 0 24px; padding: 20px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
 .ingest-form label { display: block; margin-bottom: 8px; color: var(--muted); font-size: 12px; font-weight: 700; }
