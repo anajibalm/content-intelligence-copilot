@@ -64,17 +64,18 @@ export default async function Home() {
           <div className="analysis-grid">
             <div className="metric-card">
               <h3>Ranking</h3>
-              <p className="muted">{metrics.ranking.status === "READY" ? `${metrics.ranking.ranked.length} eligible results` : metrics.ranking.reason}</p>
-              {metrics.ranking.ranked.map((item) => (
-                <div className="analysis-row" key={item.contentId}>
-                  <strong>{item.basis.label}</strong><span>{item.contentId} · {item.value}</span>
+              <p className="muted">{metrics.ranking.status === "READY" ? `${metrics.ranking.rankedGroups?.length ?? 1} configured basis group(s)` : metrics.ranking.reason}</p>
+              {(metrics.ranking.rankedGroups ?? [{ items: metrics.ranking.ranked }]).map((group: { basis?: string; direction?: string; items: Array<{ contentId: string; value: number; basis: { label: string; metric: string } }> }, groupIndex: number) => (
+                <div key={`${group.basis ?? "ranking"}-${groupIndex}`}>
+                  <p className="muted">{group.basis ?? "ranking"} · {group.direction ?? "configured direction"}</p>
+                  {group.items.map((item) => <div className="analysis-row" key={`${item.contentId}-${item.basis.metric}`}><strong>{item.basis.label}</strong><span>{item.contentId} · {item.value}</span></div>)}
                 </div>
               ))}
-              {metrics.ranking.excluded.map((item) => <div className="analysis-row excluded" key={item.contentId}><strong>Excluded</strong><span>{item.contentId} · {item.reason}</span></div>)}
+              {metrics.ranking.excluded.map((item: { contentId: string; reason: string }) => <div className="analysis-row excluded" key={item.contentId}><strong>Excluded</strong><span>{item.contentId} · {item.reason}</span></div>)}
             </div>
             <div className="metric-card">
               <h3>KPI assessment</h3>
-              {metrics.kpis.length === 0 ? <p className="muted">No brand KPI target configured.</p> : metrics.kpis.map((item) => <div className="analysis-row" key={item.definition.id}><strong>{item.definition.metric_name} · {item.assessment.status}</strong><span>{item.assessment.actualValue ?? "—"}</span></div>)}
+              {metrics.kpis.length === 0 ? <p className="muted">No brand KPI target configured.</p> : metrics.kpis.map((item: { definition: { id: string; metric_name: string; distribution: string | null; target_value: number | null }; assessment: { status: string; actualValue: number | null; excludedSnapshotIds: string[] } }) => <div className="analysis-row" key={item.definition.id}><strong>{item.definition.metric_name} · {item.definition.distribution ?? "unconfigured context"} · {item.assessment.status}</strong><span>target {item.definition.target_value ?? "—"} · actual {item.assessment.actualValue ?? "—"} · excluded {item.assessment.excludedSnapshotIds.length}</span></div>)}
             </div>
           </div>
           <div className="analysis-table" role="table" aria-label="Metric snapshots">

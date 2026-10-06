@@ -18,8 +18,9 @@ function qualityState(value, quality) {
   return state;
 }
 
-function normalizeReason(value, quality, qualityNote) {
+function normalizeReason(value, quality, qualityNote, explicitReason) {
   if (quality === 'VALID') return null;
+  if (explicitReason && QUALITY_REASONS.has(String(explicitReason).toUpperCase())) return String(explicitReason).toUpperCase();
   const text = String(qualityNote ?? '').toLowerCase();
   if (text.includes('access')) return 'NOT_ACCESSIBLE';
   if (text.includes('provided') || text.includes('reported')) return 'NOT_PROVIDED';
@@ -28,14 +29,15 @@ function normalizeReason(value, quality, qualityNote) {
 }
 
 function metricEntry(entry) {
-  const value = entry && typeof entry === 'object' && !Array.isArray(entry) ? entry.value : entry;
-  const quality = qualityState(value, entry && typeof entry === 'object' ? entry.quality ?? entry.state : undefined);
+  const objectEntry = entry && typeof entry === 'object' && !Array.isArray(entry) ? entry : {};
+  const value = Object.keys(objectEntry).length > 0 ? objectEntry.value : entry;
+  const quality = qualityState(value, Object.keys(objectEntry).length > 0 ? objectEntry.quality ?? objectEntry.state : undefined);
   if (value != null && (typeof value !== 'number' || !Number.isFinite(value) || value < 0)) {
     throw new Error('metric value must be a finite non-negative number or null');
   }
   if (quality === 'VALID' && value == null) throw new Error('VALID metric requires a value');
   if (quality !== 'VALID' && value != null && quality === 'UNAVAILABLE') throw new Error('UNAVAILABLE metric cannot contain a value');
-  return { value: value ?? null, quality, reason: normalizeReason(value, quality, entry && typeof entry === 'object' ? entry.qualityNote : undefined) };
+  return { value: value ?? null, quality, reason: normalizeReason(value, quality, objectEntry.qualityNote, objectEntry.reason) };
 }
 
 function usable(snapshot, name) {
@@ -107,68 +109,85 @@ function labelFor(metric, direction) {
 
 export function rankBatch(snapshots, config) {
   if (!isApproved(config)) {
-    return { status: 'UNCONFIGURED', reason: config?.unconfiguredReason ?? 'brand ranking config is not approved', ranked: [], excluded: [], ruleVersion: RANKING_RULE_VERSION };
+    return { status: 'UNCONFIGURED', reason: config?.unconfiguredReason ?? 'brand ranking config is not approved', ranked: [], rankedGroups: [], excluded: [], ruleVersion: RANKING_RULE_VERSION };
+  }
+  if (config.configuredBy === 'synthetic_s5_fixture' && snapshots.some((snapshot) => snapshot.source !== 'synthetic_s5_demo')) {
+    return { status: 'UNCONFIGURED', reason: 'synthetic ranking approval cannot be used with non-demo observations', ranked: [], rankedGroups: [], excluded: [], ruleVersion: RANKING_RULE_VERSION };
   }
   const rule = config.rankingRule ?? {};
   const distribution = rule.distribution;
   if (distribution !== 'ORGANIC' && distribution !== 'PAID') {
-    return { status: 'UNCONFIGURED', reason: 'approved ranking config must name one distribution context', ranked: [], excluded: [], ruleVersion: RANKING_RULE_VERSION };
+    return { status: 'UNCONFIGURED', reason: 'approved ranking config must name one distribution context', ranked: [], rankedGroups: [], excluded: [], ruleVersion: RANKING_RULE_VERSION };
   }
   const minimumSampleSize = Number.isInteger(rule.minimumSampleSize) ? rule.minimumSampleSize : 1;
   if (minimumSampleSize < 1) throw new Error('minimumSampleSize must be positive');
   const metric = config.primaryMetric;
+  if (!metric) return { status: 'UNCONFIGURED', reason: 'approved ranking config must name a primary metric', ranked: [], rankedGroups: [], excluded: [], ruleVersion: RANKING_RULE_VERSION };
   const fallback = config.fallbackRule?.metric;
-  const direction = String(rule.direction ?? 'DESC').toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
-  const ranked = [];
+  const primaryDirection = String(rule.direction ?? 'DESC').toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+  const fallbackDirection = String(config.fallbackRule?.direction ?? primaryDirection).toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
   const excluded = [];
-  const eligible = snapshots.filter((snapshot) => {
+  const primaryItems = [];
+  const fallbackItems = [];
+  for (const snapshot of snapshots) {
     if (snapshot.distribution !== distribution) {
       excluded.push({ contentId: snapshot.contentId, reason: `distribution ${snapshot.distribution} does not match ${distribution}` });
-      return false;
+      continue;
     }
     const primaryValue = metricValue(snapshot, metric);
     if (primaryValue != null && snapshot.qualityByMetric[metric]?.state !== 'SUSPECT') {
-      ranked.push({ snapshot, value: primaryValue, metric, fallbackUsed: false });
-      return true;
+      primaryItems.push({ snapshot, value: primaryValue, metric, fallbackUsed: false });
+      continue;
     }
     const fallbackValue = fallback ? metricValue(snapshot, fallback) : null;
     if (fallbackValue != null && snapshot.qualityByMetric[fallback]?.state !== 'SUSPECT') {
-      ranked.push({ snapshot, value: fallbackValue, metric: fallback, fallbackUsed: true });
-      return true;
+      fallbackItems.push({ snapshot, value: fallbackValue, metric: fallback, fallbackUsed: true });
+      continue;
     }
     excluded.push({ contentId: snapshot.contentId, reason: `primary metric ${metric} unavailable and no eligible fallback` });
-    return false;
-  });
-  if (eligible.length < minimumSampleSize) {
-    return { status: 'INSUFFICIENT_DATA', reason: `eligible sample ${eligible.length} is below configured minimum ${minimumSampleSize}`, ranked: [], excluded, ruleVersion: RANKING_RULE_VERSION };
   }
-  ranked.sort((left, right) => Number(left.fallbackUsed) - Number(right.fallbackUsed) || (left.value - right.value) * directionValue(direction) || left.snapshot.contentId.localeCompare(right.snapshot.contentId));
-  return {
-    status: 'READY',
-    ranked: ranked.map((item) => ({ contentId: item.snapshot.contentId, snapshotId: item.snapshot.id, value: item.value, basis: { metric: item.metric, label: labelFor(item.metric, direction), fallbackUsed: item.fallbackUsed, configId: config.id, configVersion: config.version, ruleVersion: RANKING_RULE_VERSION } })),
-    excluded,
-    ruleVersion: RANKING_RULE_VERSION,
-    distribution,
-  };
+  const sortItems = (items, direction) => [...items].sort((left, right) => (left.value - right.value) * directionValue(direction) || left.snapshot.contentId.localeCompare(right.snapshot.contentId));
+  const groups = [];
+  if (primaryItems.length >= minimumSampleSize) groups.push({ basis: metric, direction: primaryDirection, minimumSampleSize, items: sortItems(primaryItems, primaryDirection) });
+  else if (primaryItems.length > 0) excluded.push(...primaryItems.map((item) => ({ contentId: item.snapshot.contentId, reason: `primary cohort ${primaryItems.length} is below configured minimum ${minimumSampleSize}` })));
+  if (fallbackItems.length >= minimumSampleSize) groups.push({ basis: fallback, direction: fallbackDirection, minimumSampleSize, items: sortItems(fallbackItems, fallbackDirection) });
+  else if (fallbackItems.length > 0) excluded.push(...fallbackItems.map((item) => ({ contentId: item.snapshot.contentId, reason: `fallback cohort ${fallbackItems.length} is below configured minimum ${minimumSampleSize}` })));
+  if (groups.length === 0) return { status: 'INSUFFICIENT_DATA', reason: `no ranking cohort meets configured minimum ${minimumSampleSize}`, ranked: [], rankedGroups: [], excluded, ruleVersion: RANKING_RULE_VERSION, distribution };
+  const rankedGroups = groups.map((group) => ({ basis: group.basis, direction: group.direction, minimumSampleSize: group.minimumSampleSize, items: group.items.map((item) => ({ contentId: item.snapshot.contentId, snapshotId: item.snapshot.id, value: item.value, basis: { metric: item.metric, label: labelFor(item.metric, group.direction), fallbackUsed: item.fallbackUsed, configId: config.id, configVersion: config.version, ruleVersion: RANKING_RULE_VERSION } })) }));
+  const mixedBases = rankedGroups.length > 1;
+  return { status: 'READY', ranked: mixedBases ? [] : rankedGroups[0].items, rankedGroups, reason: mixedBases ? 'fallback basis is not approved for cross-basis ordering' : null, excluded, ruleVersion: RANKING_RULE_VERSION, distribution };
 }
 
 function compare(actual, target, comparator) {
   if (comparator === 'GT') return actual > target;
+  if (comparator === 'GTE') return actual >= target;
   if (comparator === 'LTE') return actual <= target;
   if (comparator === 'LT') return actual < target;
-  return actual >= target;
+  if (comparator === 'EQ') return actual === target;
+  return null;
 }
 
 export function assessKpi(definition, snapshots, options = {}) {
-  if (definition.targetValue == null || !definition.comparator || !definition.aggregationMethod) {
-    return { status: 'UNCONFIGURED', actualValue: null, sourceSnapshotIds: [], qualityState: 'UNAVAILABLE', ruleVersion: KPI_RULE_VERSION, formulaVersion: definition.formulaVersion ?? null };
+  const supportedAggregations = new Set(['SUM', 'AVERAGE']);
+  const supportedComparators = new Set(['GT', 'GTE', 'LTE', 'LT', 'EQ']);
+  if (definition.targetValue == null || !Number.isFinite(Number(definition.targetValue)) || !definition.metricName || !definition.distribution || !supportedAggregations.has(definition.aggregationMethod) || !supportedComparators.has(definition.comparator)) {
+    return { status: 'UNCONFIGURED', reason: 'KPI metric, target, distribution, aggregation, and comparator must use supported values', actualValue: null, sourceSnapshotIds: [], excludedSnapshotIds: [], qualityState: 'UNAVAILABLE', ruleVersion: KPI_RULE_VERSION, formulaVersion: definition.formulaVersion ?? null };
   }
-  const candidates = snapshots.filter((snapshot) => !definition.distribution || snapshot.distribution === definition.distribution);
-  const values = candidates.map((snapshot) => metricValue(snapshot, definition.metricName)).filter((value) => value != null);
+  const candidates = snapshots.filter((snapshot) => snapshot.distribution === definition.distribution);
+  const contributing = [];
+  const excluded = [];
+  for (const snapshot of candidates) {
+    const value = metricValue(snapshot, definition.metricName);
+    const quality = definition.metricName === 'engagement_rate' ? (value == null ? 'MISSING' : 'VALID') : snapshot.qualityByMetric[definition.metricName]?.state;
+    if (value != null && quality === 'VALID') contributing.push({ snapshot, value });
+    else excluded.push({ snapshot, reason: `${definition.metricName} is ${quality ?? 'MISSING'}` });
+  }
   const minimumSampleSize = Number.isInteger(options.minimumSampleSize) ? options.minimumSampleSize : 1;
-  if (values.length < minimumSampleSize) {
-    return { status: 'INSUFFICIENT_DATA', actualValue: null, sourceSnapshotIds: candidates.map((snapshot) => snapshot.id), qualityState: 'MISSING', ruleVersion: KPI_RULE_VERSION, formulaVersion: definition.formulaVersion ?? null };
+  if (contributing.length < minimumSampleSize) {
+    return { status: 'INSUFFICIENT_DATA', reason: `contributing sample ${contributing.length} is below configured minimum ${minimumSampleSize}`, actualValue: null, sourceSnapshotIds: contributing.map((item) => item.snapshot.id), excludedSnapshotIds: excluded.map((item) => item.snapshot.id), excluded, qualityState: contributing.length ? 'SUSPECT' : 'MISSING', ruleVersion: KPI_RULE_VERSION, formulaVersion: definition.formulaVersion ?? null };
   }
+  const values = contributing.map((item) => item.value);
   const actualValue = definition.aggregationMethod === 'SUM' ? values.reduce((sum, value) => sum + value, 0) : values.reduce((sum, value) => sum + value, 0) / values.length;
-  return { status: compare(actualValue, definition.targetValue, definition.comparator) ? 'ACHIEVED' : 'NOT_ACHIEVED', actualValue, sourceSnapshotIds: candidates.map((snapshot) => snapshot.id), qualityState: 'VALID', ruleVersion: KPI_RULE_VERSION, formulaVersion: definition.formulaVersion ?? null };
+  const achieved = compare(actualValue, Number(definition.targetValue), definition.comparator);
+  return { status: achieved ? 'ACHIEVED' : 'NOT_ACHIEVED', actualValue, sourceSnapshotIds: contributing.map((item) => item.snapshot.id), excludedSnapshotIds: excluded.map((item) => item.snapshot.id), excluded, qualityState: excluded.length ? 'SUSPECT' : 'VALID', ruleVersion: KPI_RULE_VERSION, formulaVersion: definition.formulaVersion ?? null };
 }

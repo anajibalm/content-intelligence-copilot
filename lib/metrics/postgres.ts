@@ -33,6 +33,7 @@ interface DbConfig {
   supporting_metrics: string[];
   ranking_rule_json: Record<string, unknown>;
   fallback_rule_json: Record<string, unknown>;
+  configured_by: string | null;
   approval_state: 'UNCONFIGURED' | 'PENDING' | 'APPROVED';
   unconfigured_reason: string | null;
 }
@@ -115,7 +116,7 @@ export async function analyze(clientOrPool: Pool | PoolClient, workspaceId: stri
     ),
     clientOrPool.query<DbConfig>(
       `SELECT id, brand_id, version, primary_metric, supporting_metrics, ranking_rule_json,
-              fallback_rule_json, approval_state, unconfigured_reason
+              fallback_rule_json, configured_by, approval_state, unconfigured_reason
        FROM brand_analysis_config
        WHERE workspace_id = $1 AND brand_id = $2
        ORDER BY version DESC`,
@@ -140,7 +141,7 @@ export async function analyze(clientOrPool: Pool | PoolClient, workspaceId: stri
     const rawMetrics = Object.fromEntries(Object.entries(row.raw_metrics ?? {}).map(([name, rawEntry]) => {
       const rawObject = jsonObject(rawEntry);
       const detail = jsonObject(qualityJson[name]);
-      return [name, { value: rawObject.value ?? null, quality: rawObject.quality ?? detail.state ?? (rawObject.value == null ? 'UNAVAILABLE' : 'VALID'), qualityNote: detail.reason }];
+      return [name, { value: rawObject.value ?? null, quality: rawObject.quality ?? detail.state ?? (rawObject.value == null ? 'UNAVAILABLE' : 'VALID'), reason: rawObject.reason ?? detail.reason, qualityNote: detail.reason }];
     }));
     return [normalizeMetricSnapshot({
       id: row.id,
@@ -158,12 +159,12 @@ export async function analyze(clientOrPool: Pool | PoolClient, workspaceId: stri
     id: selectedConfig.id,
     version: selectedConfig.version,
     approvalState: selectedConfig.approval_state,
+    configuredBy: selectedConfig.configured_by,
     primaryMetric: selectedConfig.primary_metric,
     rankingRule: selectedConfig.ranking_rule_json,
     fallbackRule: selectedConfig.fallback_rule_json,
     unconfiguredReason: selectedConfig.unconfigured_reason,
   } : null);
-  const organic = snapshots.filter((snapshot) => snapshot.distribution === 'ORGANIC');
   const kpis = kpiResult.rows.map((definition) => ({
     definition,
     assessment: assessKpi({
@@ -173,7 +174,7 @@ export async function analyze(clientOrPool: Pool | PoolClient, workspaceId: stri
       aggregationMethod: definition.aggregation_method,
       distribution: definition.distribution,
       formulaVersion: definition.formula_version,
-    }, organic, {
+    }, snapshots, {
       minimumSampleSize: Number((selectedConfig?.ranking_rule_json ?? {}).minimumSampleSize ?? 1),
     }),
   }));
@@ -204,13 +205,16 @@ export async function persistAnalysis(client: PoolClient, workspaceId: string, r
   );
   const resultId = insert.rows[0]?.id;
   if (!resultId) throw new Error('ranking result insert returned no id');
-  for (const [index, item] of ranking.ranked.entries()) {
-    await client.query(
-      `INSERT INTO batch_ranking_item
-        (workspace_id, ranking_result_id, content_id, metric_snapshot_id, position, metric_name, metric_value, eligible, basis_json)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, true, $8::jsonb)`,
-      [workspaceId, resultId, item.contentId, item.snapshotId, index + 1, item.basis.metric, item.value, JSON.stringify(item.basis)],
-    );
+  const rankingGroups = ranking.rankedGroups ?? [{ items: ranking.ranked }];
+  for (const group of rankingGroups) {
+    for (const [index, item] of group.items.entries()) {
+      await client.query(
+        `INSERT INTO batch_ranking_item
+          (workspace_id, ranking_result_id, content_id, metric_snapshot_id, position, metric_name, metric_value, eligible, basis_json)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, true, $8::jsonb)`,
+        [workspaceId, resultId, item.contentId, item.snapshotId, index + 1, item.basis.metric, item.value, JSON.stringify(item.basis)],
+      );
+    }
   }
   for (const item of ranking.excluded) {
     await client.query(
@@ -224,11 +228,11 @@ export async function persistAnalysis(client: PoolClient, workspaceId: string, r
     await client.query(
       `INSERT INTO batch_kpi_assessment
         (workspace_id, batch_id, kpi_definition_id, analysis_config_id, source_snapshot_ids,
-         formula_version, rule_version, actual_value, status, quality_state, assessed_at)
-       VALUES ($1, $2, $3, $4, $5::uuid[], $6, $7, $8, $9, $10, now())`,
+         excluded_snapshot_ids, exclusion_json, formula_version, rule_version, actual_value, status, quality_state, assessed_at)
+       VALUES ($1, $2, $3, $4, $5::uuid[], $6::uuid[], $7::jsonb, $8, $9, $10, $11, $12, now())`,
       [workspaceId, result.batch.id, item.definition.id, result.config?.id ?? null, item.assessment.sourceSnapshotIds,
-        item.assessment.formulaVersion, item.assessment.ruleVersion, item.assessment.actualValue,
-        item.assessment.status, item.assessment.qualityState],
+        item.assessment.excludedSnapshotIds, JSON.stringify(item.assessment.excluded), item.assessment.formulaVersion,
+        item.assessment.ruleVersion, item.assessment.actualValue, item.assessment.status, item.assessment.qualityState],
     );
   }
   return resultId;

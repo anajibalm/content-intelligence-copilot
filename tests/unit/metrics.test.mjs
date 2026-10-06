@@ -14,8 +14,8 @@ const snapshot = (id, distribution, views, overrides = {}) => normalizeMetricSna
   source: 'synthetic_demo',
   capturedAt: '2026-10-06T00:00:00.000Z',
   rawMetrics: {
-    views: { value: views, quality: 'VALID' },
-    likes: { value: overrides.likes ?? 10, quality: 'VALID' },
+    views: { value: views, quality: overrides.viewsQuality ?? 'VALID' },
+    likes: { value: overrides.likes ?? 10, quality: overrides.likesQuality ?? 'VALID' },
     comments: { value: overrides.comments ?? 1, quality: overrides.commentsQuality ?? 'VALID' },
     shares: { value: overrides.shares ?? 2, quality: 'VALID' },
     saves: { value: overrides.saves ?? 1, quality: 'VALID' },
@@ -82,15 +82,15 @@ test('ranks complete batch only under approved brand config, keeps organic and p
   const paid = snapshot('c', 'PAID', 999, { likes: 99, awt: 0.5 });
   const config = {
     id: 'config-1', version: 2, approvalState: 'APPROVED', primaryMetric: 'awt_seconds',
-    rankingRule: { distribution: 'ORGANIC', minimumSampleSize: 2, direction: 'DESC' },
+    rankingRule: { distribution: 'ORGANIC', minimumSampleSize: 1, direction: 'DESC' },
     fallbackRule: { metric: 'views', direction: 'DESC' },
   };
   const result = rankBatch([organicBest, organicFallback, paid], config);
   assert.equal(result.status, 'READY');
-  assert.deepEqual(result.ranked.map((item) => item.contentId), ['content-a', 'content-b']);
-  assert.equal(result.ranked[0].basis.metric, 'awt_seconds');
-  assert.equal(result.ranked[1].basis.metric, 'views');
-  assert.equal(result.ranked[1].basis.fallbackUsed, true);
+  assert.deepEqual(result.ranked, []);
+  assert.deepEqual(result.rankedGroups.map((group) => group.items.map((item) => item.contentId)), [['content-a'], ['content-b']]);
+  assert.equal(result.rankedGroups[0].items[0].basis.metric, 'awt_seconds');
+  assert.equal(result.rankedGroups[1].items[0].basis.metric, 'views');
   assert.ok(result.excluded.some((item) => item.contentId === 'content-c' && item.reason.includes('distribution')));
 });
 
@@ -113,6 +113,61 @@ test('rejects derived metric keys in raw observations', () => {
   assert.throws(() => normalizeMetricSnapshot({
     id: 'bad', contentId: 'content-bad', distribution: 'ORGANIC', rawMetrics: { engagement_rate: 0.2 },
   }), /derived metric/i);
+});
+
+test('separates primary and fallback bases and honors fallback direction', () => {
+  const primary = snapshot('primary', 'ORGANIC', 100, { awt: 0.01 });
+  const fallbackHigh = snapshot('fallback-high', 'ORGANIC', 1000);
+  const fallbackLow = snapshot('fallback-low', 'ORGANIC', 10);
+  const result = rankBatch([primary, fallbackHigh, fallbackLow], {
+    id: 'config-separate', version: 1, approvalState: 'APPROVED', primaryMetric: 'awt_seconds',
+    rankingRule: { distribution: 'ORGANIC', minimumSampleSize: 1, direction: 'DESC' },
+    fallbackRule: { metric: 'views', direction: 'ASC' },
+  });
+  assert.equal(result.status, 'READY');
+  assert.equal(result.ranked.length, 0);
+  assert.deepEqual(result.rankedGroups.map((group) => group.items.map((item) => item.value)), [[0.01], [10, 1000]]);
+  assert.equal(result.rankedGroups[1].direction, 'ASC');
+  assert.equal(result.reason, 'fallback basis is not approved for cross-basis ordering');
+});
+
+test('preserves canonical quality reasons without converting suspect zero to source error', () => {
+  const result = normalizeMetricSnapshot({
+    id: 'reason', contentId: 'content-reason', distribution: 'ORGANIC',
+    rawMetrics: { comments: { value: 0, quality: 'SUSPECT', reason: 'UNEXPLAINED_ZERO' }, awt_seconds: { value: null, quality: 'UNAVAILABLE', reason: 'NOT_ACCESSIBLE' } },
+  });
+  assert.equal(result.qualityByMetric.comments.reason, 'UNEXPLAINED_ZERO');
+  assert.equal(result.qualityByMetric.awt_seconds.reason, 'NOT_ACCESSIBLE');
+});
+
+test('calculates Organic and Paid KPI independently and excludes non-contributing inputs', () => {
+  const organic = snapshot('organic', 'ORGANIC', 100);
+  const paid = snapshot('paid', 'PAID', 2000);
+  const suspect = snapshot('suspect', 'PAID', 0, { viewsQuality: 'SUSPECT', likes: 0, likesQuality: 'SUSPECT' });
+  const definition = { id: 'paid-kpi', metricName: 'views', targetValue: 1000, comparator: 'GTE', aggregationMethod: 'SUM', distribution: 'PAID' };
+  const result = assessKpi(definition, [organic, paid, suspect], { minimumSampleSize: 1 });
+  assert.equal(result.status, 'ACHIEVED');
+  assert.equal(result.actualValue, 2000);
+  assert.deepEqual(result.sourceSnapshotIds, ['paid']);
+  assert.deepEqual(result.excludedSnapshotIds, ['suspect']);
+});
+
+test('does not treat unsupported KPI policy as an achieved result', () => {
+  const result = assessKpi({ metricName: 'views', targetValue: 10, comparator: 'BOGUS', aggregationMethod: 'MEDIAN' }, [snapshot('bad-policy', 'ORGANIC', 100)], { minimumSampleSize: 1 });
+  assert.equal(result.status, 'UNCONFIGURED');
+  assert.match(result.reason, /comparator|aggregation/i);
+});
+
+test('does not activate synthetic approval for non-demo observations', () => {
+  const result = rankBatch([normalizeMetricSnapshot({
+    id: 'real', contentId: 'content-real', distribution: 'ORGANIC', source: 'owned_export',
+    rawMetrics: { views: { value: 100, quality: 'VALID' } },
+  })], {
+    id: 'synthetic-config', version: 2, approvalState: 'APPROVED', configuredBy: 'synthetic_s5_fixture',
+    primaryMetric: 'views', rankingRule: { distribution: 'ORGANIC', minimumSampleSize: 1 }, fallbackRule: {},
+  });
+  assert.equal(result.status, 'UNCONFIGURED');
+  assert.match(result.reason, /synthetic|provenance/i);
 });
 
 assert.equal(typeof deriveMetrics, 'function');
