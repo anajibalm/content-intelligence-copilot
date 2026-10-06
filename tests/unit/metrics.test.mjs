@@ -139,7 +139,6 @@ test('identifies only top tied DESC items and lowest ASC items as cohort winners
   const asc = rankBatch(values, { id: 'asc', version: 1, approvalState: 'APPROVED', primaryMetric: 'views', rankingRule: { distribution: 'ORGANIC', minimumSampleSize: 1, direction: 'ASC' }, fallbackRule: {} });
   assert.equal(asc.rankedGroups[0].items[0].contentId, 'content-middle');
 });
-
 test('preserves canonical quality reasons without converting suspect zero to source error', () => {
   const result = normalizeMetricSnapshot({
     id: 'reason', contentId: 'content-reason', distribution: 'ORGANIC',
