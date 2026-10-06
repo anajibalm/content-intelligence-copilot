@@ -1,0 +1,62 @@
+{
+  "evidence_date": "2026-10-06",
+  "branch": "feat/s5-metrics-kpi-ranking",
+  "provenance": "Executor: OMP (local repo agent); Review guidance: ChatGPT; Merge approval: pending owner",
+  "master_integration": {
+    "pr_22": {"state": "MERGED", "merge_sha": "6199088ebc1bc822d3a3ddb3f2bab836bbb59c01"},
+    "pr_24": {"state": "MERGED", "merge_sha": "0fb2087d5774f582edec45afc87d4355fec2f9cb"},
+    "pr_25": {"state": "MERGED", "merge_sha": "2fc40ceed00088bd48125671c6f40f9f527cb4b4"},
+    "master_sha": "2fc40ceed00088bd48125671c6f40f9f527cb4b4"
+  },
+  "dataset": {
+    "batch_id": "30000000-0000-0000-0000-000000000003",
+    "batch_name": "Batch 8",
+    "brand": "Barakat",
+    "source": "synthetic_s5_demo",
+    "synthetic_label_required": true
+  },
+  "rules": {
+    "metrics": "metrics-v1",
+    "ranking": "ranking-v1",
+    "kpi": "kpi-v1",
+    "organic_paid_separation": "PASS",
+    "raw_derived_separation": "PASS",
+    "unavailable_vs_error_vs_zero": "PASS",
+    "valid_awt_0_01": "PASS",
+    "approved_config_and_fallback": "PASS",
+    "stable_ties": "PASS",
+    "no_best_overall_score": "PASS"
+  },
+  "staging_batch_result": {
+    "api": "GET /api/batches/30000000-0000-0000-0000-000000000003/metrics",
+    "status": 200,
+    "ranking_status": "READY",
+    "ranked_items": 3,
+    "kpi_status": "ACHIEVED",
+    "snapshot_count": 3,
+    "persistent_ranking_result_id": "d7904232-a10d-4c44-ab27-7421f1b21e0e",
+    "reload_status": "READY",
+    "reload_ranked_items": 3,
+    "persisted_ranking_items": 3,
+    "persisted_kpi_assessments": 2
+  },
+  "ui_smoke": {
+    "status": 200,
+    "markers": ["S5 / BATCH ANALYSIS", "Synthetic demo data", "Ranking", "KPI assessment", "Organic and Paid snapshots stay separate", "Best by"],
+    "artifact_readback_guard": "PASS: stale artifact paths render unavailable evidence instead of failing whole batch page"
+  },
+  "repo_gates": {
+    "typecheck": "PASS",
+    "lint": "PASS with existing Next img warning",
+    "test": "PASS 44/44",
+    "validate_fixtures": "PASS",
+    "build": "PASS",
+    "diff_check": "PASS"
+  },
+  "limits": [
+    "Synthetic fixture approval is not real brand approval.",
+    "Real public acquisition does not provide AWT/WFV; unavailable remains explicit.",
+    "Full persistent actual-media smoke rerun was blocked by exhausted URL fixture list and missing CIC_TRANSCRIBER_SCRIPT before configured retry; existing PR25 durable evidence remains historical.",
+    "No production deployment claimed."
+  ]
+}

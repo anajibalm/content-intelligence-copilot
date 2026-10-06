@@ -23,6 +23,11 @@ const urls = [
   'https://www.tiktok.com/@barakat_id/video/7605929718839315719',
   'https://www.tiktok.com/@barakat_id/video/7605930512053472520',
   'https://www.tiktok.com/@barakat_id/video/7601749857933511954',
+  'https://www.tiktok.com/@barakat_id/video/7635995925688716561',
+  'https://www.tiktok.com/@barakat_id/video/7602229928444087553',
+  'https://www.tiktok.com/@barakat_id/video/7605938245536320786',
+  'https://www.tiktok.com/@barakat_id/video/7635997376762645761',
+  'https://www.tiktok.com/@barakat_id/video/7627079130693012757',
 ];
 
 function requiredBrandId(pool) {
@@ -46,7 +51,7 @@ function runtime(options = {}) {
 }
 
 function spawnWorker(mode) {
-  return spawn(process.execPath, [scriptPath, mode], {
+  return spawn(process.execPath, ['--experimental-strip-types', scriptPath, mode], {
     env: { ...process.env, CIC_DATABASE_URL: connectionString, CIC_WORKSPACE_ID: workspaceId, CIC_STORAGE_ROOT: storageRoot, CIC_BATCH_ID: batchId, ...(brandId ? { CIC_BRAND_ID: brandId } : {}) },
     stdio: ['ignore', 'inherit', 'inherit'],
   });
@@ -154,7 +159,11 @@ async function main() {
     used.push(urlId(persistentUrl));
     const persistentJob = await enqueue(pool, brand, persistentUrl);
     await runWorker('--once');
-    const persistentDone = await waitFor(pool, { text: 'SELECT status FROM runtime_processing_job WHERE id = $1', values: [persistentJob.id] }, (result) => result.rows[0]?.status === 'COMPLETED');
+    const persistentDone = await waitFor(pool, { text: 'SELECT status, error_message FROM runtime_processing_job WHERE id = $1', values: [persistentJob.id] }, (result) => {
+      const row = result.rows[0];
+      if (row?.status === 'FAILED') throw new Error(`persistent staging worker failed: ${row.error_message}`);
+      return row?.status === 'COMPLETED';
+    });
     const frame = await pool.query('SELECT id, storage_path FROM video_frame WHERE content_id = $1 ORDER BY timestamp_ms LIMIT 1', [persistentJob.contentId]);
     assert.ok(frame.rows[0], 'persistent flow must store a frame');
     const app = runtime({ brandId });
