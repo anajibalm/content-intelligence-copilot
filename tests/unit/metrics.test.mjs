@@ -131,6 +131,14 @@ test('separates primary and fallback bases and honors fallback direction', () =>
   assert.equal(result.reason, 'fallback basis is not approved for cross-basis ordering');
 });
 
+test('identifies only top tied DESC items and lowest ASC items as cohort winners', () => {
+  const values = [snapshot('middle', 'ORGANIC', 50), snapshot('top-a', 'ORGANIC', 100), snapshot('top-b', 'ORGANIC', 100)];
+  const desc = rankBatch(values, { id: 'desc', version: 1, approvalState: 'APPROVED', primaryMetric: 'views', rankingRule: { distribution: 'ORGANIC', minimumSampleSize: 1, direction: 'DESC' }, fallbackRule: {} });
+  assert.deepEqual(desc.rankedGroups[0].items.map((item) => item.contentId), ['content-top-a', 'content-top-b', 'content-middle']);
+  assert.deepEqual(desc.rankedGroups[0].items.filter((item) => item.value === desc.rankedGroups[0].items[0].value).map((item) => item.contentId), ['content-top-a', 'content-top-b']);
+  const asc = rankBatch(values, { id: 'asc', version: 1, approvalState: 'APPROVED', primaryMetric: 'views', rankingRule: { distribution: 'ORGANIC', minimumSampleSize: 1, direction: 'ASC' }, fallbackRule: {} });
+  assert.equal(asc.rankedGroups[0].items[0].contentId, 'content-middle');
+});
 test('preserves canonical quality reasons without converting suspect zero to source error', () => {
   const result = normalizeMetricSnapshot({
     id: 'reason', contentId: 'content-reason', distribution: 'ORGANIC',
