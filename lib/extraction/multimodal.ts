@@ -1,4 +1,5 @@
 import { readFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
 import type { ExtractionInput, FingerprintField, ModelOutput } from './index.ts';
 import { EXTRACTION_PROMPT_VERSION, EXTRACTION_SCHEMA_VERSION, FINGERPRINT_FIELDS } from './index.ts';
 
@@ -69,21 +70,24 @@ export function createMultimodalFingerprintExtractor(options: MultimodalExtracto
       type: 'image_url',
       image_url: { url: `data:${mimeType(frame.storagePath)};base64,${(await readFile(frame.storagePath)).toString('base64')}` },
     })));
+    const requestBody = JSON.stringify({
+      model: options.model,
+      temperature: 0,
+      response_format: { type: 'json_object' },
+      messages: [{
+        role: 'user',
+        content: [
+          { type: 'text', text: `${prompt()}\nInput JSON:\n${JSON.stringify({ metadata: input.metadata, transcript: input.transcript, frames: frames.map(({ timestampMs, frameType }) => ({ timestampMs, frameType })) })}` },
+          ...images,
+        ],
+      }],
+    });
+    // Hash the exact model input, including the frame bytes already read for this request.
+    const inputHash = `sha256:${createHash('sha256').update(requestBody).digest('hex')}`;
     const response = await fetchImpl(options.endpoint, {
       method: 'POST',
       headers: { 'content-type': 'application/json', authorization: `Bearer ${options.apiKey}` },
-      body: JSON.stringify({
-        model: options.model,
-        temperature: 0,
-        response_format: { type: 'json_object' },
-        messages: [{
-          role: 'user',
-          content: [
-            { type: 'text', text: `${prompt()}\nInput JSON:\n${JSON.stringify({ metadata: input.metadata, transcript: input.transcript, frames: frames.map(({ timestampMs, frameType }) => ({ timestampMs, frameType })) })}` },
-            ...images,
-          ],
-        }],
-      }),
+      body: requestBody,
     });
     const bodyText = await response.text();
     if (!response.ok) throw new Error(`multimodal provider request failed (${response.status}): ${bodyText.slice(0, 500)}`);
@@ -99,6 +103,7 @@ export function createMultimodalFingerprintExtractor(options: MultimodalExtracto
       model: options.model,
       promptVersion: EXTRACTION_PROMPT_VERSION,
       schemaVersion: EXTRACTION_SCHEMA_VERSION,
+      inputHash,
     };
   };
 }

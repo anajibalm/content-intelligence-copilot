@@ -1,4 +1,5 @@
-import { mkdtemp, writeFile } from 'node:fs/promises';
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createMultimodalFingerprintExtractor } from '../../lib/extraction/multimodal.ts';
@@ -69,4 +70,30 @@ test('multimodal adapter sends image bytes and parses complete JSON response', a
   assert.equal(result.features.length, FINGERPRINT_FIELDS.length);
   assert.match(request.messages[0].content[1].image_url.url, /^data:image\/jpeg;base64,AQID$/);
   assert.equal(request.model, 'test-vision');
+  assert.equal(result.inputHash, `sha256:${createHash('sha256').update(JSON.stringify(request)).digest('hex')}`);
+});
+
+test('input hash follows image bytes at the same path and preserves original model output', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'cic-extraction-hash-'));
+  try {
+    const framePath = join(directory, 'frame.jpg');
+    await writeFile(framePath, Buffer.from([1, 2, 3]));
+    const extractor = createMultimodalFingerprintExtractor({
+      endpoint: 'http://provider.test/v1/chat/completions',
+      apiKey: 'test-key',
+      model: 'test-vision',
+      fetchImpl: async () => new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify({ features: modelOutput.features }) } }] }), { status: 200 }),
+    });
+    const input = buildExtractionInput({ ...output, hookFrames: [{ ...output.hookFrames[0], storagePath: framePath }], representativeFrames: [] }, { contentId: 'content-1', title: null, caption: null });
+    const firstOutput = await extractor(input);
+    const first = extractFingerprint(input, firstOutput);
+    assert.equal(first.inputHash, extractFingerprint(input, await extractor(input)).inputHash);
+    assert.equal(first.rawOutput.inputHashBasis, 'multimodal_request');
+    assert.deepEqual(first.rawOutput.modelOutput, firstOutput.rawOutput);
+    await writeFile(framePath, Buffer.from([4, 5, 6]));
+    const changed = extractFingerprint(input, await extractor(input));
+    assert.notEqual(first.inputHash, changed.inputHash);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
 });

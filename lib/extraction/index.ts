@@ -20,7 +20,7 @@ export interface ExtractionInput {
   representativeFrames: ProcessingOutput['representativeFrames'];
 }
 export interface ModelFeature { fieldName: FingerprintField; value: string; }
-export interface ModelOutput { features: ModelFeature[]; rawOutput: Record<string, unknown>; provider: string; model: string; promptVersion: string; schemaVersion: string; }
+export interface ModelOutput { features: ModelFeature[]; rawOutput: Record<string, unknown>; provider: string; model: string; promptVersion: string; schemaVersion: string; inputHash?: string; }
 export interface FingerprintExtraction { inputHash: string; rawOutput: Record<string, unknown>; features: ModelFeature[]; confidence: 'LOW'; confidenceReason: string; provider: string; model: string; promptVersion: string; schemaVersion: string; }
 
 function hash(value: unknown): string {
@@ -42,10 +42,11 @@ export function extractFingerprint(input: ExtractionInput, modelOutput: ModelOut
   for (const feature of modelOutput.features) fields[feature.fieldName] = true;
   if (modelOutput.features.length !== FINGERPRINT_FIELDS.length || FINGERPRINT_FIELDS.some((field) => !fields[field])) throw new Error('multimodal extraction output does not contain complete fingerprint schema');
   if (modelOutput.features.some((feature) => !feature.value.trim())) throw new Error('multimodal extraction output contains empty feature value');
-  const inputHash = hash(input);
+  if (modelOutput.inputHash !== undefined && !/^sha256:[0-9a-f]{64}$/.test(modelOutput.inputHash)) throw new Error('invalid multimodal request input hash');
+  const inputHash = modelOutput.inputHash ?? hash(input);
   return {
     inputHash,
-    rawOutput: { input, modelOutput: modelOutput.rawOutput },
+    rawOutput: { input, inputHashBasis: modelOutput.inputHash ? 'multimodal_request' : 'metadata', modelOutput: modelOutput.rawOutput },
     features: modelOutput.features,
     confidence: 'LOW',
     confidenceReason: 'EXTRACTED evidence remains unreviewed until analyst confirmation.',
