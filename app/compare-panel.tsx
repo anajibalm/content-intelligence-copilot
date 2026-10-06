@@ -45,6 +45,7 @@ function metricValue(value: number | null, name: string) {
 
 export default function ComparePanel({ batchId, contents }: { batchId: string; contents: Content[] }) {
   const [selected, setSelected] = useState<string[]>([]);
+  const [fullBatch, setFullBatch] = useState(false);
   const [distribution, setDistribution] = useState<"ORGANIC" | "PAID">("ORGANIC");
   const [mode, setMode] = useState<"CONTROLLED" | "PERFORMANCE_CONTRAST" | "MANUAL">("CONTROLLED");
   const [result, setResult] = useState<CompareResult | null>(null);
@@ -52,6 +53,10 @@ export default function ComparePanel({ batchId, contents }: { batchId: string; c
   const [pending, setPending] = useState(false);
   const requestId = useRef(0);
   const controller = useRef<AbortController | null>(null);
+  useEffect(() => () => {
+    requestId.current += 1;
+    controller.current?.abort();
+  }, []);
   const available = useMemo(() => contents.filter((content) => content.snapshots.some((snapshot) => snapshot.distribution === distribution)), [contents, distribution]);
 
   function invalidate() {
@@ -66,6 +71,7 @@ export default function ComparePanel({ batchId, contents }: { batchId: string; c
   function changeDistribution(value: "ORGANIC" | "PAID") {
     setDistribution(value);
     setSelected([]);
+    setFullBatch(false);
     invalidate();
   }
 
@@ -76,6 +82,7 @@ export default function ComparePanel({ batchId, contents }: { batchId: string; c
 
   function toggle(contentId: string) {
     invalidate();
+    setFullBatch(false);
     setSelected((current) => current.includes(contentId) ? current.filter((id) => id !== contentId) : [...current, contentId]);
   }
 
@@ -93,7 +100,7 @@ export default function ComparePanel({ batchId, contents }: { batchId: string; c
       const response = await fetch("/api/comparisons", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ batchId, contentIds: selected, mode, scope: selected.length === 2 ? "PAIR" : "GROUP", distribution }),
+        body: JSON.stringify({ batchId, contentIds: selected, mode, scope: fullBatch ? "BATCH" : selected.length === 2 ? "PAIR" : "GROUP", distribution }),
         signal: nextController.signal,
       });
       const body = await response.json() as CompareResult & { error?: string };
@@ -121,7 +128,7 @@ export default function ComparePanel({ batchId, contents }: { batchId: string; c
       <label>Mode<select value={mode} onChange={(event) => changeMode(event.target.value as typeof mode)}><option value="CONTROLLED">Controlled</option><option value="PERFORMANCE_CONTRAST">Performance contrast</option><option value="MANUAL">Manual</option></select></label>
       <button type="button" onClick={compare} disabled={pending}>{pending ? "Comparing…" : "Generate comparison"}</button>
     </div>
-      <button type="button" onClick={() => { invalidate(); setSelected(contents.map((content) => content.id)); }} disabled={pending || contents.length < 2}>Select all batch</button>
+      <button type="button" onClick={() => { invalidate(); setFullBatch(true); setSelected(contents.map((content) => content.id)); }} disabled={pending || contents.length < 2}>Select all batch</button>
     {available.length ? <div className="compare-selection" role="list" aria-label="Comparison content selection">{available.map((content) => <button className={`compare-choice ${selected.includes(content.id) ? "selected" : ""}`} type="button" key={content.id} onClick={() => toggle(content.id)}><strong>{selected.includes(content.id) ? `${selected.indexOf(content.id) + 1}. ` : ""}{contentLabel(content)}</strong><span>{content.externalId}</span></button>)}</div> : <p className="empty-state">No content has metric snapshot for selected distribution.</p>}
     {status && <p className="error-state" role="alert">{status}</p>}
     {result && <div className="compare-result" aria-live="polite">
