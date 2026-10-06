@@ -1,7 +1,6 @@
 {
   "evidence_date": "2026-10-06",
-  "branch": "feat/s7-controlled-compare",
-  "tested_source_sha": "7260e5fe43d848608cfcfaf7509d3ee07a8e6a5b",
+  "tested_source_sha": "f9675e815f29174e65e62034145ac9c129eb5a38",
   "provenance": "Executor: OMP (local repo agent); Review guidance: ChatGPT; Merge approval: pending owner",
   "reviewer_documentation_commit": "c502e29d9c58986513ca89ae54dba9822c7f94ce",
   "base": {
@@ -47,7 +46,7 @@
     "diff_check": "PASS"
   },
   "staging": {
-    "status": "PASS_API_PERSISTENCE_PARTIAL_BROWSER",
+    "status": "PASS_BROWSER_API_PERSISTENCE",
     "database": "cic-postgres-r1",
     "migration": "0007_controlled_compare.sql applied; rerun completed successfully",
     "server": "http://127.0.0.1:3120",
@@ -56,6 +55,23 @@
       "pair": "POST HTTP 201; GET readback HTTP 200",
       "group": "POST HTTP 201; GET readback HTTP 200",
       "batch": "POST HTTP 201; GET readback HTTP 200"
+    },
+    "browser": {
+      "tool": "temporary Playwright 1.63.0",
+      "executable": "/home/anajibalm/.local/bin/brave",
+      "version": "153.0.8010.53",
+      "screenshot": "/home/anajibalm/cic-s7-browser-pair-2026-10-06.png",
+      "screenshot_sha256": "706b9ccd939c59e63589b7e6a599e45ab88e91c54cbc2fd52c4704ca47e50a2d",
+      "pair": "selected known order; rendered Views/AWT/WFV/ER, units, quality reason, artifact ID, and compare-v2",
+      "batch": "POST JSON scope BATCH; 12 IDs in order; response rendered BATCH, unavailable metrics visible",
+      "manual_after_batch": "toggled one item; POST JSON scope GROUP with 11 IDs",
+      "reload": "page reload retained rendered compare surface and artifact state",
+      "pending_submit_disabled": true,
+      "controlled_failure_visible": "controlled browser failure",
+      "controlled_race_stale_result_hidden": true,
+      "page_errors": 0,
+      "console_errors": ["Failed to load resource: the server responded with a status of 404 (Not Found)"],
+      "console_limit": "one 404 console error observed on settled page; source/resource not attributed; no zero-console claim"
     },
     "tested_pair": {
       "comparison_id": "58f0f760-dafd-4f59-ba72-4dd9949dd983",
@@ -77,7 +93,6 @@
     },
     "append_only_probe": "PASS: direct comparison UPDATE rejected with comparison rows are append-only",
     "invalid_input_probe": "POST with invalid UUID returned HTTP 400 without DB detail",
-    "browser": "Managed browser inspection returned internal automation stack trace; local browser packages playwright, puppeteer, and @playwright/test are unavailable",
-    "limits": ["Existing staging dataset is synthetic and is not real brand approval", "No production deployment claimed", "No visual, interaction, or zero-console claim due browser capability blocker"]
+    "limits": ["Existing staging dataset is synthetic and is not real brand approval", "No production deployment claimed", "One settled 404 console error remains unexplained; no zero-console claim"]
   }
 }

@@ -20,7 +20,7 @@ GitHub Issues dan Project memegang execution status. Contracts dan decisions tet
 - `app/page.tsx`: fixture-backed.
 - Persistent worker: implemented and staged; production durability remains unproven.
 - S3/S4/S5/S6: reviewable checkpoints recorded in evidence receipts.
-- S7 #8: Review; pair/group/batch API and persistence acceptance passes; browser proof partial because local browser automation is unavailable.
+- S7 #8: Review; pair/group/batch API, persistence, and real Brave browser closeout pass. One settled unexplained 404 console error remains; no zero-console claim.
 - R1 #16: Blocked because runtime DB/API/durable handoff evidence remains incomplete for production.
 - E1 #18: Done; sanitized receipt durable with source SHA-256, date, runner, and without media/provider payload.
 - `BASELINE-CI-GOV-001` #21: Review, Project custom Tracking Status; delivery through feature branch/PR.
