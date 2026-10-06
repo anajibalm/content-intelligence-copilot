@@ -33,6 +33,8 @@ Issue arguments accept CIC issue numbers or full URLs. URL inputs must belong to
 Write commands require repository origin, non-base branch, issue-bound state, isolated worktree, and stable task lock. `task-done.sh` requires `--body-file`; body must describe actual Problem/Changes and Verification/Acceptance, and must not promise closure for partial work.
 Retries read Git/GitHub state first. Existing Project items, worktrees, open PRs, and state files are reused only after identity/base checks. Failed auth, network, verification, commit, or push commands stop with non-success output.
 
+Lifecycle safeguards: expected command errors throw through top-level handling so lock cleanup runs. Git status uses `--untracked-files=all -z`; staged path checks disable rename detection and verify both names. Task setup fetches verified base before worktree creation. Delivery preserves prior state fields, validates exact same-repository PR/issue URL linkage before merge, and requires recorded PR/branch/head to match merge target.
+
 ## Merge boundary
 
 Owner review is required. `task-merge.sh` requires explicit `--approved-head`; this flag is a technical exact-HEAD guard, not owner approval. Command rereads PR state, requires open PR with `master` base and exact approved head, requires green checks, uses squash merge with `--match-head-commit`, then verifies `MERGED`, `mergedAt`, base, issue closure, and Project `Done` readback. Merge queues or changed HEAD stop without claiming success.

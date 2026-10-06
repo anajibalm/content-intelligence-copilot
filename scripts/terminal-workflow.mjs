@@ -17,8 +17,7 @@ const BASELINE_BRANCH = 'fix/ci-governance-baseline';
 const STATUS_OPTIONS = new Set(CONFIG.tracking_statuses);
 
 function die(message) {
-  console.error(`ERROR: ${message}`);
-  process.exit(1);
+  throw new Error(message);
 }
 
 function gitRaw(args, cwd = ROOT) {
@@ -225,7 +224,7 @@ function activeDependencies(dependencies) {
 function nativeBlockers(issueNumber) {
   let raw;
   try {
-    raw = execFileSync('gh', ['--repo', REPO, 'api', `repos/${REPO}/issues/${issueNumber}/dependencies/blocked_by`, '--paginate', '--slurp'], { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+    raw = execFileSync('gh', ['api', `repos/${REPO}/issues/${issueNumber}/dependencies/blocked_by`, '--paginate', '--slurp'], { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
   } catch (error) {
     die(`cannot verify native issue dependencies: ${error.stderr?.toString().trim() || error.message}`);
   }
@@ -254,7 +253,7 @@ function shellSafePath(path) {
 }
 
 function statusPaths() {
-  const records = gitRaw(['status', '--porcelain=v1', '-z']).split('\0').filter(Boolean);
+  const records = gitRaw(['status', '--porcelain=v1', '--untracked-files=all', '-z']).split('\0').filter(Boolean);
   const paths = [];
   for (let index = 0; index < records.length; index += 1) {
     const record = records[index];
@@ -271,7 +270,7 @@ function statusPaths() {
 function checkExactPaths(paths) {
   const expected = [...new Set(paths.map(shellSafePath))].sort();
   if (!expected.length) die('at least one explicit --path is required');
-  const staged = gitPathList(['diff', '--cached', '--name-only']).sort();
+  const staged = gitPathList(['diff', '--cached', '--name-only', '--no-renames']).sort();
   if (staged.length) die(`index already has staged paths: ${staged.join(', ')}`);
   const changed = statusPaths().sort();
   const outside = changed.filter((path) => !expected.includes(path));
@@ -326,9 +325,10 @@ function taskBase() {
 
 function writeState(issue, data) {
   mkdirSync(STATE_ROOT, { recursive: true });
+  const complete = { ...readState(issue.number), ...data };
   const path = join(STATE_ROOT, `${issue.number}.json`);
   const temporary = `${path}.${process.pid}.tmp`;
-  writeFileSync(temporary, `${JSON.stringify(data, null, 2)}\n`, { mode: 0o600 });
+  writeFileSync(temporary, `${JSON.stringify(complete, null, 2)}\n`, { mode: 0o600 });
   renameSync(temporary, path);
 }
 
@@ -337,13 +337,17 @@ function readState(issueNumber) {
   return existsSync(path) ? JSON.parse(readFileSync(path, 'utf8')) : null;
 }
 
+function validatePrIssueLink(issue, pr) {
+  if (!pr.url || !pr.url.startsWith(`https://github.com/${REPO}/pull/`)) die(`PR belongs to another repository: ${pr.url || 'unknown'}`);
+  const linked = Array.isArray(pr.closingIssuesReferences) && pr.closingIssuesReferences.some((ref) => ref.number === issue.number && ref.url === issue.url);
+  if (!linked) die(`PR #${pr.number} is not linked to ${issue.url}`);
+}
+
 function validateDelivery(issue, pr) {
   if (pr.state !== 'MERGED' || !pr.mergedAt || !pr.mergeCommit) die(`PR #${pr.number || 'unknown'} is not fully merged`);
   if (pr.baseRefName !== CONFIG.base_branch) die(`PR #${pr.number} base is ${pr.baseRefName}, expected ${CONFIG.base_branch}`);
-  if (pr.url && !pr.url.startsWith(`https://github.com/${REPO}/pull/`)) die(`PR belongs to another repository: ${pr.url}`);
-  const linked = Array.isArray(pr.closingIssuesReferences) && pr.closingIssuesReferences.some((ref) => ref.number === issue.number && (!ref.repository?.nameWithOwner || ref.repository.nameWithOwner === REPO));
-  if (!linked) die(`PR #${pr.number} is not linked to ${issue.url}`);
-  if (issue.state !== 'CLOSED' || (issue.stateReason && issue.stateReason !== 'COMPLETED')) die(`issue ${issue.url} is not completed after merge`);
+  validatePrIssueLink(issue, pr);
+  if (issue.state !== 'CLOSED' || issue.stateReason !== 'COMPLETED') die(`issue ${issue.url} is not completed after merge`);
   if (!pr.body || !/##\s+(Verification|Acceptance)/i.test(pr.body)) die(`PR #${pr.number} lacks acceptance/verification evidence`);
   return { issue, pr };
 }
@@ -385,6 +389,7 @@ function importCommand(args) {
 }
 
 function pickCommand(args) {
+  assertOrigin();
   return withLock(() => {
     const { positional, flags } = parseArgs(args);
     const issue = resolveIssue(positional[0]);
@@ -400,6 +405,7 @@ function pickCommand(args) {
       if (git(['-C', worktree, 'remote', 'get-url', 'origin']).replace(/\.git$/, '') !== `https://github.com/${REPO}`) die(`existing worktree origin does not match ${REPO}`);
       if (state?.branch && git(['-C', worktree, 'branch', '--show-current']) !== branch) die(`existing task branch does not match state: ${branch}`);
     } else if (!flags['dry-run']) {
+      git(['fetch', '--no-tags', 'origin', base.base]);
       git(['worktree', 'add', '-b', branch, worktree, base.sha]);
     } else {
       console.log(`[dry-run] create worktree ${worktree} on ${branch} from ${base.sha}`);
@@ -482,7 +488,7 @@ function taskDoneCommand(args) {
     let testedHead = before;
     if (changedBefore.length) {
       git(['add', '--', ...exactPaths]);
-      const staged = gitPathList(['diff', '--cached', '--name-only']).sort();
+      const staged = gitPathList(['diff', '--cached', '--name-only', '--no-renames']).sort();
       if (JSON.stringify(staged) !== JSON.stringify(exactPaths)) die(`staged paths mismatch: expected ${exactPaths.join(', ')}, got ${staged.join(', ')}`);
       git(['diff', '--cached', '--check']);
       git(['commit', '-m', flags['commit-message']]);
@@ -520,7 +526,7 @@ function mergeCommand(args) {
     const { positional, flags } = parseArgs(args);
     if (!flags.pr || !flags['approved-head']) die('task-merge requires --pr <number> --approved-head <sha>');
     const issue = resolveIssue(positional[0]);
-    const fields = 'number,state,mergedAt,mergeCommit,baseRefName,headRefOid,closingIssuesReferences,url,body';
+    const fields = 'number,state,mergedAt,mergeCommit,baseRefName,headRefName,headRefOid,closingIssuesReferences,url,body';
     let pr = json(gh(['pr', 'view', String(flags.pr), '--json', fields]));
     if (pr.state === 'MERGED') {
       validateDelivery(issue, pr);
@@ -530,8 +536,12 @@ function mergeCommand(args) {
       console.log(JSON.stringify({ issue: issue.url, pr: pr.url, state: 'MERGED', status: 'Done' }, null, 2));
       return;
     }
-    assertWriteContext(issue);
+    const state = assertWriteContext(issue);
     validateMergeGuard(pr, flags['approved-head']);
+    validatePrIssueLink(issue, pr);
+    if (issue.state !== 'OPEN') die(`issue ${issue.url} is not open for merge`);
+    if (state.pr !== pr.url || state.branch !== pr.headRefName || state.head !== pr.headRefOid) die('PR does not match the recorded task delivery');
+    if (!pr.body || !/##\s+(Verification|Acceptance)/i.test(pr.body)) die('PR lacks acceptance/verification evidence');
     ciChecks(flags.pr);
     if (flags['dry-run']) { console.log(`[dry-run] merge PR #${flags.pr} at ${flags['approved-head']}`); return; }
     gh(['pr', 'merge', String(flags.pr), '--squash', '--match-head-commit', flags['approved-head']]);
@@ -573,4 +583,11 @@ function main() {
 }
 
 export { activeDependencies, assertRepoUrl, checkExactPaths, ciChecks, parseArgs, projectSnapshot, trackingStatus, validateChecks, validateDelivery, validateMergeGuard };
-if (process.argv[1] === fileURLToPath(import.meta.url)) main();
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  try {
+    main();
+  } catch (error) {
+    console.error(`ERROR: ${error.message}`);
+    process.exitCode = 1;
+  }
+}
