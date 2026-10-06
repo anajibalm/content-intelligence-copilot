@@ -2,12 +2,10 @@
 
 Content Intelligence Copilot membantu analyst agency/brand membuat hipotesis content intelligence yang evidence-backed dan analyst-reviewed dari konten TikTok, evidence video, serta metric snapshots. Produk bukan campaign war room, viral-tier scorer, autonomous strategist, atau Pattern Memory yang sudah berjalan.
 
-## Status
-
-- **Fase saat ini:** S0, S1, dan S2 selesai dengan batas yang dicatat di `docs/tracking/PLAN_COVERAGE.md`.
-- **Current UI:** fixture-backed; belum terhubung ke acquisition runtime, application database, atau persistent worker.
-- **Provider proof:** yt-dlp terbukti pada Python spike; TikHub/Apify credential-gated dan belum live-verified.
-- **Next:** S3 actual-media processing dan S5 metrics/KPI/ranking tetap terpisah; R1 runtime integration masih blocked; v0.2 tetap implementation candidate.
+- **Fase saat ini:** S0, S1, S2, dan durable actual-media staging R1/S3 checkpoint selesai dengan batas di `docs/tracking/PLAN_COVERAGE.md`.
+- **Current UI:** Next.js route enqueues DB job; UI reads Postgres state and opens persistent audio/frame artifacts. One worker runs acquisition/processing.
+- **Provider proof:** yt-dlp actual-media flow terbukti; repeatable `scripts/transcribe.py` pins faster-whisper, `av<19`, and requests through uv script metadata.
+- **Remaining:** AWT requirement belum dibuktikan; S4/S5 tetap terpisah; v0.2 tetap implementation candidate.
 - **Frozen contract:** `docs/contracts/MVP_CONTRACT_v0.1_FROZEN.md`.
 
 ## Stack

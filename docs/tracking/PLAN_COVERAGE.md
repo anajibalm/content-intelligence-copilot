@@ -6,8 +6,8 @@ Status labels reflect evidence available at tracking checkpoint, not historical 
 |---|---|---:|---|---|---|
 | S0 | Bootstrap and source-of-truth lock | P0 | Core MVP | Done | `docs/decisions/S0_S1_VERIFICATION.md`; canonical app/contracts/fixtures present |
 | S1 | Schema, canonical types, candidate persistence | P0 | Core MVP | Done | Disposable PostgreSQL migration, idempotent seed, positive/negative probes |
-| S2 | TikTok URL normalization and acquisition adapters | P0 | Core MVP | Done (bounded) | 12/12 adapter tests; spike yt-dlp 10/10; runtime wiring still open in R1 |
-| S3 | Actual media processing and temporal evidence | P0 | Core MVP | Ready | ffprobe/ffmpeg/faster-whisper boundary, per-second frames, transcript/product-entry anchors |
+| S2 | TikTok URL normalization and acquisition adapters | P0 | Core MVP | Done (bounded) | 12/12 adapter tests; spike yt-dlp 10/10; normalized adapter is wired into durable staging runtime |
+| S3 | Actual media processing and temporal evidence | P0 | Core MVP | Partial / Review | PR #25; actual-media staging persisted ffprobe/audio/23 transcript segments/56 frames; artifact and claim-ownership regressions pass; AWT not proven |
 | S4 | Fingerprint extraction and correction | P0 | Core MVP | Blocked by S3 | AI originals immutable; review/correction history; no extracted fact before processing |
 | S5 | Metrics, KPI, ranking, and rules | P0 | Core MVP | Ready | Organic/Paid separation, quality reasons, brand-approved ranking, KPI target assessment |
 | S6 | Batch Workspace UI | P0 | Core MVP | Partial | Existing fixture shell only; runtime data surface remains open |
@@ -19,7 +19,7 @@ Status labels reflect evidence available at tracking checkpoint, not historical 
 | S12 | Consumer Says Lite | P1 | P1 Enhancements | Blocked by S6 | Positive/negative/neutral sentiment, sample guards, counts, quotes, empty state |
 | S13 | Core E2E and freeze | P0 | Core MVP | Blocked by S1–S10 and R1 | Real URL to reviewed hypothesis, reload persistence, final acceptance gates |
 | A0 | Architecture delivery retrospective | P2 | P2 | Review | Automated Archify/browser evidence passed; human perceptual review pending |
-| R1 | Application runtime integration | P0 | Core MVP | Blocked | Runtime DB connection, Next.js ingestion API/command, durable dispatch/state, worker handoff |
+| R1 | Application runtime integration | P0 | Core MVP | Partial / Review | Durable Postgres job/content/evidence path and one-worker recovery proven in `docs/tracking/evidence/R1_DURABLE_STAGING_2026-10-06.json`; deployment persistence and AWT remain open |
 | C1 | Candidate contract conflict audit and product decision | P0 | Core MVP | Review | Decide v0.2 candidate deltas before freeze; do not block S3 without evidence |
 | E1 | Durable sanitized S1/S2 receipts | P1 | P1 Enhancements | Ready | Preserve safe summary/hash outside `/tmp`; mark unavailable if source receipt is gone |
 | P1-UI | Brand Overview polish | P1 | P1 Enhancements | Later | Product decision and acceptance needed |

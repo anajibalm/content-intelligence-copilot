@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [master]
+    branches: [master, fix/ci-governance-baseline]
   pull_request:
     branches: [master, fix/ci-governance-baseline]
 
