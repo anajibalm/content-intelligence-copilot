@@ -2,14 +2,11 @@
 
 ## Prasyarat
 
-- Node.js 20+
+- Node.js `22.18.0` dari `.node-version`
 - npm
 - Git
-- Akun Supabase (untuk production/staging)
-- API keys (opsional):
-  - TikHub API key
-  - Apify token
-  - Whisper model (untuk transkripsi)
+
+Supabase/PostgreSQL tersedia sebagai application boundary yang belum terhubung ke current fixture UI. TikHub, Apify, dan Whisper hanya dipakai oleh path yang memerlukannya; unit tests memakai fakes/fixtures.
 
 ## Clone Repository
 
@@ -18,98 +15,70 @@
 
 ## Setup Environment
 
-Salin template:
-
     cp .env.example .env
 
-Edit `.env` dan isi:
-
-### Wajib
-
-    NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co
-    NEXT_PUBLIC_SUPABASE_ANON_KEY=xxx
-    SUPABASE_SERVICE_ROLE_KEY=xxx
-
-### Opsional
-
-    TIKHUB_API_KEY=xxx
-    APIFY_TOKEN=xxx
-    APIFY_ACTOR=spider_studio~tiktok-video-resolver
-    WHISPER_MODEL=small
-
-**JANGAN commit `.env`.** Sudah di-ignore.
+Jangan isi atau commit secrets untuk fixture/unit-test path. Provider dan Supabase variables hanya dibutuhkan ketika runtime integration/provider path menggunakannya.
 
 ## Install Dependencies
 
-    npm install
+    npm ci
 
 ## Jalankan Development Server
 
     npm run dev
 
-Buka http://localhost:3000
+Current UI fixture-backed. Buka http://localhost:3000.
 
 ## Verifikasi
-
-Wajib jalankan sebelum declare selesai:
 
     npm run lint
     npm run typecheck
     npm test
-    npm run build
-
-Semua harus lulus.
-
-## Validasi Fixtures
-
     npm run validate:fixtures
+    npm run build
+    git diff --check
+
+Semua command harus lulus pada Node.js `22.18.0`. `npm test` menjalankan 19 unit/fixture tests. CI tidak memanggil production DB atau paid acquisition providers.
 
 ## Struktur Repo
 
-    app/              # Next.js App Router
-    components/       # React components
-    lib/              # Library & utilities
-    worker/           # Background worker
-    supabase/         # Supabase config & migrations
-    fixtures/         # Test fixtures
-    spikes/           # Experiment & spike
-    scripts/          # Utility scripts
-    tests/            # Test files
-    types/            # TypeScript types
-    docs/             # Dokumentasi
-    AGENTS.md         # Aturan agent
-    CONTRIBUTING.md   # Aturan kontribusi
+    app/              # Next.js App Router, current route fixture-backed
+    lib/              # Domain types dan acquisition adapter
+    supabase/         # Candidate schema/migrations, verification boundary
+    fixtures/         # Canonical fixture data
+    spikes/           # Experiment/live provider spike
+    scripts/          # Validation/probe utilities
+    tests/            # Unit/integration/e2e locations
+    docs/             # Contracts, decisions, architecture, tracking
 
 ## Database
 
-Authority: Supabase (PostgreSQL).
-
-Schema & migration ada di `supabase/`.
-
-Untuk local development, bisa pakai Supabase local (butuh Docker) atau project Supabase remote.
+Authority: Supabase/PostgreSQL untuk application boundary. Migration, seed, dan probe S1 diverifikasi pada disposable PostgreSQL; itu bukan bukti application runtime DB aktif.
 
 ## Troubleshooting
 
 ### `npm run build` gagal karena TypeScript error
 
-Jalankan `npm run typecheck` dulu untuk lihat error detail.
+Jalankan `npm run typecheck` dulu untuk melihat error.
 
 ### `next dev` tidak jalan
 
-Cek port 3000 tidak dipakai. Ganti dengan `PORT=3001 npm run dev`.
+Cek port 3000. Ganti dengan `PORT=3001 npm run dev`.
 
 ### Supabase connection error
 
-Cek `.env` sudah diisi. Cek project Supabase aktif.
+Runtime integration R1 masih blocked. Jangan mengubah fixture UI menjadi fake runtime DB.
 
 ### Test gagal
 
-Baca error, fix, jalankan ulang. Kalau gagal 3x, lapor owner.
+Baca error, fix dalam scope, dan jalankan ulang command yang gagal. Jangan mengurangi test scope atau menonaktifkan CI job.
 
 ## Referensi
 
-- `README.md` — overview
-- `CONTRIBUTING.md` — aturan kontribusi
-- `AGENTS.md` — aturan domain
-- `docs/contracts/` — MVP contract, donor map
-- `docs/tracking/` — issues, plan coverage, resume
+- `README.md`
+- `CONTRIBUTING.md`
+- `AGENTS.md`
+- `VIBE_CODING_PROTOCOL.md`
+- `docs/contracts/`
+- `docs/decisions/`
+- `docs/tracking/`

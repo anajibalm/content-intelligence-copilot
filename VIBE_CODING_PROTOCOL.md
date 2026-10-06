@@ -12,24 +12,23 @@ PRD -> Data Contract -> Implementation Plan -> Issue/Task -> Branch -> Commit ->
 Penjelasan tiap tahap:
 
 1. PRD (Product Requirement Document)
-   - Lokasi: docs/source/ (CIC), docs/product/ (PoliSpace), root (alterxjkt)
-   - Isi: apa yang mau dibangun, kenapa, acceptance criteria
-   - Output: user story, scope, non-goals
+   - Lokasi: `docs/source/PRD_v0.1_Content_Intelligence_Copilot.md`.
+   - Isi: product goal, user, scope, non-goals, acceptance.
 
 2. Data Contract
-   - Lokasi: docs/contracts/ (CIC), docs/data-contract.md (PoliSpace), docs/ (alterxjkt)
-   - Isi: bentuk data antar layer (FE <-> BE <-> DB)
+   - Lokasi: `docs/contracts/`.
+   - Frozen MVP/donor contracts mengatur boundary; `DATA_CONTRACT_v0.2_CANDIDATE.md` tetap candidate.
    - Output: schema, API contract, error format
 
 3. Implementation Plan
-   - Lokasi: docs/source/IMPLEMENTATION_PLAN.md (CIC), docs/agent/WORK_QUEUE.md (PoliSpace)
-   - Isi: breakdown teknis per task
-   - Output: scope files, acceptance criteria, verification
+   - Lokasi: `docs/source/IMPLEMENTATION_PLAN_v0.1.md` (CIC).
+   - Isi: breakdown teknis per task.
+   - Output: scope files, acceptance criteria, verification.
 
 4. Issue / Task
-   - Lokasi: docs/tracking/issues/ (CIC), docs/agent/WORK_QUEUE.md (PoliSpace)
-   - Format: 1 task = 1 issue = 1 branch = 1 PR
-   - Status: Backlog -> Ready -> In Progress -> In Review -> Done
+   - Lokasi: `docs/tracking/issues/` (CIC).
+   - Format: satu task aktif, branch feature/fix yang sesuai, satu PR.
+   - Status lokal/GitHub mengikuti custom `Tracking Status`: Backlog -> Ready -> In Progress -> Review -> Blocked -> Done.
 
 5. Branch
    - Format: type/scope (feat/, fix/, chore/, docs/, test/, refactor/)
@@ -62,172 +61,140 @@ Penjelasan tiap tahap:
 
 ---
 
-## 2. FORMAT DOKUMEN BARU (Per Repo)
+## 2. DOKUMEN REPOSITORY CIC
 
-### Dokumen Root (WAJIB ada di semua repo)
+- `README.md` — product, status, setup singkat, dan scope truth.
+- `CONTRIBUTING.md` — contribution, labels, Project status, verification, dan delivery.
+- `AGENTS.md` — domain invariants.
+- `VIBE_CODING_PROTOCOL.md` — workflow agent, snapshot, push, dan anti-loop.
+- `.node-version` — Node.js runtime pin untuk local/CI.
+- `.github/workflows/ci.yml` — lint, typecheck, tests, fixtures, build.
+- `docs/architecture.md` — architecture entrypoint.
+- `docs/data-contract.md` — data contract entrypoint.
+- `docs/glossary.md`, `docs/setup.md`, `docs/faq-agent.md`, `docs/runbook.md` — supporting operational docs.
+- `docs/contracts/`, `docs/decisions/`, `docs/tracking/` — authority, evidence, and execution records.
 
-| File | Fungsi | Wajib? |
-|------|--------|--------|
-| README.md | Pintu masuk repo | YA |
-| CONTRIBUTING.md | Aturan kontribusi | YA |
-| AGENTS.md | Onboarding AI agent | YA |
-| CHANGELOG.md | Riwayat versi | YA |
-| .editorconfig | Format konsisten | YA |
-| .env.example | Contoh env var | YA |
-| .gitignore | File yang di-ignore | YA |
-
-### Dokumen .github/ (WAJIB)
-
-| File | Fungsi |
-|------|--------|
-| .github/pull_request_template.md | Template PR |
-| .github/ISSUE_TEMPLATE/feature.md | Template feature |
-| .github/ISSUE_TEMPLATE/bug.md | Template bug |
-| .github/workflows/ci.yml | CI workflow |
-
-### Dokumen docs/ (WAJIB)
-
-| File | Fungsi |
-|------|--------|
-| docs/glossary.md | Kamus istilah & kode |
-| docs/architecture.md | Diagram arsitektur |
-| docs/setup.md | Cara setup development |
-| docs/data-contract.md | Kontrak data |
-| docs/faq-agent.md | FAQ agent (anti-nanya berulang) |
-| docs/runbook.md | Panduan operasional |
-
-### Dokumen Control (WAJIB untuk repo kompleks)
-
-| File | Fungsi |
-|------|--------|
-| docs/agent/PROJECT_STATE.md | Snapshot HEAD, upstream, status |
-| docs/agent/DECISIONS.md | Keputusan resmi (DEC-XXX) |
-| docs/agent/WORK_QUEUE.md | Task queue + aturan |
-| docs/agent/REPO_MAP.md | Peta arsitektur |
-
+Tidak semua generic document dari repository lain berlaku di CIC. Jangan membuat path generic atau mengklaim file yang tidak ada.
 ---
 
-## 3. ATURAN ANTI-LOOP
+## 3. ATURAN SNAPSHOT, PUSH, DAN HEREDOC
+
+### Snapshot
+
+- Snapshot mencatat commit/source yang diverifikasi, waktu, scope, dan bukti.
+- Snapshot tidak wajib berisi SHA dari commit yang menyimpan snapshot itu sendiri.
+- Mismatch diperiksa lewat relevant diff; documentation commit sendiri bukan alasan STOP.
+- Jangan memperbarui snapshot berulang kali hanya untuk mengejar current HEAD.
+- Path generic yang tidak ada dipetakan ke path CIC aktual; tidak menjadi blocker palsu.
+
+### Push dan upstream
+
+- Fetch dan verifikasi remote/upstream yang benar sebelum delivery.
+- Local ahead karena commit baru adalah kondisi normal sebelum push.
+- Remote ahead/divergence ditangani berdasarkan actual diff; jangan force overwrite.
+- Feature branch baru boleh belum punya upstream; push dengan upstream setup yang tepat.
+- Verifikasi `0 0` dilakukan setelah successful push terhadap feature upstream, bukan sebelum commit baru.
+
+### Scope approval
+
+- Owner approval menentukan scope pekerjaan material; tidak perlu izin ulang untuk setiap file atau command rutin di dalam scope.
+- Owner review tetap diperlukan sebelum merge.
+- Blocker auth, permission, atau ambiguity dilaporkan spesifik setelah pekerjaan independen selesai.
+
+### Heredoc dan multiline text
+
+- Triple-backtick di dalam quoted heredoc tidak memotong heredoc; delimiter collision atau unquoted expansion yang merusak output adalah masalahnya.
+- Gunakan quoted, unique delimiter dan verifikasi output aktual.
+- Untuk issue/PR multiline, gunakan structured API args atau `gh --body-file`; jangan memasukkan body sebagai shell code.
+
+## 4. ANTI-LOOP DAN SNAPSHOT
 
 ### Masalah: Agent STOP terus karena "snapshot mismatch"
 
-Penyebab: Setiap commit baru -> HEAD naik -> snapshot ketinggalan -> agent STOP.
+Penyebab: setiap commit baru mengubah HEAD, sedangkan snapshot merekam commit sebelumnya.
 
 Solusi:
 
-A. Gabung commit - file + snapshot dalam satu commit:
-   git add file docs/agent/PROJECT_STATE.md
-   git commit -m "docs: add X + update snapshot"
+- Terima snapshot yang tertinggal satu commit bila relevant diff sudah diverifikasi.
+- Atau commit snapshot terakhir setelah semua file selesai, tanpa mengejar HEAD lagi.
 
-B. Commit snapshot terakhir - setelah semua file di-commit, baru commit snapshot:
-   git add docs/agent/PROJECT_STATE.md
-   git commit -m "docs(agent): sync snapshot to HEAD hash"
+### Masalah: Agent membaca snapshot lama
 
-C. Update snapshot sebelum mulai task baru - pastikan snapshot = HEAD sebelum agent mulai.
+Solusi: baca ulang snapshot dan verifikasi status Git sebelum melanjutkan task.
 
-### Masalah: Agent baca snapshot versi lama
+### Masalah: Loop update snapshot
 
-Penyebab: Agent cache snapshot di memory.
+Solusi: satu snapshot checkpoint per logical delivery; jangan membuat commit hanya untuk mencocokkan own HEAD.
 
-Solusi: Kasih instruksi eksplisit ke agent:
-"Baca ULANG PROJECT_STATE.md (versi terbaru), lalu lanjutkan task X."
+### Path/status/labels
 
-### Masalah: File kepotong saat pakai heredoc
+- CIC implementation plan berada di `docs/source/IMPLEMENTATION_PLAN_v0.1.md`.
+- Gunakan labels aktual `priority:p0`, `priority:p1`, `priority:p2`, `area:*`, `type:*`, dan `status:*`.
+- Gunakan custom Project `Tracking Status`: Backlog, Ready, In Progress, Review, Blocked, Done.
+- Existing issue status, body, manifest, dan Project state tidak boleh saling berlawanan.
 
-Penyebab: Nested code fence (triple backtick) di dalam heredoc.
+## 5. SESSION BOOTSTRAP (WAJIB tiap mulai kerja)
 
-Solusi:
-- Pakai delimiter BEDA (misal README_EOF, bukan EOF)
-- Ganti nested code fence jadi indentasi 4 spasi
-
-### Masalah: Loop tak berujung update snapshot
-
-Penyebab: Setiap commit snapshot mengubah HEAD, jadi snapshot selalu ketinggalan 1.
-
-Solusi:
-- Terima snapshot ketinggalan 1 commit (normal)
-- ATAU commit snapshot terakhir tanpa file lain setelah semua commit selesai
+1. Baca `AGENTS.md`.
+2. Baca control docs CIC aktual: `docs/contracts/`, `docs/decisions/`, `docs/tracking/`.
+3. Baca `docs/source/IMPLEMENTATION_PLAN_v0.1.md`.
+4. Verifikasi `pwd`, branch, HEAD, upstream, staged files, dan status.
+5. Jika mismatch branch/HEAD atau perubahan unrelated ditemukan, preserve dan klasifikasikan; jangan reset, clean, atau stash otomatis.
+6. Hanya kerjakan task yang disetujui owner.
 
 ---
 
-## 4. SESSION BOOTSTRAP (WAJIB tiap mulai kerja)
+## 6. CHECKLIST SEBELUM COMMIT
 
-1. Baca AGENTS.md - aturan agent
-2. Baca CLAUDE.md - konteks project (kalau ada)
-3. Baca docs/agent/REPO_MAP.md - peta arsitektur
-4. Baca docs/agent/PROJECT_STATE.md - snapshot state
-5. Baca docs/agent/DECISIONS.md - keputusan resmi
-6. Baca docs/agent/WORK_QUEUE.md - task queue
-7. Verifikasi: pwd, branch, HEAD, upstream, staged files, status
-8. Kalau mismatch -> STOP & lapor
-9. Hanya kerjakan task yang disetujui owner
+- [ ] Satu logical change per commit.
+- [ ] Tidak campur feature/bug/cleanup/dependency/documentation.
+- [ ] `git diff --check` lulus.
+- [ ] Tidak ada runtime artifact atau secret.
+- [ ] Docs diupdate jika authority/path/status berubah.
+- [ ] Verification command lulus.
 
----
+## 7. CHECKLIST SEBELUM PUSH
 
-## 5. CHECKLIST SEBELUM COMMIT
+- [ ] Feature branch, bukan `master`.
+- [ ] Upstream benar setelah push.
+- [ ] Working tree bersih kecuali ignored runtime artifacts.
+- [ ] Verification dijalankan pada exact commit yang akan dipush.
+- [ ] PR ready untuk owner review; jangan merge otomatis.
 
-- [ ] Satu logical change per commit
-- [ ] Tidak campur feature/bug/cleanup/dependency/documentation
-- [ ] git diff --check lulus (whitespace)
-- [ ] Tidak ada runtime artifact (.db, .log, .pid, .out, node_modules/, .next/)
-- [ ] Docs diupdate (kalau ada perubahan API/schema)
-- [ ] Snapshot diupdate (kalau ada perubahan HEAD)
-- [ ] Verification command lulus
+## 8. YANG TIDAK BOLEH DILAKUKAN
 
-## 6. CHECKLIST SEBELUM PUSH
-
-- [ ] git rev-list --left-right --count HEAD...@{upstream} = 0 0
-- [ ] Upstream benar (bukan branch lain)
-- [ ] Working tree bersih kecuali runtime artifacts
-- [ ] Owner approval (untuk perubahan material)
+- Push langsung ke `master`.
+- `git add .` saat scope paths belum direview.
+- Commit secrets, `.env`, transient CDN URLs, media, atau runtime artifacts.
+- Ubah frozen contract tanpa decision/approval.
+- Klaim feature, runtime DB, provider, atau CI green tanpa evidence aktual.
 
 ---
 
-## 7. YANG TIDAK BOLEH DILAKUKAN
+## 9. PER REPO (SESUAIKAN)
 
-- Push langsung ke main/master (wajib PR + review)
-- git add . (bisa nyampur feature/bug/cleanup)
-- git commit -am "wip" (message jelek, gak jelas)
-- Commit secrets (.env, API keys)
-- Commit runtime artifacts (sudah di-ignore)
-- Hapus file tanpa owner approval (bisa hilang history)
-- Ubah contract tanpa approval (harus lewat DECISIONS)
-- Tambah dependency tanpa diskusi (bisa bikin repo berat)
+### content-intelligence-copilot
+- Branch utama: `master`; delivery memakai feature branch dan PR.
+- Stack: Next.js 16, React 19, TypeScript, Supabase/PostgreSQL boundary.
+- Runtime prerequisite: Node.js `22.18.0` dari `.node-version`.
+- Test: `npm test`; lint/typecheck/build memakai npm scripts.
+- CI: `.github/workflows/ci.yml`.
+- Control docs: `docs/contracts/`, `docs/decisions/`, `docs/tracking/`, `docs/source/IMPLEMENTATION_PLAN_v0.1.md`.
 
----
+### Dokumen generic
 
-## 8. PER REPO (SESUAIKAN)
-
-### alterxjkt (Telegram Bot - Python)
-- Branch utama: main
-- Stack: Python 3.14, SQLite
-- Test: bash scripts/test.sh
-- CI: .github/workflows/ci.yml
-- Control docs: docs/DELIVERY_BOARD.md, docs/DECISIONS.md, docs/glossary.md
-
-### PoliSpace (Go + React + SQLite)
-- Branch utama: feature/pilkades-mvp-phase6 (aktif)
-- Stack: Go 1.23, React + Vite, SQLite
-- Test: JWT_SECRET='verify-only-local-secret' go test ./...
-- CI: .github/workflows/ci.yml
-- Control docs: docs/agent/REPO_MAP.md, PROJECT_STATE.md, DECISIONS.md, WORK_QUEUE.md
-
-### content-intelligence-copilot (Next.js + Supabase)
-- Branch utama: master
-- Stack: Next.js 16, React 19, Supabase
-- Test: npm run lint && npm run typecheck && npm test && npm run build
-- CI: .github/workflows/ci.yml
-- Control docs: docs/tracking/github-issues.manifest.json, docs/tracking/PLAN_COVERAGE.md, docs/decisions/
+README, glossary, setup, FAQ, runbook, dan architecture entrypoints hanya merujuk authority CIC aktual. Jangan menyalin contract penuh ke entrypoint.
 
 ---
 
-## 9. KALAU BINGUNG
+## 10. KALAU BINGUNG
 
-1. Baca ulang dokumen ini
-2. Baca AGENTS.md + docs/agent/
-3. Cek docs/faq-agent.md
-4. Tanya owner - jangan nebak
-5. Kalau owner gak available -> STOP & tunggu
+1. Baca ulang `AGENTS.md` dan control docs CIC.
+2. Cek `docs/tracking/README.md`, `PLAN_COVERAGE.md`, `resume.md`, dan issue body terkait.
+3. Cek `docs/faq-agent.md`.
+4. Tanya owner hanya untuk keputusan produk/authority yang belum terselesaikan.
+5. Jangan mengarang path, label, status, provider success, atau runtime readiness.
+6. Jika blocker auth/permission nyata, selesaikan pekerjaan independen lalu laporkan blocker spesifik.
 
 ---
 

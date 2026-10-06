@@ -1,93 +1,79 @@
 # FAQ Agent
 
-Pertanyaan yang sering ditanya agent, beserta jawabannya.
+Pertanyaan berulang tentang Content Intelligence Copilot.
 
 ## Setup & Environment
 
 ### Q: Bagaimana cara run project?
-A: Lihat `docs/setup.md`.
+A: Pastikan Node.js `22.18.0` dari `.node-version`, jalankan `npm ci`, lalu lihat `docs/setup.md`.
 
 ### Q: Apa Node version yang dibutuhkan?
-A: Node.js 20+.
+A: Node.js `22.18.0`. CI membaca `.node-version` agar direct TypeScript tests kompatibel.
 
 ### Q: Bagaimana cara run test?
 A:
+
     npm run lint
     npm run typecheck
     npm test
+    npm run validate:fixtures
     npm run build
 
-### Q: Apa itu `NEXT_PUBLIC_SUPABASE_URL`?
-A: URL project Supabase. Wajib untuk koneksi DB.
+### Q: Apakah Supabase wajib untuk test/UI sekarang?
+A: Tidak. Current UI fixture-backed dan tests memakai fixtures/fakes. Supabase/PostgreSQL adalah application boundary yang belum tersambung; S1 database proof memakai disposable PostgreSQL.
 
-### Q: Apa itu `SUPABASE_SERVICE_ROLE_KEY`?
-A: Service role key Supabase (server-side only). JANGAN expose ke client.
+### Q: Apa provider acquisition yang live-proven?
+A: yt-dlp pada Python spike. TikHub dan Apify tetap credential-gated dan belum live-verified.
 
 ## Task & Workflow
 
 ### Q: Task mana yang harus dikerjakan dulu?
-A: Cek `docs/tracking/github-issues.manifest.json` dan `docs/tracking/issues/`.
+A: Cek `docs/tracking/github-issues.manifest.json`, issue stable marker, `PLAN_COVERAGE.md`, dan Project custom `Tracking Status`.
+
+### Q: Apa status Project yang valid?
+A: `Backlog`, `Ready`, `In Progress`, `Review`, `Blocked`, `Done`. Labels aktual memakai `priority:p0/p1/p2`, `area:*`, `type:*`, dan `status:ready/review/blocked`.
 
 ### Q: Apa arti S0, S1, S2, ... S13?
-A: Slice/tahap implementasi. Lihat `docs/glossary.md`.
-
-### Q: Apa arti A0, C1, E1, P1, P2, R1?
-A: Lihat `docs/glossary.md`.
-
-### Q: Bagaimana cara commit?
-A: Conventional Commits: `feat:`, `fix:`, `docs:`, `chore:`, `test:`, `refactor:`. Lihat `CONTRIBUTING.md`.
+A: Slice/tahap implementasi. Lihat `docs/glossary.md` dan `docs/tracking/PLAN_COVERAGE.md`.
 
 ### Q: Kapan boleh merge?
-A: Setelah owner approval dan semua verification lulus.
+A: Setelah owner approval, exact-head CI green, acceptance terbukti, dan PR siap review. Jangan klaim merged sebelum merge aktual.
 
 ## Arsitektur & Data
 
 ### Q: Apa itu `metric_snapshot`?
-A: Snapshot metrik pada waktu tertentu. Organic & Paid disimpan di sini.
-
-### Q: Kenapa JANGAN tambah distribution ke `content`?
-A: Aturan domain dari `AGENTS.md`. Organic & Paid harus di `metric_snapshot`.
+A: Snapshot metrik. Organic dan Paid hidup di sini; jangan menaruh `distribution` di `content`.
 
 ### Q: Apa itu OBSERVED, DERIVED, EXTRACTED, INFERRED?
-A: Evidence types. Lihat `docs/glossary.md`.
+A: Evidence ontology canonical. Keempat layer tidak boleh digabung diam-diam.
 
-### Q: Apa itu MVP Contract?
-A: `docs/contracts/MVP_CONTRACT_v0.1_FROZEN.md` — kontrak produk MVP (frozen).
-
-### Q: Apa itu Donor Map?
-A: `docs/contracts/DONOR_MAP_FROZEN_v0.1.md` — pemetaan boundary donor.
+### Q: Apa yang belum berjalan?
+A: Current UI masih fixture-backed; S3 actual-media processing, S4 extraction, S5 metrics/KPI/ranking, R1 runtime integration, dan future Pattern Memory belum boleh diklaim selesai.
 
 ## Git & Repo
 
 ### Q: Branch mana yang aktif?
-A: `master`.
+A: `master` adalah default. Pekerjaan delivery memakai feature branch dan PR; jangan push langsung ke `master`.
 
 ### Q: Apa yang tidak boleh di-commit?
-A: `.env`, `node_modules/`, `.next/`, `*.tsbuildinfo`, `_bmad/`, `_bmad-output/`, secrets, transient CDN URLs.
+A: `.env`, `node_modules/`, `.next/`, `*.tsbuildinfo`, `_bmad/`, `_bmad-output/`, secrets, provider raw payloads, transient CDN URLs, dan downloaded media.
 
-### Q: Apa yang harus dicek sebelum commit?
+### Q: Apa yang harus dicek sebelum commit/push?
 A:
-    git diff --check
-    git status --short
+
     npm run lint
     npm run typecheck
     npm test
+    npm run validate:fixtures
     npm run build
-
-## Emergency
-
-### Q: Apa yang dilakukan kalau test gagal?
-A: Baca error, fix dalam scope, jalankan ulang. Kalau gagal 3x, STOP & lapor owner.
-
-### Q: Apa yang dilakukan kalau ada conflict?
-A: Jangan resolve otomatis. Lapor owner.
+    git diff --check
 
 ## Referensi
 
 - `AGENTS.md`
 - `CONTRIBUTING.md`
+- `VIBE_CODING_PROTOCOL.md`
 - `README.md`
-- `docs/glossary.md`
-- `docs/setup.md`
 - `docs/contracts/`
+- `docs/decisions/`
 - `docs/tracking/`

@@ -1,61 +1,54 @@
 # Content Intelligence Copilot
 
-Content Intelligence Copilot adalah sistem untuk mengumpulkan, menganalisis, dan mengelola konten digital (terutama TikTok) untuk kebutuhan kampanye dan intelijen konten. Sistem ini menggabungkan pengumpulan data dari berbagai sumber (TikHub, Apify), analisis dengan AI, dan penyimpanan terstruktur di Supabase.
-
-Produk ini dirancang untuk tim kampanye yang butuh memahami performa konten, mengidentifikasi pola viral, dan mengelola konten secara sistematis — bukan hanya mengandalkan intuisi.
+Content Intelligence Copilot membantu analyst agency/brand membuat hipotesis content intelligence yang evidence-backed dan analyst-reviewed dari konten TikTok, evidence video, serta metric snapshots. Produk bukan campaign war room, viral-tier scorer, autonomous strategist, atau Pattern Memory yang sudah berjalan.
 
 ## Status
 
-- **Fase saat ini:** Lihat `docs/tracking/resume.md`
-- **Slice terakhir:** Lihat `docs/tracking/PLAN_COVERAGE.md`
-- **Next:** Lihat `docs/tracking/resume.md`
-- **Contract:** `docs/contracts/MVP_CONTRACT_v0.1_FROZEN.md`
+- **Fase saat ini:** S0, S1, dan S2 selesai dengan batas yang dicatat di `docs/tracking/PLAN_COVERAGE.md`.
+- **Current UI:** fixture-backed; belum terhubung ke acquisition runtime, application database, atau persistent worker.
+- **Provider proof:** yt-dlp terbukti pada Python spike; TikHub/Apify credential-gated dan belum live-verified.
+- **Next:** S3 actual-media processing dan S5 metrics/KPI/ranking tetap terpisah; R1 runtime integration masih blocked; v0.2 tetap implementation candidate.
+- **Frozen contract:** `docs/contracts/MVP_CONTRACT_v0.1_FROZEN.md`.
 
 ## Stack
 
 - **Frontend:** Next.js 16.3.8 + React 19.2.0
 - **Bahasa:** TypeScript
-- **Database:** Supabase (PostgreSQL)
+- **Database boundary:** Supabase/PostgreSQL; disposable PostgreSQL hanya untuk verification, bukan application runtime DB.
 - **Testing:** Node.js test runner (`node --test`)
 - **Linting:** ESLint
-- **Deployment:** TBD (belum ditetapkan)
+- **Runtime:** Node.js `22.18.0` dari `.node-version`.
 
 ## Quick Start
 
 ### Prasyarat
 
-- Node.js 20+
+- Node.js `22.18.0`
 - npm
-- Akun Supabase (untuk production)
-- API keys (opsional, tergantung fitur):
-  - TikHub API key
-  - Apify token
-  - Whisper model (untuk transkripsi)
+- Git
+
+Provider credentials dan Supabase credentials hanya diperlukan oleh runtime/provider path yang memakainya; current fixture UI dan unit tests tidak memanggil production DB atau paid acquisition providers.
 
 ### Setup
 
     git clone https://github.com/anajibalm/content-intelligence-copilot.git
     cd content-intelligence-copilot
     cp .env.example .env
-    npm install
+    npm ci
     npm run dev
 
 Buka http://localhost:3000
 
 ### Environment Variables
 
-Lihat `.env.example`. Wajib:
+Lihat `.env.example`. Jangan mengisi atau commit secret untuk verification fixture/unit-test path.
 
-- `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- `SUPABASE_SERVICE_ROLE_KEY`
+Provider variables yang tersedia:
 
-Opsional:
-
-- `TIKHUB_API_KEY`
-- `APIFY_TOKEN`
-- `APIFY_ACTOR`
-- `WHISPER_MODEL`
+- `TIKHUB_API_KEY` — optional, credential-gated adapter.
+- `APIFY_TOKEN` / `APIFY_ACTOR` — optional, credential-gated adapter.
+- `WHISPER_MODEL` — optional spike setting.
+- Supabase variables — disiapkan untuk application/runtime integration yang belum selesai.
 
 ## Scripts
 
@@ -66,25 +59,31 @@ Opsional:
 | `npm run start` | Production server |
 | `npm run lint` | ESLint |
 | `npm run typecheck` | TypeScript check |
-| `npm test` | Unit test |
-| `npm run validate:fixtures` | Validate fixtures |
+| `npm test` | 19 unit/fixture tests dengan Node test runner |
+| `npm run validate:fixtures` | Validate canonical fixtures |
 
 ## Dokumentasi
 
-- `AGENTS.md` — aturan agent
-- `docs/source/` — PRD, implementation plan
-- `docs/contracts/` — MVP contract, donor map, data contract
-- `docs/architecture/` — diagram arsitektur
-- `docs/decisions/` — decision log
-- `docs/tracking/` — GitHub issues manifest, plan coverage, resume
+- `AGENTS.md` — aturan domain
+- `VIBE_CODING_PROTOCOL.md` — workflow, snapshot, push, dan status
+- `docs/contracts/` — frozen MVP/donor boundaries dan candidate data contract
+- `docs/source/` — PRD dan implementation plan aktual
+- `docs/architecture.md` — entrypoint architecture current/target
+- `docs/data-contract.md` — entrypoint contract data
+- `docs/decisions/` — decision dan verification records
+- `docs/tracking/` — GitHub issue mapping, plan coverage, resume
 
 ## Aturan Domain
 
-- Organic & Paid di `metric_snapshot`; JANGAN tambah distribution ke `content`.
+- Organic & Paid di `metric_snapshot`; jangan tambah distribution ke `content`.
 - OBSERVED, DERIVED, EXTRACTED, INFERRED evidence tetap terpisah.
 - AI originals disimpan saat koreksi manusia.
-- JANGAN simpan secrets/transient CDN URLs/media ke Git.
-- Jalankan `npm run lint`, `npm run typecheck`, `npm test`, `npm run build` sebelum declare selesai.
+- Jangan simpan secrets, transient CDN URLs, provider raw payloads, atau downloaded media ke Git.
+- Provider response bukan domain model; acquisition adapter menormalkan packet.
+
+## Kontrak dan Scope
+
+Frozen MVP mengunci URL-first TikTok, actual video processing, Organic/Paid separation, evidence ontology, controlled compare, analyst review, dan structured Next Test. S3 processing, S4 extraction, S5 metrics/KPI/ranking, R1 runtime integration, serta future Pattern Memory belum boleh diklaim selesai.
 
 ## Kontribusi
 
@@ -92,4 +91,4 @@ Lihat `CONTRIBUTING.md`.
 
 ## Lisensi
 
-Private.
+Belum ditetapkan dalam repository.

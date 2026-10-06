@@ -2,7 +2,7 @@
 name: Feature Request
 about: Usulkan fitur baru untuk Content Intelligence Copilot
 title: '[FEAT] '
-labels: 'feat, priority:medium'
+labels: 'priority:p1, area:engine, type:story'
 assignees: ''
 ---
 

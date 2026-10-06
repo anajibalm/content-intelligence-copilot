@@ -1,72 +1,64 @@
 # Glossary
 
-Kamus istilah dan kode untuk Content Intelligence Copilot. Kalau agent nanya hal yang sama dua kali, tambahkan ke sini.
+Kamus istilah dan kode Content Intelligence Copilot.
 
 ## Istilah Produk
 
 | Istilah | Arti |
 |---------|------|
-| Content Intelligence | Analisis performa & pola konten digital |
-| Copilot | Asisten untuk membantu keputusan konten |
-| Organic | Konten yang dipublikasikan tanpa paid promotion |
-| Paid | Konten dengan paid promotion (ads) |
-| Metric Snapshot | Snapshot metrik pada waktu tertentu |
-| Evidence | Bukti yang mendukung klaim (OBSERVED/DERIVED/EXTRACTED/INFERRED) |
-| OBSERVED | Evidence dari pengamatan langsung |
-| DERIVED | Evidence dari perhitungan/derivasi |
-| EXTRACTED | Evidence dari ekstraksi data (scraping) |
-| INFERRED | Evidence dari inferensi AI |
-| Donor | Source code/repo yang jadi referensi |
-| Donor Map | Pemetaan boundary donor |
-| MVP Contract | Kontrak produk MVP yang di-frozen |
-| Spike | Eksperimen untuk validasi teknis |
+| Content Intelligence | Analisis performa dan pola konten digital berbasis evidence |
+| Copilot | Asisten analyst; AI mengusulkan, analyst memvalidasi/mengedit/menolak |
+| Agency / brand analyst | Primary operator MVP |
+| Organic | Observasi konten tanpa paid promotion |
+| Paid | Observasi konten dengan paid promotion |
+| Metric Snapshot | Snapshot metrik pada waktu tertentu; Organic/Paid tetap terpisah |
+| Evidence | Bukti yang mendukung klaim: OBSERVED/DERIVED/EXTRACTED/INFERRED |
+| OBSERVED | Fakta langsung dari source |
+| DERIVED | Perhitungan deterministik dari fakta |
+| EXTRACTED | Interpretasi AI dari konten |
+| INFERRED | Hipotesis/reasoning yang harus ditinjau analyst |
+| Controlled Compare | Perbandingan dengan basis dan variabel yang dinyatakan |
+| Donor | Source code/repo referensi; tidak menentukan domain CIC |
+| MVP Contract | Kontrak produk MVP yang frozen |
+| Data Contract Candidate | Candidate implementasi; belum frozen |
+| Spike | Eksperimen validasi teknis; bukan bukti runtime aplikasi |
 
 ## Istilah Teknis
 
 | Istilah | Arti |
 |---------|------|
-| Next.js | Framework React dengan App Router |
-| Supabase | Backend-as-a-Service (PostgreSQL + Auth + Storage) |
-| RLS | Row Level Security (Supabase) |
-| TikHub | API untuk data TikTok |
-| Apify | Platform scraping |
-| Whisper | Model AI untuk transkripsi audio |
-| Worker | Background process untuk task async |
-| Fixture | Data test statis |
-| tsbuildinfo | TypeScript build cache (jangan di-commit) |
+| Fixture-backed UI | UI current yang membaca fixture JSON, bukan runtime DB/acquisition |
+| Supabase | Boundary PostgreSQL aplikasi; belum tersambung ke current UI |
+| Disposable PostgreSQL | Database sementara untuk migration/seed/probe verification |
+| yt-dlp | Provider path yang live-proven pada Python spike |
+| TikHub / Apify | Credential-gated adapters; belum live-verified |
+| Worker | Background process; persistent worker belum tersedia |
+| tsbuildinfo | TypeScript build cache; jangan di-commit |
 
-## Kode Task (dari `docs/tracking/issues/`)
+## Kode Task dan Status
 
 | Kode | Arti |
 |------|------|
 | S0, S1, S2, ... S13 | Slice/tahap implementasi |
-| A0 | Tahap awal (pre-slice) |
-| C1 | Contract/checkpoint |
-| E1 | Evidence/verifikasi |
-| P1-ADDITIONS | Prioritas 1 — penambahan |
-| P2-BACKLOG | Prioritas 2 — backlog |
-| R1 | Review/refactor |
+| A0 | Architecture retrospective |
+| C1 | Candidate contract decision |
+| E1 | Evidence/receipt durability |
+| R1 | Application runtime integration |
+| BASELINE-CI-GOV-001 | CI/governance baseline checkpoint |
+| Backlog / Ready / In Progress / Review / Blocked / Done | Custom Project `Tracking Status` |
 
-## Kode Contract
-
-| Kode | Arti |
-|------|------|
-| MVP_CONTRACT_v0.1_FROZEN | Kontrak produk MVP (frozen) |
-| DONOR_MAP_FROZEN_v0.1 | Pemetaan donor (frozen) |
-| DATA_CONTRACT_v0.2_CANDIDATE | Kandidat kontrak data v0.2 |
-
-## Kode Prioritas (Umum)
+## Kontrak
 
 | Kode | Arti |
 |------|------|
-| P0 | Urgent — kerjakan sekarang |
-| P1 | High — prioritas tinggi |
-| P2 | Medium — normal |
-| P3 | Low — nice to have |
+| MVP_CONTRACT_v0.1_FROZEN | Kontrak produk MVP frozen |
+| DONOR_MAP_FROZEN_v0.1 | Boundary donor frozen |
+| DATA_CONTRACT_v0.2_CANDIDATE | Candidate contract data, belum frozen |
 
 ## Referensi
 
-- `AGENTS.md` — aturan domain
-- `docs/source/` — PRD, implementation plan
-- `docs/contracts/` — MVP contract, donor map, data contract
-- `docs/tracking/` — issues manifest, plan coverage, resume
+- `AGENTS.md`
+- `VIBE_CODING_PROTOCOL.md`
+- `docs/contracts/`
+- `docs/decisions/`
+- `docs/tracking/`
