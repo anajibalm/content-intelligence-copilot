@@ -875,6 +875,25 @@
       },
       "project_item_id": "PVTI_lAHOAz65Rs4Blun5zg-oxUw",
       "sync_result": "created-and-linked"
+    },
+    {
+      "stable_key": "TERMINAL-GITHUB-WORKFLOW-001",
+      "title": "TERMINAL-GITHUB-WORKFLOW-001 — Reusable terminal GitHub workflow",
+      "source_references": ["OMP_CIC_WORKFLOW_REVIEW_FIX_PROMPT.md", "docs/tracking/TERMINAL_WORKFLOW.md"],
+      "priority": "P0",
+      "area": "platform",
+      "scope": "Reusable terminal Kanban, isolated task delivery, exact-head CI, and owner-gated merge.",
+      "acceptance_criteria": ["Workflow lifecycle guards pass review regressions", "PR #24 remains stacked until baseline merge", "Obsidian and Project status reflect actual evidence"],
+      "verification_requirements": ["npm run lint", "npm run typecheck", "npm test", "npm run validate:fixtures", "npm run build", "git diff --check"],
+      "proposed_status": "Review",
+      "status_reason": "Review fixes are being delivered on PR #24; owner review and baseline merge remain pending.",
+      "dependency_keys": ["BASELINE-CI-GOV-001"],
+      "milestone": "Core MVP",
+      "estimate_hours": null,
+      "issue_body": "docs/tracking/issues/TERMINAL-GITHUB-WORKFLOW-001.md",
+      "issue": {"url": "https://github.com/anajibalm/content-intelligence-copilot/issues/23", "number": 23},
+      "project_item_id": "PVTI_lAHOAz65Rs4Blun5zg-pUZg",
+      "sync_result": "created-and-linked"
     }
   ]
 }

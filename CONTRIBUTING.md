@@ -70,13 +70,16 @@ Semua harus lulus pada Node.js `22.18.0`. CI tidak memanggil paid acquisition pr
 - Link contract/decision relevan.
 - Jangan klaim merged sebelum owner review dan merge aktual.
 
+### Terminal workflow
+
+Issue-driven Kanban, isolated task worktrees, exact-path delivery, CI gates, retry behavior, and owner-gated merge are documented in [`docs/tracking/TERMINAL_WORKFLOW.md`](docs/tracking/TERMINAL_WORKFLOW.md).
+
 ### 7. Review dan Merge
 
 - Reviewer: owner.
 - Cek: scope, authority, acceptance criteria, verification, dan remaining limits.
 - Tidak merge tanpa approval owner.
 - Squash merge ke `master` hanya setelah approval.
-
 ## Label GitHub Aktual
 
 ### Prioritas
