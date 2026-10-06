@@ -21,3 +21,4 @@ _bmad/render/
 # BMAD tool (local only)
 _bmad/
 _bmad-output/
+.cic-terminal-workflow/

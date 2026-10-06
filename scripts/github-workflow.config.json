@@ -1,0 +1,12 @@
+{
+  "owner": "anajibalm",
+  "repo": "content-intelligence-copilot",
+  "project_number": 1,
+  "project_id": "PVT_kwHOAz65Rs4Blun5",
+  "base_branch": "master",
+  "baseline_issue": 21,
+  "baseline_pr": 22,
+  "tracking_status_field": "Tracking Status",
+  "tracking_statuses": ["Backlog", "Ready", "In Progress", "Review", "Blocked", "Done"],
+  "state_root": ".cic-terminal-workflow"
+}

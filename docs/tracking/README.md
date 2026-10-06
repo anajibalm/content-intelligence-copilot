@@ -44,6 +44,10 @@ GitHub Issues dan Project memegang execution status. Contracts dan decisions tet
 7. Set `Review` after implementation and evidence are complete.
 8. Owner reviews and merges; do not claim merged before actual merge.
 
+## Terminal workflow
+
+Reusable terminal commands, isolated worktrees, exact-path delivery, CI gates, retry rules, and owner-gated merge boundary: [`TERMINAL_WORKFLOW.md`](TERMINAL_WORKFLOW.md).
+
 ## Files
 
 - `github-issues.manifest.json`: stable-key mapping, status, dependencies, IDs, sync results.
