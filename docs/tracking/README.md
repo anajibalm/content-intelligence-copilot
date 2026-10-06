@@ -18,12 +18,13 @@ GitHub Issues dan Project memegang execution status. Contracts dan decisions tet
 - S1: PASS pada disposable PostgreSQL; bukan application runtime DB.
 - S2 deterministic adapter: PASS, 12/12; yt-dlp spike 10/10; belum proof Next.js runtime wiring.
 - `app/page.tsx`: fixture-backed.
-- Persistent worker: belum ada.
-- S3 #4 dan S5 #6: Ready, tetap terpisah.
-- R1 #16: Blocked karena runtime DB/API/durable handoff belum ada.
-- E1 #18: Done; sanitized receipt durable dengan source SHA-256, date, runner, dan tanpa media/provider payload.
-- `BASELINE-CI-GOV-001` #21: Review, Project custom Tracking Status; delivery lewat feature branch/PR.
-- v0.2: implementation candidate, bukan frozen.
+- Persistent worker: implemented and staged; production durability remains unproven.
+- S3/S4/S5/S6: reviewable checkpoints recorded in evidence receipts.
+- S7 #8: Review; pair/group/batch API and persistence acceptance passes; browser proof partial because local browser automation is unavailable.
+- R1 #16: Blocked because runtime DB/API/durable handoff evidence remains incomplete for production.
+- E1 #18: Done; sanitized receipt durable with source SHA-256, date, runner, and without media/provider payload.
+- `BASELINE-CI-GOV-001` #21: Review, Project custom Tracking Status; delivery through feature branch/PR.
+- v0.2: implementation candidate, not frozen.
 
 ## GitHub target
 

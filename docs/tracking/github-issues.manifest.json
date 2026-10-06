@@ -379,8 +379,8 @@
       "verification_requirements": [
         "Pair/group/batch, quality, immutability, and empty-selection tests"
       ],
-      "proposed_status": "Blocked",
-      "status_reason": "Requires S4, S5, and S6.",
+      "proposed_status": "Review",
+      "status_reason": "Review fixes verified at 7260e5fe43d848608cfcfaf7509d3ee07a8e6a5b; API/persistence acceptance passes for pair/group/batch and browser proof is partial because local automation is unavailable.",
       "dependency_keys": [
         "S4",
         "S5",
