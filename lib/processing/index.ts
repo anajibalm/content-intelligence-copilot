@@ -258,6 +258,11 @@ export async function runProcessingJob(input: ProcessingJob, options: { store: P
 }
 
 export async function processAcquisitionPacket(packet: AcquisitionPacket, input: { id: string; workspaceId: string; outputRoot: string }, options: { store: ProcessingJobStore; tools?: ProcessingTools }): Promise<ProcessingJob> {
+  const existing = options.store.read(input.id);
+  if (existing?.state === 'COMPLETED' && existing.output) {
+    await cleanupTemporaryMedia([packet.media]);
+    return existing;
+  }
   const job = createProcessingJob({
     id: input.id,
     workspaceId: input.workspaceId,

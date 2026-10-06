@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { mkdirSync } from 'node:fs';
 import { isAbsolute, relative, resolve } from 'node:path';
 import { Pool, type PoolClient } from 'pg';
@@ -5,6 +6,7 @@ import { normalizeTikTokUrl } from '../acquisition/normalize.ts';
 import { runAcquisition } from '../acquisition/index.ts';
 import type { AcquisitionAttempt, CanonicalIdentity, VideoAcquirer } from '../acquisition/types.ts';
 import { cleanupTemporaryMedia } from '../acquisition/media.ts';
+import { resolveAuthorizedArtifact } from './artifacts.ts';
 import {
   createFileJobStore,
   processAcquisitionPacket,
@@ -18,6 +20,7 @@ export interface DurableJob {
   sourceUrl: string;
   status: 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED';
   attemptCount: number;
+  claimToken: string | null;
   result: ProcessingOutput | null;
   error: string | null;
   updatedAt: string;
@@ -40,6 +43,7 @@ export interface DurableRuntime {
   claim(workerId: string, leaseMs: number): Promise<DurableJob | null>;
   runOne(workerId: string): Promise<DurableJob | null>;
   addAnchor(input: { contentId: string; frameId: string; note?: string }): Promise<void>;
+  resolveArtifact(contentId: string, requestedFile: string): Promise<string | null>;
   toPublic(job: DurableJob): DurableJob;
   close(): Promise<void>;
   recover(workerId: string): Promise<number>;
@@ -52,6 +56,7 @@ function rowJob(row: Record<string, unknown>): DurableJob {
     sourceUrl: String(row.source_url),
     status: String(row.status) as DurableJob['status'],
     attemptCount: Number(row.attempt_count),
+    claimToken: row.claim_token ? String(row.claim_token) : null,
     result: (row.result && Object.keys(row.result as object).length > 0 ? row.result : null) as ProcessingOutput | null,
     error: row.error_message ? String(row.error_message) : null,
     updatedAt: new Date(String(row.updated_at)).toISOString(),
@@ -147,29 +152,51 @@ export function createPostgresRuntime(options: PostgresRuntimeOptions): DurableR
     const result = await pool.query<Record<string, unknown>>('SELECT * FROM runtime_processing_job WHERE workspace_id = $1 AND id = $2', [options.workspaceId, id]);
     return result.rows[0] ? rowJob(result.rows[0]) : null;
   }
-
   async function claim(workerId: string, leaseMs: number): Promise<DurableJob | null> {
     const result = await pool.query<Record<string, unknown>>(
       `WITH candidate AS (
          SELECT id FROM runtime_processing_job
-         WHERE status = 'PENDING' OR (status = 'RUNNING' AND lease_until < now())
+         WHERE workspace_id = $3 AND (status = 'PENDING' OR (status = 'RUNNING' AND lease_until < now()))
          ORDER BY created_at
          FOR UPDATE SKIP LOCKED LIMIT 1
        )
        UPDATE runtime_processing_job job
-       SET status = 'RUNNING', claimed_by = $1, lease_until = now() + ($2 * interval '1 millisecond'),
+       SET status = 'RUNNING', claimed_by = $1, claim_token = $4, lease_until = now() + ($2 * interval '1 millisecond'),
            attempt_count = job.attempt_count + 1, updated_at = now()
        FROM candidate WHERE job.id = candidate.id
        RETURNING job.*`,
-      [workerId, leaseMs],
+      [workerId, leaseMs, options.workspaceId, randomUUID()],
     );
     return result.rows[0] ? rowJob(result.rows[0]) : null;
+  }
+
+  async function assertClaim(client: PoolClient, job: DurableJob): Promise<void> {
+    if (!job.claimToken) throw new Error('worker claim token is missing');
+    const result = await client.query(
+      `SELECT 1 FROM runtime_processing_job
+       WHERE workspace_id = $1 AND id = $2 AND status = 'RUNNING'
+         AND claim_token = $3 AND lease_until > now()
+       FOR UPDATE`,
+      [options.workspaceId, job.id, job.claimToken],
+    );
+    if (result.rowCount !== 1) throw new Error('worker claim is no longer valid');
+  }
+
+  async function renewClaim(job: DurableJob, leaseMs: number): Promise<boolean> {
+    if (!job.claimToken) return false;
+    const result = await pool.query(
+      `UPDATE runtime_processing_job SET lease_until = now() + ($1 * interval '1 millisecond'), updated_at = now()
+       WHERE workspace_id = $2 AND id = $3 AND status = 'RUNNING' AND claim_token = $4 AND lease_until > now()`,
+      [leaseMs, options.workspaceId, job.id, job.claimToken],
+    );
+    return result.rowCount === 1;
   }
 
   async function complete(job: DurableJob, output: ProcessingOutput): Promise<void> {
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
+      await assertClaim(client, job);
       const processing = await client.query<{ id: string }>(
         `INSERT INTO content_processing (workspace_id, content_id, stage, state, output, started_at, completed_at)
          VALUES ($1, $2, 'FFPROBE', 'COMPLETED', $3::jsonb, now(), now())
@@ -215,10 +242,12 @@ export function createPostgresRuntime(options: PostgresRuntimeOptions): DurableR
         );
         frame.id = inserted.rows[0]?.id;
       }
-      await client.query(
-        `UPDATE runtime_processing_job SET status = 'COMPLETED', result = $1::jsonb, error_message = NULL, lease_until = NULL, updated_at = now() WHERE id = $2`,
-        [JSON.stringify(persistedOutput), job.id],
+      const completion = await client.query(
+        `UPDATE runtime_processing_job SET status = 'COMPLETED', result = $1::jsonb, error_message = NULL, lease_until = NULL, updated_at = now()
+         WHERE workspace_id = $2 AND id = $3 AND status = 'RUNNING' AND claim_token = $4 AND lease_until > now()`,
+        [JSON.stringify(persistedOutput), options.workspaceId, job.id, job.claimToken],
       );
+      if (completion.rowCount !== 1) throw new Error('worker claim expired before completion');
       await client.query('COMMIT');
     } catch (error) {
       await client.query('ROLLBACK');
@@ -230,35 +259,56 @@ export function createPostgresRuntime(options: PostgresRuntimeOptions): DurableR
 
   async function fail(job: DurableJob, error: unknown): Promise<void> {
     await pool.query(
-      `UPDATE runtime_processing_job SET status = 'FAILED', error_message = $1, lease_until = NULL, updated_at = now() WHERE id = $2`,
-      [String((error as Error)?.message ?? error), job.id],
+      `UPDATE runtime_processing_job SET status = 'FAILED', error_message = $1, lease_until = NULL, updated_at = now()
+       WHERE workspace_id = $2 AND id = $3 AND status = 'RUNNING' AND claim_token = $4 AND lease_until > now()`,
+      [String((error as Error)?.message ?? error), options.workspaceId, job.id, job.claimToken],
     );
   }
 
   async function runOne(workerId: string): Promise<DurableJob | null> {
     const job = await claim(workerId, 15 * 60 * 1000);
     if (!job) return null;
+    let temporaryMedia: { path?: string; temporary: boolean } | undefined;
+    let completed = false;
     try {
       const source = await pool.query<{ id: string; attempts: number }>(
         `SELECT cs.id, count(ar.id)::int AS attempts FROM content_source cs
          LEFT JOIN acquisition_run ar ON ar.content_source_id = cs.id
-         WHERE cs.content_id = $1 GROUP BY cs.id ORDER BY cs.is_canonical DESC, cs.created_at ASC LIMIT 1`,
-        [job.contentId],
+         WHERE cs.workspace_id = $1 AND cs.content_id = $2 GROUP BY cs.id ORDER BY cs.is_canonical DESC, cs.created_at ASC LIMIT 1`,
+        [options.workspaceId, job.contentId],
       );
       const sourceRow = source.rows[0];
       if (!sourceRow) throw new Error('canonical content source missing');
       const acquisition = await runAcquisition(options.acquirer, job.sourceUrl, {
         attemptHistory: { attempts: Array.from({ length: sourceRow.attempts }, (_, index) => ({ attemptNumber: index + 1 } as AcquisitionAttempt)) },
       });
-      await pool.query(
-        `UPDATE content_source SET provider = $1 WHERE id = $2`,
-        [acquisition.attempt.provider, sourceRow.id],
+      temporaryMedia = acquisition.packet?.media ?? undefined;
+      const ownership = await pool.query(
+        `SELECT 1 FROM runtime_processing_job WHERE workspace_id = $1 AND id = $2 AND status = 'RUNNING' AND claim_token = $3 AND lease_until > now()`,
+        [options.workspaceId, job.id, job.claimToken],
       );
-      await pool.query(
-        `INSERT INTO acquisition_run (workspace_id, content_source_id, content_id, provider, attempt_number, status, error_message, latency_ms, raw_payload, media_path)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10)`,
-        [options.workspaceId, sourceRow.id, job.contentId, acquisition.attempt.provider, acquisition.attempt.attemptNumber, acquisition.attempt.status, acquisition.attempt.errorMessage, acquisition.attempt.latencyMs, JSON.stringify(acquisition.attempt.rawPayload), acquisition.attempt.mediaPath],
-      );
+      if (ownership.rowCount !== 1) throw new Error('worker claim expired during acquisition');
+      const client = await pool.connect();
+      try {
+        await client.query('BEGIN');
+        await assertClaim(client, job);
+        await client.query(
+          `UPDATE content_source SET provider = $1 WHERE workspace_id = $2 AND id = $3`,
+          [acquisition.attempt.provider, options.workspaceId, sourceRow.id],
+        );
+        await client.query(
+          `INSERT INTO acquisition_run (workspace_id, content_source_id, content_id, provider, attempt_number, status, error_message, latency_ms, raw_payload, media_path, claim_token)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10, $11)`,
+          [options.workspaceId, sourceRow.id, job.contentId, acquisition.attempt.provider, acquisition.attempt.attemptNumber, acquisition.attempt.status, acquisition.attempt.errorMessage, acquisition.attempt.latencyMs, JSON.stringify(acquisition.attempt.rawPayload), acquisition.attempt.mediaPath, job.claimToken],
+        );
+        await assertClaim(client, job);
+        await client.query('COMMIT');
+      } catch (error) {
+        await client.query('ROLLBACK');
+        throw error;
+      } finally {
+        client.release();
+      }
       if (acquisition.error || !acquisition.packet) throw acquisition.error ?? new Error('acquisition returned no packet');
       const processing = await processAcquisitionPacket(
         acquisition.packet,
@@ -266,12 +316,28 @@ export function createPostgresRuntime(options: PostgresRuntimeOptions): DurableR
         { store: processingStore, tools: options.processingTools },
       );
       if (!processing.output) throw new Error('processing completed without output');
+      if (!(await renewClaim(job, 15 * 60 * 1000))) throw new Error('worker claim expired after processing');
       await complete(job, processing.output);
+      completed = true;
       return await get(job.id);
     } catch (error) {
       await fail(job, error);
       return await get(job.id);
+    } finally {
+      if (!completed && temporaryMedia) await cleanupTemporaryMedia([temporaryMedia]);
     }
+
+  }
+
+  async function resolveArtifact(contentId: string, requestedFile: string): Promise<string | null> {
+    const result = await pool.query<{ storage_path: string }>(
+      `SELECT storage_path FROM video_frame WHERE workspace_id = $1 AND content_id = $2
+       UNION ALL
+       SELECT result->'audio'->>'storagePath' FROM runtime_processing_job
+       WHERE workspace_id = $1 AND content_id = $2 AND result->'audio'->>'storagePath' IS NOT NULL`,
+      [options.workspaceId, contentId],
+    );
+    return resolveAuthorizedArtifact(options.storageRoot, contentId, requestedFile, result.rows.map((row) => row.storage_path));
   }
 
   async function addAnchor(input: { contentId: string; frameId: string; note?: string }): Promise<void> {
@@ -284,21 +350,37 @@ export function createPostgresRuntime(options: PostgresRuntimeOptions): DurableR
   }
 
   async function recover(_workerId: string): Promise<number> {
-    const stale = await pool.query<{ media_path: string | null }>(
-      `SELECT media_path FROM acquisition_run ar
-       JOIN runtime_processing_job job ON job.content_id = ar.content_id
-       WHERE job.status = 'RUNNING' AND ar.media_path IS NOT NULL`,
-    );
-    await cleanupTemporaryMedia(stale.rows.map((row) => ({ path: row.media_path ?? undefined, temporary: true })));
-    const result = await pool.query(
-      `UPDATE runtime_processing_job
-       SET status = 'PENDING', claimed_by = NULL, lease_until = NULL, updated_at = now()
-       WHERE status = 'RUNNING'`,
-    );
-    return result.rowCount ?? 0;
+    const client = await pool.connect();
+    let staleMedia: Array<{ path?: string; temporary: boolean }> = [];
+    try {
+      await client.query('BEGIN');
+      const stale = await client.query<{ id: string; claim_token: string | null; media_path: string | null }>(
+        `SELECT job.id, job.claim_token, ar.media_path
+         FROM runtime_processing_job job
+         LEFT JOIN acquisition_run ar ON ar.content_id = job.content_id AND ar.claim_token = job.claim_token
+         WHERE job.workspace_id = $1 AND job.status = 'RUNNING' AND job.lease_until < now()
+         FOR UPDATE OF job SKIP LOCKED`,
+        [options.workspaceId],
+      );
+      staleMedia = stale.rows.map((row) => ({ path: row.media_path ?? undefined, temporary: true }));
+      const result = await client.query(
+        `UPDATE runtime_processing_job
+         SET status = 'PENDING', claimed_by = NULL, claim_token = NULL, lease_until = NULL, updated_at = now()
+         WHERE workspace_id = $1 AND id = ANY($2::uuid[]) AND status = 'RUNNING' AND lease_until < now()`,
+        [options.workspaceId, stale.rows.map((row) => row.id)],
+      );
+      await client.query('COMMIT');
+      await cleanupTemporaryMedia(staleMedia);
+      return result.rowCount ?? 0;
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
   }
 
-  return { enqueue, list, get, claim, runOne, recover, addAnchor, close: () => pool.end(), toPublic: (job: DurableJob) => toPublicJob(job, options.storageRoot) };
+  return { enqueue, list, get, claim, runOne, recover, addAnchor, resolveArtifact, close: () => pool.end(), toPublic: (job: DurableJob) => toPublicJob(job, options.storageRoot) };
 }
 
 export interface RuntimeConfig {

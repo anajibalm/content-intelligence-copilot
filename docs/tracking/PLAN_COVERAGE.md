@@ -6,8 +6,8 @@ Status labels reflect evidence available at tracking checkpoint, not historical 
 |---|---|---:|---|---|---|
 | S0 | Bootstrap and source-of-truth lock | P0 | Core MVP | Done | `docs/decisions/S0_S1_VERIFICATION.md`; canonical app/contracts/fixtures present |
 | S1 | Schema, canonical types, candidate persistence | P0 | Core MVP | Done | Disposable PostgreSQL migration, idempotent seed, positive/negative probes |
-| S2 | TikTok URL normalization and acquisition adapters | P0 | Core MVP | Done (bounded) | 12/12 adapter tests; spike yt-dlp 10/10; runtime wiring now staging-proven, durable DB/worker remains open in R1 |
-| S3 | Actual media processing and temporal evidence | P0 | Core MVP | Partial / Review | PR #25; actual-media staging: ffprobe, audio, 33 transcript segments, hook/representative/per-second frames, anchors, cleanup; AWT not proven |
+| S2 | TikTok URL normalization and acquisition adapters | P0 | Core MVP | Done (bounded) | 12/12 adapter tests; spike yt-dlp 10/10; normalized adapter is wired into durable staging runtime |
+| S3 | Actual media processing and temporal evidence | P0 | Core MVP | Partial / Review | PR #25; actual-media staging persisted ffprobe/audio/23 transcript segments/56 frames; artifact and claim-ownership regressions pass; AWT not proven |
 | S4 | Fingerprint extraction and correction | P0 | Core MVP | Blocked by S3 | AI originals immutable; review/correction history; no extracted fact before processing |
 | S5 | Metrics, KPI, ranking, and rules | P0 | Core MVP | Ready | Organic/Paid separation, quality reasons, brand-approved ranking, KPI target assessment |
 | S6 | Batch Workspace UI | P0 | Core MVP | Partial | Existing fixture shell only; runtime data surface remains open |

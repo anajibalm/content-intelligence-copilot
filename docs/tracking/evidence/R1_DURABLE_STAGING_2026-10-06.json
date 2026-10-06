@@ -2,7 +2,7 @@
   "evidence_date": "2026-10-06",
   "branch": "feat/s3-r1-staging",
   "provenance": "Executor: OMP (local repo agent); Review guidance: ChatGPT; Merge approval: pending owner",
-  "database": "Disposable PostgreSQL 16 staging on 127.0.0.1:55432; canonical migrations 0001, 0002, 0003 applied",
+  "database": "Disposable PostgreSQL 16 staging on 127.0.0.1:55432; migrations 0001, 0002, 0003, and 0004 applied",
   "flow": {
     "source": "public TikTok URL",
     "provider": "yt-dlp",
@@ -14,6 +14,7 @@
     "scene_frames": 49,
     "transcript_segments": 23,
     "audio_persisted": true,
+    "persistent_storage_files": 58,
     "temporary_mp4_persisted": false
   },
   "recovery": {
@@ -22,7 +23,13 @@
     "attempt_count": 2,
     "duplicate_canonical_content": false,
     "duplicate_video_frames": false,
-    "completed_enqueue_reused_result": true
+    "completed_enqueue_reused_result": true,
+    "ownership_smoke": {
+      "active_recovery": 0,
+      "expired_recovery": 1,
+      "stale_worker_update_rows": 0,
+      "workspace_filter": "PASS: runtime queries use configured workspace_id"
+    }
   },
   "ui_evidence": {
     "state_source": "Postgres runtime_processing_job",
@@ -32,16 +39,17 @@
     "product_entry_anchor": "analyst-only frame annotation route; automatic anchors empty"
   },
   "verification": {
-    "npm_test": "PASS 23/23",
+    "artifact_security_regression": "PASS: valid frame plus absolute/traversal contentId, file traversal, and symlink escape rejected",
+    "ownership_smoke": "PASS: active claim untouched, expired claim recovered, stale token update affected 0 rows",
+    "npm_test": "PASS 24/24",
     "npm_run_typecheck": "PASS",
     "npm_run_lint": "PASS with Next img warning only",
-    "npm_run_validate_fixtures": "PASS",
-    "npm_run_build": "PASS",
     "git_diff_check": "PASS"
   },
   "limits": [
     "AWT unavailable; no fabricated AWT value stored.",
-    "Smoke used disposable local Postgres and /tmp storage; deployment needs real persistent DB/volume configuration.",
+    "Actual-media receipt used disposable local PostgreSQL and local persistent-path simulation; deployment durability is not PASS until a non-/tmp CIC_STORAGE_ROOT and managed DB volume are exercised.",
+    "Acquisition interruption and derivative-to-DB interruption remain reviewable code paths, not separately observed live-media runs in this receipt.",
     "S4 extraction/review and S5 metrics/ranking not started."
   ]
 }
