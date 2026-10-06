@@ -1,7 +1,7 @@
 # Vibe Coding Protocol
 
-> Dokumen ini adalah satu sumber kebenaran untuk cara kerja AI agent di repo ini.
-> Baca ini dulu sebelum ngoding. Kalau ada konflik dengan dokumen lain, dokumen ini yang menang.
+> Dokumen ini mengatur cara kerja AI agent di repo ini.
+> Baca ini sebelum coding. Frozen product/donor contracts tetap menjadi authority untuk domain; protokol ini tidak mengganti contract atau required checks.
 
 ---
 
@@ -50,7 +50,8 @@ Penjelasan tiap tahap:
    - Link: ke issue / decision
 
 8. Review
-   - Reviewer: owner
+   - Technical reviewer: ChatGPT; executor utama: OMP (local repo agent).
+   - Owner menentukan approval merge.
    - Cek: scope, acceptance, verification
    - Tidak merge tanpa approval
 
@@ -141,6 +142,15 @@ Solusi: satu snapshot checkpoint per logical delivery; jangan membuat commit han
 4. Verifikasi `pwd`, branch, HEAD, upstream, staged files, dan status.
 5. Jika mismatch branch/HEAD atau perubahan unrelated ditemukan, preserve dan klasifikasikan; jangan reset, clean, atau stash otomatis.
 6. Hanya kerjakan task yang disetujui owner.
+### Aturan eksekusi dan review MVP
+
+1. **Preflight sebelum coding:** cek dependency, runtime, provider, dan input nyata yang diperlukan. Laporkan prerequisite yang belum tersedia; jangan membuat fallback yang memalsukan acceptance.
+2. **Checkpoint berdasarkan acceptance:** laporkan setelah alur staging yang disyaratkan terbukti. Checks PASS saja belum berarti story selesai; acceptance yang belum terbukti tetap dicatat sebagai partial/blocked.
+3. **Satu review lengkap per checkpoint:** kumpulkan temuan penghalang acceptance sekaligus; kosmetik masuk backlog.
+4. **Review ulang hanya delta:** ulangi pemeriksaan yang terdampak perubahan, tetap jalankan required delivery checks. Koreksi kecil boleh dibuat reviewer; perubahan material dikerjakan OMP. Satu penulis aktif per branch, handoff eksplisit, dan author asli dipertahankan.
+5. **Integrasi dan rekonsiliasi:** setelah approval owner, integrasikan PR dan perbarui issue, Project custom `Tracking Status`, receipt, Hindsight, serta Obsidian dalam satu checkpoint. Memory mendukung konteks; frozen contracts tetap authority produk. Jika sinkronisasi gagal, catat gap tanpa mengarang keberhasilan.
+
+Tinjau efektivitas aturan ini setelah checkpoint S7 dari hambatan yang benar-benar terjadi; jangan menambah sistem governance atau review ulang tanpa perubahan relevan.
 
 ---
 
@@ -198,5 +208,5 @@ README, glossary, setup, FAQ, runbook, dan architecture entrypoints hanya meruju
 
 ---
 
-Terakhir diupdate: 2026-10-05
+Terakhir diupdate: 2026-10-06
 Maintainer: Najib (owner)
