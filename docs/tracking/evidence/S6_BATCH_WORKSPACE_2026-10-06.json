@@ -1,7 +1,7 @@
 {
   "evidence_date": "2026-10-06",
   "branch": "feat/s6-batch-workspace",
-  "review_fix_head": "1745d37",
+  "review_fix_head": "3ab1379",
   "dependency_base": "feat/s5-metrics-kpi-ranking (PR #26 remains OPEN; PR #27 retargeted; no merge approval implied)",
   "executor": "OMP (local repo agent)",
   "review_guidance": "ChatGPT",
@@ -70,10 +70,10 @@
     "diff_check": "PASS"
   },
   "ci": {
-    "code_head": "10deb6d01a61d67288894bc5a8ccb57bea965b0d",
+    "code_head": "3ab1379ab3e02715dccd8327d99234a496d97ec6",
     "workflow": "CI",
     "job": "Build & Test",
-    "run_id": "37455196387",
+    "run_id": "37455810718",
     "status": "PASS"
   },
   "limits": [
