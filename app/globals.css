@@ -46,6 +46,46 @@ dd { margin: 5px 0 0; font-size: 15px; font-weight: 700; overflow-wrap: anywhere
 .analysis-head { display: grid; grid-template-columns: 1.5fr .7fr .7fr .7fr .8fr; min-width: 620px; }
 @media (max-width: 720px) { .analysis-grid { grid-template-columns: 1fr; } }
 
+.workspace-context { display: flex; align-items: end; justify-content: space-between; gap: 24px; padding: 38px 0 24px; }
+.batch-picker { display: grid; gap: 7px; color: var(--muted); font-size: 12px; font-weight: 700; }
+.batch-picker select { min-width: 250px; padding: 11px 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink); font: inherit; }
+.notice { margin: 0 0 18px; padding: 12px 14px; border: 1px solid #d6bd77; border-radius: 6px; background: #fff8df; color: #6f5615; font-size: 13px; }
+.workspace-summary { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 24px; }
+.summary-block { padding: 20px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+.summary-line { display: grid; gap: 5px; padding: 11px 0; border-top: 1px solid var(--line); font-size: 13px; }
+.summary-line span, .summary-line small { color: var(--muted); }
+.workspace-columns { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: 18px; align-items: start; }
+.content-list, .content-detail { min-width: 0; padding: 22px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+.section-heading { display: flex; align-items: start; justify-content: space-between; gap: 14px; margin-bottom: 14px; }
+.section-heading h2 { margin-bottom: 0; }
+.content-rows { display: grid; }
+.content-row { display: grid; grid-template-columns: 1.1fr 1.3fr auto; gap: 12px; width: 100%; padding: 14px 0; border-top: 1px solid var(--line); border-radius: 0; background: transparent; color: var(--ink); text-align: left; font-weight: 400; }
+.content-row:hover, .content-row:focus-visible, .content-row.selected { background: var(--accent-soft); }
+.content-name, .content-metrics { display: grid; gap: 4px; min-width: 0; }
+.content-name small, .content-metrics, .content-state, .basis-label { color: var(--muted); font-size: 11px; overflow-wrap: anywhere; }
+.content-name small span { color: var(--accent); }
+.content-state { align-self: start; text-align: right; white-space: nowrap; }
+.basis-label { grid-column: 1 / -1; color: var(--accent); }
+.detail-facts { display: flex; flex-wrap: wrap; gap: 10px; margin: 18px 0; }
+.detail-facts span { padding: 8px 10px; background: var(--paper); border-radius: 5px; color: var(--muted); font-size: 12px; }
+.detail-facts strong { display: block; margin-top: 3px; color: var(--ink); }
+.detail-metrics { display: grid; gap: 10px; margin: 18px 0; }
+.detail-metrics .metric-card { display: grid; gap: 5px; padding: 14px; border-radius: 6px; }
+.detail-metrics .metric-card span, .detail-metrics .metric-card small { color: var(--muted); font-size: 12px; }
+.quality-reason { color: #8b4a35 !important; }
+.detail-evidence { display: grid; gap: 12px; margin-top: 24px; }
+.detail-evidence h3 { margin: 10px 0 0; font-size: 1rem; }
+.detail-evidence .evidence-frames { margin-top: 0; }
+.unavailable-media { display: grid; place-items: center; aspect-ratio: 16 / 9; border-radius: 6px; background: var(--paper); color: var(--muted); font-size: 12px; }
+.transcript-list { display: grid; gap: 8px; margin: 0; padding-left: 24px; }
+.transcript-list li { font-size: 13px; line-height: 1.45; }
+.annotation { margin: 0; padding: 10px; border-left: 3px solid var(--accent); background: var(--accent-soft); font-size: 12px; }
+.empty-state { padding: 18px; border: 1px dashed var(--line); color: var(--muted); font-size: 13px; }
+.error-state { padding: 12px 14px; border: 1px solid #d7aa9b; border-radius: 6px; background: #fff0eb; color: #8b4a35; font-size: 13px; }
+.workspace-ingest { padding-top: 0; }
+@media (max-width: 900px) { .workspace-columns { grid-template-columns: 1fr; } }
+@media (max-width: 720px) { .workspace-context, .workspace-summary { display: block; } .batch-picker { margin-top: 18px; } .batch-picker select { width: 100%; } .summary-block + .summary-block { margin-top: 14px; } .content-row { grid-template-columns: 1fr; } .content-state { text-align: left; } }
+
 .ingest-form { margin: 6px 0 24px; padding: 20px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
 .ingest-form label { display: block; margin-bottom: 8px; color: var(--muted); font-size: 12px; font-weight: 700; }
 .form-row { display: flex; gap: 10px; }

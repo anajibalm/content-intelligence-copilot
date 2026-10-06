@@ -1,0 +1,48 @@
+{
+  "evidence_date": "2026-10-06",
+  "branch": "feat/s6-batch-workspace",
+  "executor": "OMP (local repo agent)",
+  "review_guidance": "ChatGPT",
+  "merge_approval": "pending owner",
+  "runtime": {
+    "server_port": 3011,
+    "database": "local R1 staging Postgres",
+    "storage_root": "/tmp/cic-r1-storage-final",
+    "batch_id": "30000000-0000-0000-0000-000000000003",
+    "content_id": "70047e7f-f9c0-46ef-9f40-60e458ea410d"
+  },
+  "api_smoke": {
+    "request": "GET /api/workspace?batchId=30000000-0000-0000-0000-000000000003&contentId=70047e7f-f9c0-46ef-9f40-60e458ea410d",
+    "status": 200,
+    "selected_batch": "Batch 8",
+    "explicit_content_members": 12,
+    "selected_content": "Drama jajan",
+    "frames": 56,
+    "transcript_segments": 23,
+    "ranking_groups": 1,
+    "kpis": 1
+  },
+  "artifact_smoke": {
+    "status": 200,
+    "content_type": "image/jpeg",
+    "bytes": 87368
+  },
+  "browser_smoke": {
+    "surface": "batch selector, KPI/ranking summary, content list, detail evidence, transcript, audio control",
+    "frame_natural_width": 1080,
+    "audio_controls": 1,
+    "browser_errors": 0
+  },
+  "repository_gates": {
+    "lint": "PASS with existing/new @next/next/no-img-element warnings only",
+    "typecheck": "PASS",
+    "test": "PASS: 49 tests",
+    "build": "PASS",
+    "diff_check": "PASS"
+  },
+  "limits": [
+    "Staging observations use synthetic S5 fixture approval; no real brand approval claimed.",
+    "No production deployment durability or public acquisition claim.",
+    "S6 PR remains unmerged pending owner review."
+  ]
+}
