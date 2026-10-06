@@ -41,6 +41,12 @@
     "persistent_ranking_result_id": "e6d7d8df-0e79-4ce6-8f4c-060d96bb22fa",
     "migration_0006_applied": true
   },
+  "ui_smoke": {
+    "url": "http://127.0.0.1:3000/",
+    "http_status": 200,
+    "markers": ["S5 / BATCH ANALYSIS", "Synthetic demo data", "Ranking", "views · DESC", "KPI assessment", "ORGANIC · ACHIEVED", "target 900 · actual 933.3333333333334"],
+    "console_errors_after_configured_reload": 0
+  },
   "repo_gates": {
     "typecheck": "PASS",
     "lint": "PASS with existing Next img warning",
