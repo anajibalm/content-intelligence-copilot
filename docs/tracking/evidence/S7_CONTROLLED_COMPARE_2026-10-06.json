@@ -41,8 +41,20 @@
     "diff_check": "PASS"
   },
   "staging": {
-    "status": "NOT_RUN",
-    "reason": "No CIC_DATABASE_URL/CIC_WORKSPACE_ID/CIC_STORAGE_ROOT environment was configured in current shell",
-    "limits": ["No S7 API/database persistence smoke claimed", "No browser staging smoke claimed", "Existing staging datasets remain synthetic where previously recorded", "No production deployment claimed"]
+    "status": "PASS_API_PERSISTENCE",
+    "database": "cic-postgres-r1",
+    "migration": "0007_controlled_compare.sql applied successfully",
+    "server": "http://127.0.0.1:3120",
+    "workspace_probe": "GET /api/workspace?batchId=51000000-0000-0000-0000-000000000002 returned HTTP 200 with 12 contents",
+    "comparison_probe": "POST /api/comparisons returned HTTP 201",
+    "comparison_id": "50651a5b-5415-4995-a926-41764fb0c6aa",
+    "selected_order": ["51000000-0000-0000-0000-000000000101", "51000000-0000-0000-0000-000000000102"],
+    "snapshot_ids": ["51000000-0000-0000-0000-000000000201", "51000000-0000-0000-0000-000000000202"],
+    "distribution": "ORGANIC",
+    "quality": "LOW",
+    "quality_reason": "small-N pair is directionally capped",
+    "persisted_count_probe": 1,
+    "browser": "HTTP page returned 200; managed browser inspection failed despite server response; no visual or zero-console claim",
+    "limits": ["Existing staging dataset remains synthetic and is not real brand approval", "No production deployment claimed"]
   }
 }
