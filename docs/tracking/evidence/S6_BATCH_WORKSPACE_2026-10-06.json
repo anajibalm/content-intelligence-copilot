@@ -1,11 +1,13 @@
 {
   "evidence_date": "2026-10-06",
   "branch": "feat/s6-batch-workspace",
+  "review_fix_head": "726e29c",
+  "dependency_base": "feat/s5-metrics-kpi-ranking (PR #26 remains OPEN; PR #27 retargeted; no merge approval implied)",
   "executor": "OMP (local repo agent)",
   "review_guidance": "ChatGPT",
   "merge_approval": "pending owner",
   "runtime": {
-    "server_port": 3011,
+    "server_port": 3012,
     "database": "local R1 staging Postgres",
     "storage_root": "/tmp/cic-r1-storage-final",
     "batch_id": "30000000-0000-0000-0000-000000000003",
@@ -18,31 +20,54 @@
     "explicit_content_members": 12,
     "selected_content": "Drama jajan",
     "frames": 56,
+    "available_frames": 56,
     "transcript_segments": 23,
+    "acquisition_state": "SUCCEEDED",
+    "processing_state": "COMPLETED",
     "ranking_groups": 1,
     "kpis": 1
+  },
+  "boundary_probes": {
+    "invalid_batch_with_valid_content": { "status": 404, "error": "batch not found in workspace" },
+    "missing_content_in_selected_batch": { "status": 404, "error": "content not found in selected batch" },
+    "foreign_workspace_content": "not exposed; workspace query scope applies",
+    "explicit_parameters": "no batch/content fallback when supplied"
+  },
+  "ranking_proof": {
+    "summary": "Best by views",
+    "winner_links": ["Pengumuman Karyawan Terbaik"],
+    "winner_value": 1000,
+    "middle_items": "no Best badge",
+    "basis": "views",
+    "direction": "DESC",
+    "ties": "unit regression covers tied winners and ASC lowest"
   },
   "artifact_smoke": {
     "status": 200,
     "content_type": "image/jpeg",
-    "bytes": 87368
+    "bytes": 87368,
+    "missing_files": "filesystem authorization returns unavailable"
   },
   "browser_smoke": {
     "surface": "batch selector, KPI/ranking summary, content list, detail evidence, transcript, audio control",
     "frame_natural_width": 1080,
     "audio_controls": 1,
-    "browser_errors": 0
+    "selection": "A/B selection, deep link, Back, Forward, and stale-detail clearing exercised",
+    "invalid_link": "HTTP 404 with clear error state",
+    "browser_errors": "no page errors; aborted navigation requests expected during rapid selection and do not render stale detail"
   },
   "repository_gates": {
-    "lint": "PASS with existing/new @next/next/no-img-element warnings only",
+    "lint": "PASS with 2 @next/next/no-img-element warnings",
     "typecheck": "PASS",
-    "test": "PASS: 49 tests",
+    "test": "PASS: 53 tests",
+    "validate_fixtures": "PASS",
     "build": "PASS",
     "diff_check": "PASS"
   },
   "limits": [
     "Staging observations use synthetic S5 fixture approval; no real brand approval claimed.",
     "No production deployment durability or public acquisition claim.",
+    "Acquisition-success plus processing-failure fixture was not available in current persistent batch; code exposes separate canonical states and errors.",
     "S6 PR remains unmerged pending owner review."
   ]
 }
