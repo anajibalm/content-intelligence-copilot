@@ -1,7 +1,7 @@
 {
   "evidence_date": "2026-10-06",
   "branch": "feat/s6-batch-workspace",
-  "review_fix_head": "726e29c",
+  "review_fix_head": "ba26026",
   "dependency_base": "feat/s5-metrics-kpi-ranking (PR #26 remains OPEN; PR #27 retargeted; no merge approval implied)",
   "executor": "OMP (local repo agent)",
   "review_guidance": "ChatGPT",
