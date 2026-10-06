@@ -28,27 +28,24 @@
     "no_best_overall_score": "PASS"
   },
   "staging_batch_result": {
-    "api": "GET /api/batches/30000000-0000-0000-0000-000000000003/metrics",
+    "probe": "direct metrics repository batchAndPersist against cic-postgres-r1",
+    "batch_id": "30000000-0000-0000-0000-000000000003",
+    "batch_name": "Batch 8",
     "status": 200,
-    "ranking_status": "READY",
-    "ranked_items": 3,
-    "kpi_status": "ACHIEVED",
+    "synthetic": true,
     "snapshot_count": 3,
-    "persistent_ranking_result_id": "d7904232-a10d-4c44-ab27-7421f1b21e0e",
-    "reload_status": "READY",
-    "reload_ranked_items": 3,
-    "persisted_ranking_items": 3,
-    "persisted_kpi_assessments": 2
-  },
-  "ui_smoke": {
-    "status": 200,
-    "markers": ["S5 / BATCH ANALYSIS", "Synthetic demo data", "Ranking", "KPI assessment", "Organic and Paid snapshots stay separate", "Best by"],
-    "artifact_readback_guard": "PASS: stale artifact paths render unavailable evidence instead of failing whole batch page"
+    "ranking_status": "READY",
+    "ranking_groups": [{"basis": "views", "direction": "DESC", "items": 2}],
+    "ranking_excluded": 1,
+    "kpi": {"metric": "views", "distribution": "ORGANIC", "status": "ACHIEVED", "target": 900, "actual": 933.3333333333334, "contributing_snapshot_count": 3, "excluded_snapshot_count": 0},
+    "persistent_ranking_result_id": "e6d7d8df-0e79-4ce6-8f4c-060d96bb22fa",
+    "migration_0006_applied": true
   },
   "repo_gates": {
     "typecheck": "PASS",
     "lint": "PASS with existing Next img warning",
-    "test": "PASS 44/44",
+    "test": "PASS 49/49",
+    "focused_metrics_test": "PASS 12/12",
     "validate_fixtures": "PASS",
     "build": "PASS",
     "diff_check": "PASS"
@@ -56,7 +53,7 @@
   "limits": [
     "Synthetic fixture approval is not real brand approval.",
     "Real public acquisition does not provide AWT/WFV; unavailable remains explicit.",
-    "Full persistent actual-media smoke rerun was blocked by exhausted URL fixture list and missing CIC_TRANSCRIBER_SCRIPT before configured retry; existing PR25 durable evidence remains historical.",
+    "Fresh actual-media smoke was not rerun; existing PR25 durable evidence remains historical.",
     "No production deployment claimed."
   ]
 }
