@@ -172,7 +172,7 @@ async function readImageDimensions(imagePath: string): Promise<{ width?: number;
   return { width, height };
 }
 
-async function defaultTools(): Promise<ProcessingTools> {
+export async function createDefaultProcessingTools(): Promise<ProcessingTools> {
   return {
     async probe(mediaPath) {
       const result = await execFile('ffprobe', ['-v', 'error', '-show_entries', 'format=duration,size:stream=codec_type,width,height', '-of', 'json', mediaPath], 30_000);
@@ -217,9 +217,12 @@ async function defaultTools(): Promise<ProcessingTools> {
 
 export async function runProcessingJob(input: ProcessingJob, options: { store: ProcessingJobStore; tools?: ProcessingTools }): Promise<ProcessingJob> {
   const existing = options.store.read(input.id);
-  if (existing?.state === 'COMPLETED' && existing.output) return existing;
+  if (existing?.state === 'COMPLETED' && existing.output) {
+    await cleanupTemporaryMedia([{ path: input.mediaPath, temporary: true }]);
+    return existing;
+  }
   const job = existing?.state === 'COMPLETED' ? existing : input;
-  const tools = options.tools ?? await defaultTools();
+  const tools = options.tools ?? await createDefaultProcessingTools();
   const running: ProcessingJob = { ...job, state: 'RUNNING', error: null, startedAt: new Date().toISOString(), completedAt: null };
   options.store.write(running);
   try {

@@ -4,7 +4,7 @@ import { isAbsolute, relative, resolve } from 'node:path';
 import { Pool, type PoolClient } from 'pg';
 import { normalizeTikTokUrl } from '../acquisition/normalize.ts';
 import { runAcquisition } from '../acquisition/index.ts';
-import type { AcquisitionAttempt, CanonicalIdentity, VideoAcquirer } from '../acquisition/types.ts';
+import type { AcquisitionAttempt, AcquisitionPacket, CanonicalIdentity, VideoAcquirer } from '../acquisition/types.ts';
 import { cleanupTemporaryMedia } from '../acquisition/media.ts';
 import { resolveAuthorizedArtifact } from './artifacts.ts';
 import {
@@ -34,6 +34,7 @@ export interface PostgresRuntimeOptions {
   storageRoot: string;
   acquirer: VideoAcquirer;
   processingTools?: ProcessingTools;
+  onProcessingComplete?: (job: DurableJob, output: ProcessingOutput) => Promise<void>;
 }
 
 export interface DurableRuntime {
@@ -316,6 +317,7 @@ export function createPostgresRuntime(options: PostgresRuntimeOptions): DurableR
         { store: processingStore, tools: options.processingTools },
       );
       if (!processing.output) throw new Error('processing completed without output');
+      if (options.onProcessingComplete) await options.onProcessingComplete(job, processing.output);
       if (!(await renewClaim(job, 15 * 60 * 1000))) throw new Error('worker claim expired after processing');
       await complete(job, processing.output);
       completed = true;

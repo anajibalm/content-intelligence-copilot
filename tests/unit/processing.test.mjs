@@ -114,3 +114,14 @@ test('failed processing persists failure state and cleans temporary media safely
   assert.equal(fs.existsSync(mediaJob.mediaPath), false);
   assert.equal(store.read('job-1').state, 'FAILED');
 });
+
+test('cached completed output cleans newly acquired temporary media', async () => {
+  const root = tempRoot();
+  const store = createFileJobStore(path.join(root, 'state.json'));
+  const first = await runProcessingJob(job(root), { store, tools: fakeTools() });
+  const retryMedia = path.join(root, 'retry.mp4');
+  fs.writeFileSync(retryMedia, 'new temporary media');
+  const retry = await runProcessingJob({ ...first, mediaPath: retryMedia }, { store, tools: fakeTools() });
+  assert.equal(retry.state, 'COMPLETED');
+  assert.equal(fs.existsSync(retryMedia), false, 'cached-output retry must delete new temporary media');
+});

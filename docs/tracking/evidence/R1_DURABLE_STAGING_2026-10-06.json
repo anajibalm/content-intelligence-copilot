@@ -2,34 +2,54 @@
   "evidence_date": "2026-10-06",
   "branch": "feat/s3-r1-staging",
   "provenance": "Executor: OMP (local repo agent); Review guidance: ChatGPT; Merge approval: pending owner",
-  "database": "Disposable PostgreSQL 16 staging on 127.0.0.1:55432; migrations 0001, 0002, 0003, and 0004 applied",
-  "flow": {
-    "source": "public TikTok URL",
-    "provider": "yt-dlp",
-    "status": "COMPLETED",
-    "canonical_content_rows": 1,
-    "job_rows": 1,
-    "hook_frames": 3,
-    "representative_frames": 4,
-    "scene_frames": 49,
-    "transcript_segments": 23,
-    "audio_persisted": true,
-    "persistent_storage_files": 58,
-    "temporary_mp4_persisted": false
+  "database": "Persistent Docker PostgreSQL 16 container cic-postgres-r1 on named Docker volume, 127.0.0.1:55432; migrations 0001, 0002, 0003, and 0004 present",
+  "storage": {
+    "root": "/home/anajibalm/.local/state/content-intelligence-copilot/r1-storage",
+    "outside_tmp": true,
+    "files_after_smoke": 332,
+    "wav_files": 6,
+    "jpg_files": 325,
+    "mp4_files": 0
   },
-  "recovery": {
-    "status": "COMPLETED",
-    "worker_claimed_before_restart": true,
-    "attempt_count": 2,
-    "duplicate_canonical_content": false,
-    "duplicate_video_frames": false,
-    "completed_enqueue_reused_result": true,
-    "ownership_smoke": {
-      "active_recovery": 0,
-      "expired_recovery": 1,
-      "stale_worker_update_rows": 0,
-      "workspace_filter": "PASS: runtime queries use configured workspace_id"
+  "persistent_restart": {
+    "status": "PASS",
+    "job_id": "f3ef14f8-00d1-4d9d-9c76-eb012c0776ba",
+    "job_status": "COMPLETED",
+    "frames": 57,
+    "transcript_segments": 25,
+    "analyst_anchors": 1,
+    "audio_readable_after_database_restart": true,
+    "frame_readable_after_database_restart": true,
+    "db_volume": "Docker named volume mounted at /var/lib/postgresql/data"
+  },
+  "interruption_smokes": {
+    "acquisition_processing": {
+      "status": "PASS",
+      "job_id": "198972a8-9d9f-4965-b6d3-f6aa19ce5535",
+      "worker_killed_during_processing": true,
+      "attempts": 2,
+      "frames": 62,
+      "completed": true,
+      "old_and_new_temporary_mp4_cleaned": true,
+      "duplicate_content_or_frames": false
+    },
+    "derivative_to_db_commit": {
+      "status": "PASS",
+      "job_id": "303922d7-d470-4ed5-b6e9-a108fc52afb0",
+      "worker_exit_code": 75,
+      "crash_after_derivatives_before_canonical_commit": true,
+      "retry_attempts": 2,
+      "frames": 42,
+      "completed": true,
+      "cached_output_retry_new_mp4_cleaned": true,
+      "duplicate_content_or_frames": false
     }
+  },
+  "ownership_regression": {
+    "active_recovery": 0,
+    "expired_recovery": 1,
+    "stale_worker_update_rows": 0,
+    "workspace_filter": "PASS: runtime queries use configured workspace_id"
   },
   "ui_evidence": {
     "state_source": "Postgres runtime_processing_job",
@@ -40,16 +60,18 @@
   },
   "verification": {
     "artifact_security_regression": "PASS: valid frame plus absolute/traversal contentId, file traversal, and symlink escape rejected",
-    "ownership_smoke": "PASS: active claim untouched, expired claim recovered, stale token update affected 0 rows",
-    "npm_test": "PASS 24/24",
+    "cached_output_regression": "PASS: completed file-store output deletes newly acquired temporary media",
+    "persistent_smoke": "PASS: DB restart retained completed state, audio, frames, transcript, and analyst anchor",
+    "interruption_smoke": "PASS: processing interruption and derivative-to-DB-commit interruption recovered",
+    "npm_test": "PASS 25/25 expected after new regression",
     "npm_run_typecheck": "PASS",
     "npm_run_lint": "PASS with Next img warning only",
     "git_diff_check": "PASS"
   },
   "limits": [
     "AWT unavailable; no fabricated AWT value stored.",
-    "Actual-media receipt used disposable local PostgreSQL and local persistent-path simulation; deployment durability is not PASS until a non-/tmp CIC_STORAGE_ROOT and managed DB volume are exercised.",
-    "Acquisition interruption and derivative-to-DB interruption remain reviewable code paths, not separately observed live-media runs in this receipt.",
+    "Persistent proof uses local Docker PostgreSQL named volume and host storage outside /tmp; managed production deployment durability remains unproven.",
+    "Actual interruption smoke used public TikTok URLs and live yt-dlp; exact kill/crash boundaries are harness-controlled, not production orchestration behavior.",
     "S4 extraction/review and S5 metrics/ranking not started."
   ]
 }
