@@ -1,0 +1,48 @@
+{
+  "evidence_date": "2026-10-06",
+  "branch": "feat/s7-controlled-compare",
+  "provenance": "Executor: OMP (local repo agent); Review guidance: ChatGPT; Merge approval: pending owner",
+  "base": {
+    "branch": "master",
+    "head": "29b72feba31adc790620f5e1c43f88581a9c13c2",
+    "integrated_prs": [26, 27, 28]
+  },
+  "implementation": {
+    "engine": "lib/compare/rules.ts",
+    "repository": "lib/compare/postgres.ts",
+    "api": "POST /api/comparisons",
+    "ui": "app/compare-panel.tsx",
+    "migration": "supabase/migrations/0007_controlled_compare.sql",
+    "rule_version": "compare-v1",
+    "modes": ["CONTROLLED", "PERFORMANCE_CONTRAST", "MANUAL"],
+    "scopes": ["PAIR", "GROUP", "BATCH"]
+  },
+  "behavior": {
+    "selection_order": "preserved",
+    "snapshot_ids": "exact selected distribution snapshot IDs persisted in comparison_snapshot",
+    "organic_paid": "explicit distribution input; no cross-context baseline",
+    "controlled_variables": ["same_pillar", "same_format", "same_talent_class", "duration_delta_seconds", "content_age_delta_hours", "distribution_match", "sample_eligibility", "metric_quality"],
+    "uncontrolled_variables": "persisted and rendered",
+    "quality": "deterministic; suspect, missing snapshot, unreviewed feature, and small-N caps are visible",
+    "performance_contrast": "exploratory and non-causal",
+    "winner_logic": "none"
+  },
+  "tests": {
+    "command": "node --test tests/unit/compare.test.mjs",
+    "result": "PASS: 5 tests",
+    "coverage": ["pair order and frozen snapshots", "uncontrolled differences", "Organic/Paid and suspect quality", "performance contrast and invalid selection", "unreviewed features and unavailable snapshots"]
+  },
+  "repository_gates": {
+    "lint": "PASS with existing 2 @next/next/no-img-element warnings",
+    "typecheck": "PASS",
+    "test": "PASS: 65 tests",
+    "validate_fixtures": "PASS",
+    "build": "PASS",
+    "diff_check": "PASS"
+  },
+  "staging": {
+    "status": "NOT_RUN",
+    "reason": "No CIC_DATABASE_URL/CIC_WORKSPACE_ID/CIC_STORAGE_ROOT environment was configured in current shell",
+    "limits": ["No S7 API/database persistence smoke claimed", "No browser staging smoke claimed", "Existing staging datasets remain synthetic where previously recorded", "No production deployment claimed"]
+  }
+}

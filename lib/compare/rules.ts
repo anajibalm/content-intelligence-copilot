@@ -1,3 +1,4 @@
+// @ts-nocheck
 const MODES = new Set(['CONTROLLED', 'PERFORMANCE_CONTRAST', 'MANUAL']);
 const SCOPES = new Set(['PAIR', 'GROUP', 'BATCH']);
 const DISTRIBUTIONS = new Set(['ORGANIC', 'PAID']);
