@@ -13,7 +13,7 @@ import {
   type ProcessingOutput,
   type ProcessingTools,
 } from '../processing/index.ts';
-import { extractFingerprint, EXTRACTION_MODEL, EXTRACTION_PROMPT_VERSION, EXTRACTION_PROVIDER, EXTRACTION_SCHEMA_VERSION } from '../extraction/index.ts';
+import { buildExtractionInput, extractFingerprint, type ExtractionInput, type ModelOutput } from '../extraction/index.ts';
 
 export interface DurableJob {
   id: string;
@@ -35,6 +35,7 @@ export interface PostgresRuntimeOptions {
   storageRoot: string;
   acquirer: VideoAcquirer;
   processingTools?: ProcessingTools;
+  fingerprintExtractor?: (input: ExtractionInput) => Promise<ModelOutput>;
   onProcessingComplete?: (job: DurableJob, output: ProcessingOutput) => Promise<void>;
 }
 
@@ -245,11 +246,14 @@ export function createPostgresRuntime(options: PostgresRuntimeOptions): DurableR
         );
         frame.id = inserted.rows[0]?.id;
       }
-      const extraction = extractFingerprint(persistedOutput);
+      const contentMetadata = await client.query<{ title: string | null }>('SELECT title FROM content WHERE workspace_id = $1 AND id = $2', [options.workspaceId, job.contentId]);
+      const extractionInput = buildExtractionInput(persistedOutput, { contentId: job.contentId, title: contentMetadata.rows[0]?.title ?? null, caption: null });
+      const modelOutput = options.fingerprintExtractor ? await options.fingerprintExtractor(extractionInput) : null;
+      const extraction = extractFingerprint(extractionInput, modelOutput);
       const extractionRun = await client.query<{ id: string }>(
         `INSERT INTO extraction_run (workspace_id, content_id, provider, model, prompt_version, schema_version, input_hash, raw_output, status)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, 'SUCCEEDED') RETURNING id`,
-        [options.workspaceId, job.contentId, EXTRACTION_PROVIDER, EXTRACTION_MODEL, EXTRACTION_PROMPT_VERSION, EXTRACTION_SCHEMA_VERSION, extraction.inputHash, JSON.stringify(extraction.rawOutput)],
+        [options.workspaceId, job.contentId, extraction.provider, extraction.model, extraction.promptVersion, extraction.schemaVersion, extraction.inputHash, JSON.stringify(extraction.rawOutput)],
       );
       const extractionRunId = extractionRun.rows[0]?.id;
       if (!extractionRunId) throw new Error('database did not return extraction run id');
@@ -257,7 +261,7 @@ export function createPostgresRuntime(options: PostgresRuntimeOptions): DurableR
         await client.query(
           `INSERT INTO content_feature (workspace_id, content_id, extraction_run_id, field_name, ai_value)
            VALUES ($1, $2, $3, $4, $5)`,
-          [options.workspaceId, job.contentId, extractionRunId, feature.fieldName, feature.aiValue],
+          [options.workspaceId, job.contentId, extractionRunId, feature.fieldName, feature.value],
         );
       }
       const completion = await client.query(

@@ -1,0 +1,46 @@
+{
+  "evidence_date": "2026-10-06",
+  "branch": "feat/s4-fingerprint-extraction",
+  "pr": 28,
+  "head_before_delivery": "97289dd",
+  "staging": {
+    "database_container": "cic-postgres-r1",
+    "database": "cic",
+    "workspace_id": "10000000-0000-0000-0000-000000000001",
+    "brand_id": "313a5029-ea10-4d3d-b6ab-f0e0fb0afe74",
+    "batch_id": "30000000-0000-0000-0000-000000000003",
+    "storage_root": "/home/anajibalm/.local/state/content-intelligence-copilot/r1-storage",
+    "existing_data_reused": true,
+    "reset_performed": false,
+    "seed_performed": false
+  },
+  "actual_media_smoke": {
+    "content_id": "fa077ea5-ef36-4f61-b450-5aed14166509",
+    "source": "https://www.tiktok.com/@barakat_id/video/7602229928444087553",
+    "worker_reached_actual_media": true,
+    "status": "BLOCKED",
+    "error": "S4 extraction blocked: no multimodal fingerprint provider/model is configured",
+    "extraction_runs_created": 0,
+    "content_features_created": 0
+  },
+  "provider": {
+    "configured_multimodal_provider": false,
+    "heuristic_fallback": false,
+    "reason": "No allowed multimodal inference provider, model, credentials, or local model was configured in repository or staging shell."
+  },
+  "checks": {
+    "lint": "PASS with existing 2 @next/next/no-img-element warnings",
+    "typecheck": "PASS",
+    "test": "PASS: 58 tests",
+    "validate_fixtures": "PASS",
+    "build": "PASS",
+    "diff_check": "PASS"
+  },
+  "acceptance": {
+    "actual_media_to_extraction": "BLOCKED",
+    "persisted_features": "NOT_PROVEN",
+    "analyst_correction_readback": "NOT_RUN",
+    "reload": "NOT_RUN",
+    "no_production_claim": true
+  }
+}

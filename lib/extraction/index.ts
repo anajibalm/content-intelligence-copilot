@@ -1,8 +1,8 @@
 import { createHash } from 'node:crypto';
 import type { ProcessingOutput } from '../processing/index.ts';
 
-export const EXTRACTION_PROVIDER = 'cic-deterministic-fingerprint';
-export const EXTRACTION_MODEL = 'fingerprint-v0.1';
+export const EXTRACTION_PROVIDER = 'unconfigured';
+export const EXTRACTION_MODEL = 'unconfigured';
 export const EXTRACTION_PROMPT_VERSION = 'fingerprint-v0.1';
 export const EXTRACTION_SCHEMA_VERSION = 'fingerprint-v0.1';
 
@@ -13,53 +13,45 @@ export const FINGERPRINT_FIELDS = [
 ] as const;
 export type FingerprintField = (typeof FINGERPRINT_FIELDS)[number];
 
-export interface ExtractedFeature { fieldName: FingerprintField; aiValue: string; }
-export interface FingerprintExtraction {
-  inputHash: string;
-  rawOutput: Record<string, unknown>;
-  features: ExtractedFeature[];
-  confidence: 'LOW';
-  confidenceReason: string;
+export interface ExtractionInput {
+  metadata: { contentId: string; title: string | null; caption: string | null };
+  transcript: ProcessingOutput['transcript'];
+  hookFrames: ProcessingOutput['hookFrames'];
+  representativeFrames: ProcessingOutput['representativeFrames'];
 }
+export interface ModelFeature { fieldName: FingerprintField; value: string; }
+export interface ModelOutput { features: ModelFeature[]; rawOutput: Record<string, unknown>; provider: string; model: string; promptVersion: string; schemaVersion: string; }
+export interface FingerprintExtraction { inputHash: string; rawOutput: Record<string, unknown>; features: ModelFeature[]; confidence: 'LOW'; confidenceReason: string; provider: string; model: string; promptVersion: string; schemaVersion: string; }
 
 function hash(value: unknown): string {
   return `sha256:${createHash('sha256').update(JSON.stringify(value)).digest('hex')}`;
 }
 
-function text(output: ProcessingOutput): string {
-  return output.transcript.segments.map((segment) => segment.text).join(' ').trim().toLowerCase();
-}
-
-function classify(output: ProcessingOutput, fieldName: FingerprintField): string {
-  const transcript = text(output);
-  const has = (...terms: string[]) => terms.some((term) => transcript.includes(term));
-  if (fieldName === 'topic') return has('obat', 'produk', 'supplement', 'vitamin') ? 'product_education' : 'general_information';
-  if (fieldName === 'format') return output.hookFrames.length > 0 ? 'short_form_demonstration' : 'talking_head';
-  if (fieldName === 'hook_type') return has('tunggu', 'jangan', 'ternyata', '?') ? 'direct_attention' : 'opening_statement';
-  if (fieldName === 'hook_subject') return transcript.slice(0, 80) || 'unavailable';
-  if (fieldName === 'talent_type') return 'single_presenter';
-  if (fieldName === 'talent_familiarity') return 'unclassified';
-  if (fieldName === 'opening_style') return has('kamu', 'anda') ? 'direct_address' : 'direct_claim';
-  if (fieldName === 'pacing') return output.transcript.segments.length > 10 ? 'fast' : 'moderate';
-  if (fieldName === 'narrative_structure') return has('karena', 'jadi', 'maka') ? 'claim_explanation' : 'single_claim';
-  if (fieldName === 'emotional_trigger') return has('bahaya', 'salah', 'jangan') ? 'concern' : 'curiosity';
-  if (fieldName === 'tension_type') return has('masalah', 'solusi', 'atasi') ? 'problem_solution' : 'none_observed';
-  if (fieldName === 'product_placement') return has('produk', 'beli', 'gunakan') ? 'verbal_reference' : 'not_observed';
-  return has('follow', 'ikuti', 'beli', 'komen') ? 'direct_action' : 'none_observed';
-}
-
-export function extractFingerprint(output: ProcessingOutput): FingerprintExtraction {
-  const input = {
-    transcript: output.transcript,
-    hookFrames: output.hookFrames.map(({ id, timestampMs }) => ({ id, timestampMs })),
-    representativeFrames: output.representativeFrames.map(({ id, timestampMs }) => ({ id, timestampMs })),
-  };
-  const features = FINGERPRINT_FIELDS.map((fieldName) => ({ fieldName, aiValue: classify(output, fieldName) }));
+export function buildExtractionInput(output: ProcessingOutput, metadata: ExtractionInput['metadata']): ExtractionInput {
   return {
-    inputHash: hash(input),
-    rawOutput: { input, features },
-    features,
+    metadata,
+    transcript: output.transcript,
+    hookFrames: output.hookFrames,
+    representativeFrames: output.representativeFrames,
+  };
+}
+
+export function extractFingerprint(input: ExtractionInput, modelOutput: ModelOutput | null): FingerprintExtraction {
+  if (!modelOutput) throw new Error('S4 extraction blocked: no multimodal fingerprint provider/model is configured');
+  const fields: Record<FingerprintField, boolean> = Object.fromEntries(FINGERPRINT_FIELDS.map((field) => [field, false])) as Record<FingerprintField, boolean>;
+  for (const feature of modelOutput.features) fields[feature.fieldName] = true;
+  if (modelOutput.features.length !== FINGERPRINT_FIELDS.length || FINGERPRINT_FIELDS.some((field) => !fields[field])) throw new Error('multimodal extraction output does not contain complete fingerprint schema');
+  if (modelOutput.features.some((feature) => !feature.value.trim())) throw new Error('multimodal extraction output contains empty feature value');
+  const inputHash = hash(input);
+  return {
+    inputHash,
+    rawOutput: { input, modelOutput: modelOutput.rawOutput },
+    features: modelOutput.features,
     confidence: 'LOW',
     confidenceReason: 'EXTRACTED evidence remains unreviewed until analyst confirmation.',
+    provider: modelOutput.provider,
+    model: modelOutput.model,
+    promptVersion: modelOutput.promptVersion,
+    schemaVersion: modelOutput.schemaVersion,
   };
 }
