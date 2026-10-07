@@ -80,13 +80,15 @@
     "human_packet_urls": 10,
     "human_packet_fields_per_video": 13,
     "human_packet_labels": "EMPTY pending evaluator; no AI answers, reviewed answers, or model confidence included",
-    "human_packet_stability": "Second blind pass required; stable/unstable field summary required",
+    "human_packet_format": "13 plain label columns plus reviewer, labelled_at_utc, and notes; one blind human pass",
+    "human_packet_stability": "Repeat model extraction on a subset of videos with comparable input/model/prompt/schema; no second blind human labeling pass required",
+    "model_stability_status": "PENDING: comparable extraction run IDs and per-field stable/unstable results not supplied in this packet",
     "blind_human_label_status": "PENDING: packet ready for owner-selected evaluator; actual labels and provenance not submitted",
     "claim_limit": "synthetic 13 labels and empty human packet are not actual blind human evaluation"
   },
   "tests": {
     "s13_primary_e2e": "PASS: npx playwright test tests/e2e/s13-core.spec.ts --retries=0; 1/1; fresh POST/create flow executed against staging http://127.0.0.1:3131; 1m6s",
-    "packet_schema_probe": "PASS: 10 URL rows, 13-field JSON columns present and empty, no AI labels",
+    "packet_schema_probe": "PASS reviewer docs validation: 10 unique URL rows, source identities/order preserved, 20 CSV columns including 13 empty label columns; evaluator metadata empty; no AI labels",
     "s13_unit": "PASS: node --test tests/unit/s13.test.mjs; 10/10",
     "unit_suite": "PASS: npm test; 100/100",
     "fixtures": "PASS: npm run validate:fixtures",
