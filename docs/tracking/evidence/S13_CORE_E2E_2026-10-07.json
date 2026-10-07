@@ -89,8 +89,9 @@
     "branch": "task/14",
     "tested_source_sha": "2c0331efb16736204463d63e94babbfcca8706f2",
     "receipt_path": "docs/tracking/evidence/S13_CORE_E2E_2026-10-07.json",
-    "pr": "pending creation",
-    "ci": "pending",
+    "pr": "https://github.com/anajibalm/content-intelligence-copilot/pull/33",
+    "ci": "Build & Test PASS; run 37646112687 on final source HEAD 5d30441d259eeca1eeef0879b9df7e6752b6d7cf",
+    "project_status": "Blocked: technical proof complete, actual blind human labeling pending external/owner evaluation",
     "c1_v02_freeze": "PENDING explicit product decision C1 #17; no freeze performed",
     "merge": "not performed"
   },
