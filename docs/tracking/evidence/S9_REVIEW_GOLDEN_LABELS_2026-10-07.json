@@ -50,6 +50,9 @@
   ],
   "delivery": {
     "tested_source_sha": "9c46206",
+    "final_head": "1421c1b",
+    "pr": "https://github.com/anajibalm/content-intelligence-copilot/pull/31",
+    "ci": "Build & Test PASS; run 37597615773 on final HEAD 1421c1b",
     "tracking_status": "Review",
     "merge": "not performed",
     "next_slice": "S10 and S13 not started"
