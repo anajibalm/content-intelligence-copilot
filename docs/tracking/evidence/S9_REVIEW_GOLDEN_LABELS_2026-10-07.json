@@ -46,7 +46,7 @@
   },
   "limits": [
     "Synthetic Chromium proves UI transitions and reload behavior, not real-brand approval.",
-    "Migration was applied additively. Feature artifact was already fully reviewed before delivery; actual staging UI kept feature decision buttons disabled per append-only rules. Confirm -> Correct A -> Correct B sequence is proven by synthetic browser fixture, not by mutating existing staging artifact.",
+    "Existing staging artifact was already reviewed; this does not disable the review UI contract. Confirm All is unavailable when no UNREVIEWED features remain, while Correct fields remains available after reviewer entry for eligible unreviewed features. Integrated synthetic fixture proves Confirm -> Correct A -> Correct B; no cross-workspace UUID lookup is used as artifact evidence.",
     "No production deployment, production data, real-provider acceptance, or real-brand approval claim.",
     "No persistent data reset performed; 9router and Hindsight were not restarted or killed."
   ],
