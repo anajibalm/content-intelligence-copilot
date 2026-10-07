@@ -20,7 +20,7 @@ GitHub Issues dan Project memegang execution status. Contracts dan decisions tet
 - `app/page.tsx`: fixture-backed.
 - Persistent worker: implemented and staged; production durability remains unproven.
 - S3/S4/S5/S6: reviewable checkpoints recorded in evidence receipts.
-- S7 #8: Done; PR #29 merged as `a7038747cb493a5ca5139e24a9112f0d4bfd39ea`; browser/API/persistence acceptance passed. One settled unexplained 404 console error remains; no zero-console claim.
+- S8: implementation reviewable on `feat/s8-evidence-hypothesis`; local structured-provider staging persistence passed; real 9router acceptance blocked by HTTP 401 `Invalid API key`. Receipt: `docs/tracking/evidence/S8_EVIDENCE_HYPOTHESIS_2026-10-07.json`.
 - R1 #16: Blocked because runtime DB/API/durable handoff evidence remains incomplete for production.
 - E1 #18: Done; sanitized receipt durable with source SHA-256, date, runner, and without media/provider payload.
 - `BASELINE-CI-GOV-001` #21: Review, Project custom Tracking Status; delivery through feature branch/PR.

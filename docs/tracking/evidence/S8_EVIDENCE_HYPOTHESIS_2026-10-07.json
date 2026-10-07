@@ -1,0 +1,61 @@
+{
+  "evidence_date": "2026-10-07",
+  "provenance": "Executor: OMP local repo agent; Review guidance: ChatGPT; owner merge approval pending",
+  "branch": "feat/s8-evidence-hypothesis",
+  "implementation": {
+    "rules": "lib/hypothesis/rules.ts",
+    "repository": "lib/hypothesis/postgres.ts",
+    "api": "POST /api/hypotheses and GET /api/hypotheses?hypothesisId=...",
+    "ui": "app/hypothesis-panel.tsx, app/compare-panel.tsx, app/workspace-client.tsx",
+    "migration": "supabase/migrations/0008_evidence_hypothesis.sql",
+    "versions": {
+      "rule": "hypothesis-v1",
+      "prompt": "hypothesis-prompt-v1",
+      "schema": "hypothesis-schema-v1"
+    }
+  },
+  "behavior": {
+    "scope": "comparison workspace and selected batch only; exact frozen comparison snapshots plus scoped transcript segments, frames, and content features",
+    "layers": ["OBSERVED", "DERIVED", "EXTRACTED", "INFERRED"],
+    "provenance": "evidence_source stores one exact source FK; hypothesis stores raw model output, model/provider metadata, prompt/schema versions, and input hash",
+    "caps": "sample size, one-comparison, comparison quality, suspect/unavailable primary metrics, and unreviewed EXTRACTED evidence deterministically force LOW confidence",
+    "language": "causal certainty terms rejected; next test required",
+    "history": "evidence, sources, hypotheses, links append-only through PostgreSQL triggers"
+  },
+  "tests": {
+    "focused": "node --test tests/unit/hypothesis.test.mjs PASS: 4 tests",
+    "full": "npm test PASS: 74 tests",
+    "lint": "PASS with 3 existing warnings: two img warnings and one existing exhaustive-deps warning",
+    "typecheck": "PASS",
+    "build": "PASS",
+    "migration": "0008_evidence_hypothesis.sql applied successfully to cic-postgres-r1"
+  },
+  "staging": {
+    "database": "cic-postgres-r1",
+    "server": "http://127.0.0.1:3120",
+    "workspace": "10000000-0000-0000-0000-000000000001",
+    "batch": "51000000-0000-0000-0000-000000000002",
+    "comparison": "50651a5b-5415-4995-a926-41764fb0c6aa",
+    "api_validation": "invalid UUID POST returned HTTP 400",
+    "provider_stub": "local structured JSON provider used only to exercise persistence path; no production/provider acceptance claim",
+    "persistence": {
+      "hypothesis": "dff60ede-5e20-4d26-85a8-8c3b9c3fdce5",
+      "confidence": "LOW",
+      "caps": ["INSUFFICIENT_SAMPLE", "ONE_COMPARISON", "COMPARISON_QUALITY"],
+      "evidence_links": 2,
+      "source_links": 2,
+      "readback": "GET /api/hypotheses returned HTTP 200 with statement, caps, raw output metadata, comparison origin, and evidence"
+    },
+    "browser": {
+      "surface": "Workspace renders S8 / WHY · EVIDENCE panel below controlled compare",
+      "screenshot": "/tmp/omp-sshots-159c4a01253f5d2c.png",
+      "limit": "Panel visible in DOM; no generated browser click run recorded"
+    },
+    "provider_blocker": "Configured 9router structured generation previously returned HTTP 401 Invalid API key; owner must correct runtime key before real-provider acceptance"
+  },
+  "limits": [
+    "Synthetic staging dataset; no real brand approval",
+    "No production deployment claim",
+    "No real-provider acceptance claim until 9router credentials are corrected"
+  ]
+}

@@ -643,6 +643,13 @@ export interface Hypothesis {
   state: HypothesisState;
   confidence: ConfidenceLabel;
   confidenceCaps: readonly ConfidenceCap[];
+  provider: string | null;
+  model: string | null;
+  promptVersion: string | null;
+  schemaVersion: string | null;
+  inputHash: string | null;
+  rawOutput: Record<string, unknown>;
+  suggestedNextTest: Record<string, unknown> | null;
   createdBy: string | null;
   createdAt: string;
   updatedAt: string;

@@ -43,7 +43,7 @@ function metricValue(value: number | null, name: string) {
   return `${value}`;
 }
 
-export default function ComparePanel({ batchId, contents }: { batchId: string; contents: Content[] }) {
+export default function ComparePanel({ batchId, contents, onCreated }: { batchId: string; contents: Content[]; onCreated: (comparisonId: string) => void }) {
   const [selected, setSelected] = useState<string[]>([]);
   const [fullBatch, setFullBatch] = useState(false);
   const [distribution, setDistribution] = useState<"ORGANIC" | "PAID">("ORGANIC");
@@ -107,6 +107,7 @@ export default function ComparePanel({ batchId, contents }: { batchId: string; c
       if (currentRequest !== requestId.current) return;
       if (!response.ok) throw new Error(body.error ?? "Comparison unavailable");
       setResult(body);
+      onCreated(body.id);
     } catch (error) {
       if (nextController.signal.aborted || currentRequest !== requestId.current) return;
       setStatus(error instanceof Error ? error.message : "Comparison request failed");
