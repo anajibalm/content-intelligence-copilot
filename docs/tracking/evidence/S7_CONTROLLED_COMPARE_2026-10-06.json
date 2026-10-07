@@ -1,0 +1,98 @@
+{
+  "evidence_date": "2026-10-06",
+  "tested_source_sha": "f9675e815f29174e65e62034145ac9c129eb5a38",
+  "provenance": "Executor: OMP (local repo agent); Review guidance: ChatGPT; Merge approval: pending owner",
+  "reviewer_documentation_commit": "c502e29d9c58986513ca89ae54dba9822c7f94ce",
+  "base": {
+    "branch": "master",
+    "head_at_review": "29b72feba31adc790620f5e1c43f88581a9c13c2",
+    "integrated_prs": [26, 27, 28]
+  },
+  "implementation": {
+    "engine": "lib/compare/rules.ts",
+    "repository": "lib/compare/postgres.ts",
+    "api": "POST /api/comparisons and GET /api/comparisons?comparisonId=...",
+    "ui": "app/compare-panel.tsx",
+    "migration": "supabase/migrations/0007_controlled_compare.sql",
+    "rule_version": "compare-v2",
+    "duration_tolerance_seconds": 30,
+    "content_age_tolerance_hours": 168,
+    "high_confidence_sample_size": 3,
+    "modes": ["CONTROLLED", "PERFORMANCE_CONTRAST", "MANUAL"],
+    "scopes": ["PAIR", "GROUP", "BATCH"]
+  },
+  "behavior": {
+    "selection_order": "preserved",
+    "snapshot_ids": "exact selected distribution snapshot IDs persisted in comparison_snapshot",
+    "organic_paid": "explicit distribution input; no cross-context baseline",
+    "controlled_variables": ["same_pillar", "same_format", "same_talent_class", "duration_match", "content_age_match", "distribution_match", "sample_eligibility", "metric_quality", "feature_review_state"],
+    "uncontrolled_variables": "persisted and rendered; exploratory contrasts are non-causal",
+    "quality": "deterministic; missing/rejected/unreviewed controls, incompatible duration/age, missing snapshots, suspect/unavailable metrics, and small-N reasons visibly degrade quality",
+    "metric_basis": "views, AWT, WFV, and ER read from exact frozen snapshots with per-metric state/reason",
+    "history": "comparison, comparison_item, and comparison_snapshot are append-only; quality reasons and rule version persist",
+    "winner_logic": "none"
+  },
+  "tests": {
+    "focused_command": "node --test tests/unit/compare.test.mjs",
+    "focused_result": "PASS: 10 tests",
+    "coverage": ["selection order and frozen snapshots", "small-N reason", "missing/rejected/unreviewed controls", "duration and content-age incompatibility", "unavailable/suspect metric quality", "reviewed compatible group", "performance contrast non-causal", "invalid selection"]
+  },
+  "repository_gates": {
+    "lint": "PASS with existing 2 @next/next/no-img-element warnings",
+    "typecheck": "PASS",
+    "test": "PASS: 70 tests",
+    "validate_fixtures": "PASS",
+    "build": "PASS",
+    "diff_check": "PASS"
+  },
+  "staging": {
+    "status": "PASS_BROWSER_API_PERSISTENCE",
+    "database": "cic-postgres-r1",
+    "migration": "0007_controlled_compare.sql applied; rerun completed successfully",
+    "server": "http://127.0.0.1:3120",
+    "workspace_probe": "GET /api/workspace?batchId=51000000-0000-0000-0000-000000000002 returned HTTP 200 with 12 contents",
+    "scopes": {
+      "pair": "POST HTTP 201; GET readback HTTP 200",
+      "group": "POST HTTP 201; GET readback HTTP 200",
+      "batch": "POST HTTP 201; GET readback HTTP 200"
+    },
+    "browser": {
+      "tool": "temporary Playwright 1.63.0",
+      "executable": "/home/anajibalm/.local/bin/brave",
+      "version": "153.0.8010.53",
+      "screenshot": "/home/anajibalm/cic-s7-browser-pair-2026-10-06.png",
+      "screenshot_sha256": "706b9ccd939c59e63589b7e6a599e45ab88e91c54cbc2fd52c4704ca47e50a2d",
+      "pair": "selected known order; rendered Views/AWT/WFV/ER, units, quality reason, artifact ID, and compare-v2",
+      "batch": "POST JSON scope BATCH; 12 IDs in order; response rendered BATCH, unavailable metrics visible",
+      "manual_after_batch": "toggled one item; POST JSON scope GROUP with 11 IDs",
+      "reload": "page reload retained rendered compare surface and artifact state",
+      "pending_submit_disabled": true,
+      "controlled_failure_visible": "controlled browser failure",
+      "controlled_race_stale_result_hidden": true,
+      "page_errors": 0,
+      "console_errors": ["Failed to load resource: the server responded with a status of 404 (Not Found)"],
+      "console_limit": "one 404 console error observed on settled page; source/resource not attributed; no zero-console claim"
+    },
+    "tested_pair": {
+      "comparison_id": "58f0f760-dafd-4f59-ba72-4dd9949dd983",
+      "selected_order": ["51000000-0000-0000-0000-000000000101", "51000000-0000-0000-0000-000000000102"],
+      "snapshot_ids": ["51000000-0000-0000-0000-000000000201", "51000000-0000-0000-0000-000000000202"],
+      "distribution": "ORGANIC",
+      "rule_version": "compare-v2",
+      "quality": "LOW",
+      "quality_reason": "sample size 2 is below high-confidence threshold 3",
+      "frozen_metric_probe": "views 1200 VALID and 900 VALID returned from persisted snapshot basis"
+    },
+    "all_batch": {
+      "selected_count": 12,
+      "returned_order_preserved": true,
+      "returned_snapshot_ids": 8,
+      "missing_snapshot_items": 4,
+      "quality": "UNAVAILABLE",
+      "scope": "BATCH"
+    },
+    "append_only_probe": "PASS: direct comparison UPDATE rejected with comparison rows are append-only",
+    "invalid_input_probe": "POST with invalid UUID returned HTTP 400 without DB detail",
+    "limits": ["Existing staging dataset is synthetic and is not real brand approval", "No production deployment claimed", "One settled 404 console error remains unexplained; no zero-console claim"]
+  }
+}
