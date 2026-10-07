@@ -51,9 +51,9 @@
   ],
   "delivery": {
     "tested_source_sha": "21eb3ba80be58ae10756fde3b31d3b371e056803",
-    "final_head": "21eb3ba80be58ae10756fde3b31d3b371e056803",
+    "final_head": "d1709f7f78c82ca5178b444444c0dab02f660da7",
     "pr": "https://github.com/anajibalm/content-intelligence-copilot/pull/31",
-    "ci": "Build & Test PASS; run 37609093585 on source HEAD 21eb3ba80be58ae10756fde3b31d3b371e056803; browser command includes tests/e2e/s9-review.spec.ts",
+    "ci": "Build & Test PASS; run 37609540782 on final HEAD d1709f7f78c82ca5178b444444c0dab02f660da7; browser command includes tests/e2e/s9-review.spec.ts",
     "tracking_status": "Review",
     "merge": "not performed",
     "next_slice": "S10 and S13 not started"
