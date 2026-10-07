@@ -49,7 +49,7 @@
     "Staging probe added one CONFIRM review to existing S4 content; no persistent data reset performed."
   ],
   "delivery": {
-    "tested_source_sha": "ff44dbf",
+    "tested_source_sha": "9c46206",
     "tracking_status": "Review",
     "merge": "not performed",
     "next_slice": "S10 and S13 not started"
