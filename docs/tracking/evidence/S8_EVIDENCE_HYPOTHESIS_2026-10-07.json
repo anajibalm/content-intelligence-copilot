@@ -74,5 +74,12 @@
       "Local structured-provider stub remains used; configured 9router previously returned HTTP 401 Invalid API key.",
       "Synthetic staging dataset; no real brand approval or production claim."
     ]
+  },
+  "delivery": {
+    "tested_source_sha": "56b8855a5891eeab39dfbddcde3fe8b9fdb8f3cb",
+    "exact_head_ci": "37559233817",
+    "pr": "https://github.com/anajibalm/content-intelligence-copilot/pull/30",
+    "pr_state": "OPEN",
+    "merge": "not performed"
   }
 }
