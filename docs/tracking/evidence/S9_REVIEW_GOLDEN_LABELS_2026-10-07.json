@@ -33,24 +33,24 @@
   },
   "staging": {
     "database": "cic-postgres-r1",
-    "server": "http://127.0.0.1:3120",
+    "server": "http://127.0.0.1:3121",
     "workspace": "10000000-0000-0000-0000-000000000001",
     "batch": "51000000-0000-0000-0000-000000000002",
     "migration": "PASS: migration applied additively; feature_review.reason_code, feature_review.golden_label, review.edited_statement, review.golden_label, feature_review_reject_reason, and two lookup indexes verified",
     "workspace_api": "PASS: GET /api/workspace?batchId=... returned HTTP 200",
-    "feature_review_api": "PASS: POST content-level CONFIRM returned HTTP 201; GET readback HTTP 200; content fa077ea5-ef36-4f61-b450-5aed14166509 returned 13 review rows and 3 existing correction rows",
-    "browser": "BLOCKED for configured hypothesis staging smoke: npm run test:e2e:staging received HTTP 503 from POST /api/hypotheses; existing staging smoke expects HTTP 201",
+    "feature_review_api": "PASS: GET content review history HTTP 200; content fa077ea5-ef36-4f61-b450-5aed14166509 returned 13 review rows and 3 correction rows; reload workspace API HTTP 200 returned 13 features with AI originals preserved and states CONFIRMED=10, CORRECTED=3",
+    "browser": "PASS: configured staging hypothesis smoke via http://127.0.0.1:3121; npm run test:e2e:staging 1/1 Chromium flow, hypothesis POST 201, persisted GET readback 200, exact-source link, zero page/console errors",
     "synthetic_browser": "PASS: no page errors or console errors in S9 synthetic suite"
   },
   "limits": [
     "Synthetic Chromium proves UI transitions and reload behavior, not real-brand approval.",
-    "Staging feature review persistence proved through API readback; configured hypothesis provider returned HTTP 503 during staging browser smoke.",
+    "Staging feature review persistence proved through API readback; configured hypothesis smoke proved POST 201 and persisted GET readback 200.",
     "No production deployment, production data, or real-brand approval claim.",
     "Staging probe added one CONFIRM review to existing S4 content; no persistent data reset performed."
   ],
   "delivery": {
-    "tested_source_sha": "9c46206",
-    "final_head": "8c55c24",
+    "tested_source_sha": "e315345",
+    "final_head": "e315345",
     "pr": "https://github.com/anajibalm/content-intelligence-copilot/pull/31",
     "ci": "Build & Test PASS; run 37597873291 on final HEAD 8c55c24",
     "tracking_status": "Review",
