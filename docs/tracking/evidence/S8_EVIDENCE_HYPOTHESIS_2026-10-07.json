@@ -7,7 +7,7 @@
     "repository": "lib/hypothesis/postgres.ts",
     "api": "POST /api/hypotheses and GET /api/hypotheses?hypothesisId=...",
     "ui": "app/hypothesis-panel.tsx, app/compare-panel.tsx, app/workspace-client.tsx",
-    "migration": "supabase/migrations/0008_evidence_hypothesis.sql",
+    "migration": "supabase/migrations/0008_evidence_hypothesis.sql, supabase/migrations/0009_s8_operation_basis.sql",
     "versions": { "rule": "hypothesis-v1", "prompt": "hypothesis-prompt-v1", "schema": "hypothesis-schema-v1" },
     "provider_contract_fix": "commit 84a0200 normalizes provider string suggested_next_test into actionable object at API trust boundary"
   },
@@ -21,14 +21,14 @@
     "retry": "workspace-scoped generation_key prevents duplicate normal or regenerate artifacts; operation ID replays committed result"
   },
   "tests": {
-    "focused": "PASS: 9 tests",
-    "full": "PASS: 79 tests",
+    "focused": "PASS: 13 tests",
+    "full": "PASS: 83 tests",
     "lint": "PASS with 3 existing warnings: two img warnings and one exhaustive-deps warning",
     "typecheck": "PASS",
     "fixtures": "PASS",
     "build": "PASS",
     "diff_check": "PASS",
-    "migration": "0008_evidence_hypothesis.sql reapplied; generation uniqueness index verified"
+    "migration": "0009_s8_operation_basis.sql applied to cic-postgres-r1; operation_id workspace uniqueness and evidence basis column verified"
   },
   "staging": {
     "database": "cic-postgres-r1",
@@ -46,26 +46,22 @@
       "credentials": "owner .env.local used; key not displayed or persisted"
     },
     "persistence": {
-      "hypothesis": "9e195cba-cd1f-42b8-9202-339e44447a02",
+      "hypothesis": "aba66b41-2156-445a-a2e1-4c53cb92be7e",
       "confidence": "LOW",
-      "caps": ["INSUFFICIENT_SAMPLE", "ONE_COMPARISON", "COMPARISON_QUALITY", "LEGACY_ONLY"],
-      "evidence_links": 2,
-      "source_links": 2,
+      "evidence_links": 8,
       "create": "POST /api/hypotheses returned HTTP 201",
-      "readback": "GET /api/hypotheses?hypothesisId=9e195cba-cd1f-42b8-9202-339e44447a02 returned HTTP 200 with provider/model, confidence, evidence, and comparison origin",
-      "replay": "same operationId returned HTTP 201 with identical hypothesis ID and inputHash"
+      "readback": "GET /api/hypotheses?hypothesisId=aba66b41-2156-445a-a2e1-4c53cb92be7e returned HTTP 200 with immutable basis and current feature review state separated",
+      "replay_provider_unavailable": "repository replay returned same hypothesis ID and inputHash without provider call",
+      "correction_regenerate": "feature correction persisted; explicit regenerate cited corrected basis while old hypothesis retained original UNREVIEWED basis",
+      "operation_binding": "same operation reused across another comparison/action rejected by binding validation"
     },
     "browser": {
-      "runtime": "Brave Origin 153.1.95.104 via OMP browser automation; local Playwright CLI unavailable (npx --no-install playwright canceled because package is not installed)",
-      "surface": "Workspace renders S8 / WHY · EVIDENCE panel below controlled compare",
-      "provider_generation": "PASS: browser Generate hypothesis rendered real-provider artifact and LOW caps",
-      "exact_source": "PASS: click opened #metric-snapshot-51000000-0000-0000-0000-000000000201 on content 51000000-0000-0000-0000-000000000101",
-      "context_protection": "PASS: rapid reselection ended on content 51000000-0000-0000-0000-000000000102; aborted stale request did not show Workspace unavailable",
-      "errors": "one expected aborted request during reselection; no HTTP 4xx/5xx observed in tested flow",
-      "tool_limit": "Requested Playwright package unavailable; browser interaction proof used Brave local browser automation"
+      "runtime": "Brave/OMP browser automation attempted against http://localhost:3120; automation tool returned navigation stack error before interaction",
+      "context_protection": "source/API lifecycle probes PASS; delayed browser interaction remains unavailable",
+      "errors": "browser interaction proof blocked by automation tool navigation error"
     }
   },
-  "limits": ["Synthetic staging dataset; no real brand approval", "No production deployment claim", "Playwright package unavailable in local checkout; exact interaction proof uses Brave browser automation"],
+  "limits": ["Synthetic staging dataset; no real brand approval", "No production deployment claim", "Browser delayed-response interaction proof unavailable: automation tool navigation errored; API and repository probes passed"],
   "review_fix": {
     "date": "2026-10-07",
     "changes": [
@@ -75,15 +71,15 @@
       "Indonesian certainty terms and empty suggestions are rejected; cited extracted quality/review state drives caps",
       "Provider text suggested_next_test normalized into actionable object at API trust boundary"
     ],
-    "focused_tests": "PASS: 9 tests",
-    "retry_probe": "DB uniqueness verified for workspace-scoped generation_key; normal retries and regenerate operations use separate keys",
-    "browser": "Brave exact-source click and stale-response/context protection PASS; Playwright package unavailable",
-    "limits": ["Synthetic staging dataset; no real brand approval or production claim"]
+      "operation_replay": "PASS: committed normal operation replayed with provider endpoint forced unavailable; same ID/inputHash returned",
+      "frozen_basis": "PASS: old hypothesis retained original feature basis after correction; explicit regenerate persisted corrected basis",
+      "context_invalidation": "PASS in source review: compare invalidation clears parent hypothesis ID, batch/back-forward clears comparison, and hypothesis requests abort/version-guard; delayed browser proof unavailable",
+      "api_operation_id": "PASS: absent, body/header, precedence, and malformed UUID regression coverage"
   },
   "delivery": {
-    "tested_source_sha": "84a0200",
-    "tested_source_verification": "provider HTTP 200; API POST 201, GET 200, replay same ID/inputHash; Brave browser exact-source and context protection PASS; Playwright package unavailable",
-    "final_head_before_receipt": "84a0200",
+    "tested_source_sha": "working tree after S8 remaining delta; not committed",
+    "tested_source_verification": "focused 13 tests; full test run PASS; lint/typecheck/fixtures/build/diff check PASS; migration applied; API create/replay/correction/regenerate probes PASS",
+    "final_head_before_receipt": null,
     "final_head_ci": null,
     "pr": "https://github.com/anajibalm/content-intelligence-copilot/pull/30",
     "pr_state": "OPEN",

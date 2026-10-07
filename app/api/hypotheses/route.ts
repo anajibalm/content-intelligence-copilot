@@ -7,6 +7,7 @@ import {
   hypothesisConfigFromEnv,
   type HypothesisRepository,
 } from '../../../lib/hypothesis/postgres.ts';
+import { operationIdFromRequest, validOperationId } from '../../../lib/hypothesis/request.ts';
 
 export const dynamic = 'force-dynamic';
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -35,8 +36,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'request body must be valid JSON' }, { status: 400 });
   }
   const input = body && typeof body === 'object' ? body as Record<string, unknown> : {};
-  const operationId = input.operationId ?? request.headers.get('idempotency-key');
-  if (!validUuid(input.batchId) || !validUuid(input.comparisonId) || (input.regenerate !== undefined && typeof input.regenerate !== 'boolean') || (operationId !== undefined && !validUuid(operationId))) return NextResponse.json({ error: 'valid batchId and comparisonId are required; regenerate must be boolean; operationId must be UUID' }, { status: 400 });
+  const operationId = operationIdFromRequest(input, request.headers.get('idempotency-key'));
+  if (!validUuid(input.batchId) || !validUuid(input.comparisonId) || (input.regenerate !== undefined && typeof input.regenerate !== 'boolean') || !validOperationId(operationId)) return NextResponse.json({ error: 'valid batchId and comparisonId are required; regenerate must be boolean; operationId must be UUID' }, { status: 400 });
   let repository: HypothesisRepository | null = null;
   try {
     repository = createHypothesisRepository(hypothesisConfigFromEnv());

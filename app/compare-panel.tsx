@@ -43,7 +43,7 @@ function metricValue(value: number | null, name: string) {
   return `${value}`;
 }
 
-export default function ComparePanel({ batchId, contents, onCreated }: { batchId: string; contents: Content[]; onCreated: (comparisonId: string) => void }) {
+export default function ComparePanel({ batchId, contents, onCreated, onInvalidated }: { batchId: string; contents: Content[]; onCreated: (comparisonId: string) => void; onInvalidated: () => void }) {
   const [selected, setSelected] = useState<string[]>([]);
   const [fullBatch, setFullBatch] = useState(false);
   const [distribution, setDistribution] = useState<"ORGANIC" | "PAID">("ORGANIC");
@@ -66,6 +66,7 @@ export default function ComparePanel({ batchId, contents, onCreated }: { batchId
     setResult(null);
     setStatus(null);
     setPending(false);
+    onInvalidated();
   }
 
   function changeDistribution(value: "ORGANIC" | "PAID") {

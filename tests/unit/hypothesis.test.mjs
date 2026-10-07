@@ -65,3 +65,9 @@ test('evidence IDs are stable for same scoped source', () => {
   assert.equal(evidenceCatalogId('workspace-1', 'comparison-1', 'METRIC_SNAPSHOT', 'snapshot-1', 'OBSERVED'), evidenceCatalogId('workspace-1', 'comparison-1', 'METRIC_SNAPSHOT', 'snapshot-1', 'OBSERVED'));
   assert.notEqual(evidenceCatalogId('workspace-1', 'comparison-1', 'METRIC_SNAPSHOT', 'snapshot-1', 'OBSERVED'), evidenceCatalogId('workspace-1', 'comparison-2', 'METRIC_SNAPSHOT', 'snapshot-1', 'OBSERVED'));
 });
+
+test('evidence IDs change when frozen source basis changes', () => {
+  const original = { statement: 'EXTRACTED format talking_head', reviewState: 'UNREVIEWED', reviewedValue: null };
+  const reviewed = { ...original, reviewState: 'CONFIRMED', reviewedValue: 'product_demo' };
+  assert.notEqual(evidenceCatalogId('workspace-1', 'comparison-1', 'CONTENT_FEATURE', 'feature-1', 'EXTRACTED', original), evidenceCatalogId('workspace-1', 'comparison-1', 'CONTENT_FEATURE', 'feature-1', 'EXTRACTED', reviewed));
+});

@@ -9,11 +9,11 @@ export type EvidenceSourceType = 'METRIC_SNAPSHOT' | 'TRANSCRIPT_SEGMENT' | 'VID
 export type EvidenceRole = 'SUPPORTING' | 'CONTRADICTING' | 'CONTEXTUAL';
 export type Confidence = 'LOW' | 'MEDIUM' | 'HIGH';
 
-type Source = { sourceType: EvidenceSourceType; sourceId: string; workspaceId: string; batchId?: string; contentId: string; comparisonId: string; layer: EvidenceLayer; statement: string; link: string; reviewState?: string; qualityState?: string };
+type Source = { sourceType: EvidenceSourceType; sourceId: string; workspaceId: string; batchId?: string; contentId: string; comparisonId: string; layer: EvidenceLayer; statement: string; link: string; reviewState?: string; qualityState?: string; basis?: Record<string, unknown> };
 export type EvidenceCatalogItem = Source & { id: string };
-export function evidenceCatalogId(workspaceId: string, comparisonId: string, sourceType: EvidenceSourceType, sourceId: string, layer: EvidenceLayer): string {
-  return createHash('sha256').update([workspaceId, comparisonId, sourceType, sourceId, layer].join(':')).digest('hex').slice(0, 32).replace(/^(.{8})(.{4})(.{4})(.{4})(.{12})$/, '$1-$2-$3-$4-$5');
-}
+export function evidenceCatalogId(workspaceId: string, comparisonId: string, sourceType: EvidenceSourceType, sourceId: string, layer: EvidenceLayer, basis: Record<string, unknown> = {}): string {
+  return createHash('sha256').update(JSON.stringify({ workspaceId, comparisonId, sourceType, sourceId, layer, basis })).digest('hex').slice(0, 32).replace(/^(.{8})(.{4})(.{4})(.{4})(.{12})$/, '$1-$2-$3-$4-$5');
+ }
 export type HypothesisModelOutput = {
   statement: unknown;
   supporting_evidence_ids: unknown;
