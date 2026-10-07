@@ -12,7 +12,8 @@
       "rule": "hypothesis-v1",
       "prompt": "hypothesis-prompt-v1",
       "schema": "hypothesis-schema-v1"
-    }
+    },
+    "provider_contract_fix": "commit 84a0200 normalizes provider string suggested_next_test into actionable object at API trust boundary"
   },
   "behavior": {
     "scope": "comparison workspace and selected batch only; exact frozen comparison snapshots plus current transcript segments, frames, and non-rejected current content features",
@@ -24,9 +25,9 @@
     "retry": "workspace-scoped generation_key prevents duplicate normal or regenerate artifacts; operation ID replays committed result"
   },
   "tests": {
-    "focused": "PASS: 8 tests",
-    "full": "PASS: 78 tests",
-    "lint": "PASS with 3 warnings: two img warnings and one existing exhaustive-deps warning",
+    "focused": "PASS: 9 tests",
+    "full": "PASS: 79 tests",
+    "lint": "PASS with 3 existing warnings: two img warnings and one exhaustive-deps warning",
     "typecheck": "PASS",
     "fixtures": "PASS",
     "build": "PASS",
@@ -40,26 +41,36 @@
     "batch": "51000000-0000-0000-0000-000000000002",
     "comparison": "50651a5b-5415-4995-a926-41764fb0c6aa",
     "api_validation": "invalid UUID POST returned HTTP 400",
-    "provider_stub": "local structured JSON provider used only to exercise persistence path; no production/provider acceptance claim",
+    "provider": {
+      "status": "PASS",
+      "http": 200,
+      "endpoint": "http://localhost:20128/v1/chat/completions",
+      "model": "cx/gpt-5.6-luna",
+      "provider": "9router",
+      "credentials": "owner .env.local used; key not displayed or persisted"
+    },
     "persistence": {
-      "hypothesis": "dff60ede-5e20-4d26-85a8-8c3b9c3fdce5",
+      "hypothesis": "9e195cba-cd1f-42b8-9202-339e44447a02",
       "confidence": "LOW",
-      "caps": ["INSUFFICIENT_SAMPLE", "ONE_COMPARISON", "COMPARISON_QUALITY"],
+      "caps": ["INSUFFICIENT_SAMPLE", "ONE_COMPARISON", "COMPARISON_QUALITY", "LEGACY_ONLY"],
       "evidence_links": 2,
       "source_links": 2,
-      "readback": "GET /api/hypotheses returned HTTP 200 with statement, caps, raw output metadata, comparison origin, and evidence"
+      "create": "POST /api/hypotheses returned HTTP 201",
+      "readback": "GET /api/hypotheses?hypothesisId=9e195cba-cd1f-42b8-9202-339e44447a02 returned HTTP 200 with provider/model, confidence, evidence, and comparison origin",
+      "replay": "same operationId returned HTTP 201 with identical hypothesis ID and inputHash"
     },
     "browser": {
+      "runtime": "Playwright via Brave Origin 153.1.95.104",
       "surface": "Workspace renders S8 / WHY · EVIDENCE panel below controlled compare",
-      "screenshot": "/tmp/omp-sshots-159c4a01253f5d2c.png",
-      "limit": "Managed browser timed out before interaction; API readback/object mapping verified separately"
-    },
-    "provider_blocker": "Configured endpoint probe returned HTTP 000 connection failure; prior verified 9router run returned HTTP 401 Invalid API key; owner must correct runtime endpoint/key before real-provider acceptance"
+      "provider_generation": "PASS: browser Generate hypothesis rendered real-provider artifact and LOW caps",
+      "exact_source": "PASS: click opened #metric-snapshot-51000000-0000-0000-0000-000000000201 on content 51000000-0000-0000-0000-000000000101",
+      "context_protection": "PASS: rapid reselection ended on content 51000000-0000-0000-0000-000000000102; aborted stale request did not show Workspace unavailable",
+      "errors": "one expected aborted request during reselection; no HTTP 4xx/5xx observed in tested flow"
+    }
   },
   "limits": [
     "Synthetic staging dataset; no real brand approval",
-    "No production deployment claim",
-    "No real-provider acceptance claim until 9router credentials are corrected"
+    "No production deployment claim"
   ],
   "review_fix": {
     "date": "2026-10-07",
@@ -67,24 +78,25 @@
       "S6 explicit content list restored in workspace UI; exact source anchors resolve to source IDs",
       "Catalog uses selected comparison/batch, latest transcript/extraction basis, and excludes rejected features",
       "Workspace-scoped generation_key and operation IDs prevent duplicate normal/retry/regenerate artifacts; raw provider response and request hash persist",
-      "Indonesian certainty terms and empty suggestions are rejected; cited extracted quality/review state drives caps"
+      "Indonesian certainty terms and empty suggestions are rejected; cited extracted quality/review state drives caps",
+      "Provider text suggested_next_test normalized into actionable object at API trust boundary"
     ],
-    "focused_tests": "PASS: 8 tests",
+    "focused_tests": "PASS: 9 tests",
     "retry_probe": "DB uniqueness verified for workspace-scoped generation_key; normal retries and regenerate operations use separate keys",
-    "browser": "Browser interaction proof unavailable because managed browser timed out; API exact-source object mapping passed",
+    "browser": "Brave exact-source click and stale-response/context protection PASS",
     "limits": [
-      "Synthetic staging dataset; no real brand approval or production claim",
-      "Configured real provider unavailable; no real-provider acceptance claim"
+      "Synthetic staging dataset; no real brand approval or production claim"
     ]
   },
   "delivery": {
-    "tested_source_sha": "0d5967033385e9eef22b39d0d1fb44d8f2d88f99",
-    "tested_source_verification": "local gates PASS; exact-source API mapping PASS; real provider/browser acceptance blocked",
-    "final_head_before_receipt": "7ada1b817d8301633e863bae077badb3d456dbfb",
-    "final_head_ci": "37563629060",
+    "tested_source_sha": "84a0200",
+    "tested_source_verification": "provider HTTP 200; API POST 201, GET 200, replay same ID/inputHash; browser exact-source and context protection PASS",
+    "final_head_before_receipt": "84a0200",
+    "final_head_ci": null,
     "pr": "https://github.com/anajibalm/content-intelligence-copilot/pull/30",
     "pr_state": "OPEN",
-    "tracking_status": "Blocked",
-    "merge": "not performed"
+    "tracking_status": "Review",
+    "merge": "not performed",
+    "next_slice": "S9 not started"
   }
 }
