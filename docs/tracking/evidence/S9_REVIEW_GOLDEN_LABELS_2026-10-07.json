@@ -50,7 +50,7 @@
   ],
   "delivery": {
     "tested_source_sha": "e315345",
-    "final_head": "e315345",
+    "final_head": "527df13",
     "pr": "https://github.com/anajibalm/content-intelligence-copilot/pull/31",
     "ci": "Build & Test PASS; run 37597873291 on final HEAD 8c55c24",
     "tracking_status": "Review",
