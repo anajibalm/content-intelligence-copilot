@@ -52,9 +52,9 @@
   ],
   "delivery": {
     "tested_source_sha": "0001a3a",
-    "final_head": "pending receipt commit",
+    "final_head": "0834b33599155997763492b1888633e59e6f24ab",
     "pr": "https://github.com/anajibalm/content-intelligence-copilot/pull/31",
-    "ci": "Pending CI after source commit 0001a3a; local required gates PASS",
+    "ci": "Build & Test PASS; run 37614558614 on HEAD 0834b33599155997763492b1888633e59e6f24ab",
     "tracking_status": "Review",
     "merge": "not performed",
     "next_slice": "S10 and S13 not started"
