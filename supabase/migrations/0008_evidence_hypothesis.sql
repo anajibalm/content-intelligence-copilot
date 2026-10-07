@@ -4,6 +4,7 @@
 BEGIN;
 
 ALTER TABLE hypothesis
+  ADD COLUMN IF NOT EXISTS rule_version text,
   ADD COLUMN IF NOT EXISTS provider text,
   ADD COLUMN IF NOT EXISTS model text,
   ADD COLUMN IF NOT EXISTS prompt_version text,

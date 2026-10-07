@@ -57,5 +57,22 @@
     "Synthetic staging dataset; no real brand approval",
     "No production deployment claim",
     "No real-provider acceptance claim until 9router credentials are corrected"
-  ]
+  ],
+  "review_fix": {
+    "date": "2026-10-07",
+    "changes": [
+      "Evidence IDs are deterministic per workspace/comparison/source/layer; retry returns existing hypothesis by input hash unless regenerate=true.",
+      "Repository rejects comparison items outside selected batch and validator rejects wrong comparison scope and source-layer mismatch.",
+      "Hypothesis persists rule_version and readback returns exact source links with snapshot/transcript/frame/feature anchors.",
+      "Prompt requests concise Bahasa Indonesia working insight and suggested next test; UI renders Indonesian next-test label and source links."
+    ],
+    "focused_tests": "PASS: 7 tests",
+    "retry_probe": "Two identical POST requests returned HTTP 201 with same hypothesis ID 03b94ea0-52bf-4bfc-a29f-c982312d6569.",
+    "browser": "Real browser comparison generated, Generate hypothesis enabled, provider-backed staging result rendered LOW confidence, caps, Indonesian next-test label, and exact evidence links.",
+    "limits": [
+      "Review-fix prompt file was not present in repository, Downloads, or /home; applied S8 acceptance requirements from integrated prompt and existing PR scope.",
+      "Local structured-provider stub remains used; configured 9router previously returned HTTP 401 Invalid API key.",
+      "Synthetic staging dataset; no real brand approval or production claim."
+    ]
+  }
 }

@@ -9,8 +9,11 @@ export type EvidenceSourceType = 'METRIC_SNAPSHOT' | 'TRANSCRIPT_SEGMENT' | 'VID
 export type EvidenceRole = 'SUPPORTING' | 'CONTRADICTING' | 'CONTEXTUAL';
 export type Confidence = 'LOW' | 'MEDIUM' | 'HIGH';
 
-type Source = { sourceType: EvidenceSourceType; sourceId: string; workspaceId: string; contentId: string; comparisonId?: string; layer: EvidenceLayer; statement: string; link: string };
+type Source = { sourceType: EvidenceSourceType; sourceId: string; workspaceId: string; contentId: string; comparisonId: string; layer: EvidenceLayer; statement: string; link: string };
 export type EvidenceCatalogItem = Source & { id: string };
+export function evidenceCatalogId(workspaceId: string, comparisonId: string, sourceType: EvidenceSourceType, sourceId: string, layer: EvidenceLayer): string {
+  return createHash('sha256').update([workspaceId, comparisonId, sourceType, sourceId, layer].join(':')).digest('hex').slice(0, 32).replace(/^(.{8})(.{4})(.{4})(.{4})(.{12})$/, '$1-$2-$3-$4-$5');
+}
 export type HypothesisModelOutput = {
   statement: unknown;
   supporting_evidence_ids: unknown;
@@ -73,7 +76,9 @@ export function validateHypothesis(input: HypothesisInput) {
     for (const evidenceId of stringArray(input.modelOutput[ROLE_KEYS[role]], ROLE_KEYS[role])) {
       const item = byId.get(evidenceId);
       if (!item) throw new Error(`evidence ID is not in scoped catalog: ${evidenceId}`);
-      if (item.workspaceId !== input.workspaceId || item.contentId.length === 0) throw new Error(`evidence is outside workspace scope: ${evidenceId}`);
+      if (item.workspaceId !== input.workspaceId || item.comparisonId !== input.comparisonId || item.contentId.length === 0) throw new Error(`evidence is outside workspace/comparison scope: ${evidenceId}`);
+      if (item.sourceType === 'CONTENT_FEATURE' && item.layer !== 'EXTRACTED') throw new Error(`feature evidence must remain EXTRACTED: ${evidenceId}`);
+      if ((item.sourceType === 'TRANSCRIPT_SEGMENT' || item.sourceType === 'VIDEO_FRAME') && item.layer !== 'OBSERVED') throw new Error(`media source evidence must remain OBSERVED: ${evidenceId}`);
       links.push({ evidenceId, role });
     }
   }
@@ -88,8 +93,9 @@ export function validateHypothesis(input: HypothesisInput) {
   if (input.comparisonQuality !== 'HIGH') caps.push(cap('COMPARISON_QUALITY', `comparison quality is ${input.comparisonQuality}`));
   if (input.primaryMetricQuality === 'SUSPECT') caps.push(cap('SUSPECT_PRIMARY_METRIC', 'suspect primary metric cannot support strong hypothesis'));
   if (input.primaryMetricQuality === 'MISSING' || input.primaryMetricQuality === 'UNAVAILABLE') caps.push(cap('UNAVAILABLE_PERFORMANCE', 'missing or unavailable performance evidence cannot support a confident explanation'));
+  if (input.evidence.every((item) => item.layer === 'OBSERVED' || item.layer === 'DERIVED')) caps.push(cap('LEGACY_ONLY', 'legacy-only evidence cannot exceed MEDIUM'));
   if (input.evidence.some((item) => item.layer === 'EXTRACTED' && item.statement.toLowerCase().includes('unreviewed'))) caps.push(cap('UNREVIEWED_EXTRACTED', 'unreviewed EXTRACTED evidence caps confidence at LOW'));
-  const finalConfidence = caps.length > 0 ? 'LOW' : confidence;
+  const finalConfidence = caps.some((item) => ['INSUFFICIENT_SAMPLE', 'ONE_COMPARISON', 'SUSPECT_PRIMARY_METRIC', 'UNAVAILABLE_PERFORMANCE', 'UNREVIEWED_EXTRACTED'].includes(item.rule)) ? 'LOW' : caps.some((item) => item.rule === 'LEGACY_ONLY') && confidence === 'HIGH' ? 'MEDIUM' : confidence;
   return {
     statement,
     links,
@@ -106,6 +112,7 @@ export function hashGenerationInput(input: { comparisonId: string; evidence: Evi
 export function promptFor(input: { comparisonId: string; comparisonContext: Record<string, unknown>; evidence: EvidenceCatalogItem[] }) {
   return [
     'You are an evidence-bound content analyst. Return JSON only.',
+    'Return statement and suggested_next_test in concise Bahasa Indonesia.',
     'Do not invent evidence IDs. Do not claim causation. Keep OBSERVED, DERIVED, EXTRACTED, and INFERRED distinct.',
     'Shape: {statement, supporting_evidence_ids, contradicting_evidence_ids, contextual_evidence_ids, suggested_next_test, confidence}.',
     JSON.stringify(input),

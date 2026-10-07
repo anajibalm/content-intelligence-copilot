@@ -30,11 +30,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'request body must be valid JSON' }, { status: 400 });
   }
   const input = body && typeof body === 'object' ? body as Record<string, unknown> : {};
-  if (!validUuid(input.batchId) || !validUuid(input.comparisonId)) return NextResponse.json({ error: 'valid batchId and comparisonId are required' }, { status: 400 });
+  if (!validUuid(input.batchId) || !validUuid(input.comparisonId) || (input.regenerate !== undefined && typeof input.regenerate !== 'boolean')) return NextResponse.json({ error: 'valid batchId and comparisonId are required; regenerate must be boolean' }, { status: 400 });
   let repository: HypothesisRepository | null = null;
   try {
     repository = createHypothesisRepository(hypothesisConfigFromEnv());
-    return NextResponse.json(await repository.create({ batchId: input.batchId, comparisonId: input.comparisonId }), { status: 201 });
+    return NextResponse.json(await repository.create({ batchId: input.batchId, comparisonId: input.comparisonId, regenerate: input.regenerate === true }), { status: 201 });
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : 'hypothesis could not be created' }, { status: statusFor(error) });
   } finally {

@@ -647,6 +647,7 @@ export interface Hypothesis {
   model: string | null;
   promptVersion: string | null;
   schemaVersion: string | null;
+  ruleVersion: string | null;
   inputHash: string | null;
   rawOutput: Record<string, unknown>;
   suggestedNextTest: Record<string, unknown> | null;

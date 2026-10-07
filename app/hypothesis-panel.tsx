@@ -8,7 +8,7 @@ type Hypothesis = {
   confidence: string;
   confidenceCaps: Array<{ rule: string; reason: string }>;
   suggestedNextTest: Record<string, unknown> | null;
-  evidence: Array<{ id: string; layer: string; statement: string; source_type: string; role: string }>;
+  evidence: Array<{ id: string; layer: string; statement: string; source_type: string; role: string; link: string | null }>;
 };
 
 export default function HypothesisPanel({ batchId, comparisonId }: { batchId: string; comparisonId: string | null }) {
@@ -41,8 +41,8 @@ export default function HypothesisPanel({ batchId, comparisonId }: { batchId: st
       <p className="muted">Artifact {result.id} · confidence {result.confidence}</p>
       <p>{result.statement}</p>
       {result.confidenceCaps.length > 0 && <p className="notice">{result.confidenceCaps.map((cap) => `${cap.rule}: ${cap.reason}`).join(' · ')}</p>}
-      {result.suggestedNextTest && <div><strong>Suggested next test</strong><pre>{JSON.stringify(result.suggestedNextTest, null, 2)}</pre></div>}
-      <div><strong>Evidence</strong><ul>{result.evidence.map((item) => <li key={item.id}><span className="status">{item.role} · {item.layer} · {item.source_type}</span> {item.statement}</li>)}</ul></div>
+      {result.suggestedNextTest && <div><strong>Uji berikutnya yang disarankan</strong><pre>{JSON.stringify(result.suggestedNextTest, null, 2)}</pre></div>}
+      <div><strong>Bukti</strong><ul>{result.evidence.map((item) => <li key={item.id}><span className="status">{item.role} · {item.layer} · {item.source_type}</span> {item.statement} {item.link && <a href={item.link}>Buka sumber exact</a>}</li>)}</ul></div>
     </div>}
   </section>;
 }
