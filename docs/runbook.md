@@ -62,9 +62,11 @@ Browser verification:
 
     npx playwright install chromium
     npm run test:e2e
-    npm run test:e2e:staging
+    CIC_E2E_STAGING_URL=http://localhost:3120 npm run test:e2e:staging
 
 Synthetic UI tests use sanitized `page.route()` fixtures. Integrated staging smoke needs running CIC runtime and reports provider/API limits; do not treat synthetic approval as real brand approval. Failure traces and HTML reports stay local under `test-results/` and `playwright-report/`.
+
+`CIC_E2E_STAGING_URL` targets an existing server and disables the synthetic test server. `CIC_DATABASE_URL`, `CIC_WORKSPACE_ID`, and `CIC_STORAGE_ROOT` belong to that application server; the Playwright shell does not need database credentials. Check `/api/workspace?batchId=51000000-0000-0000-0000-000000000002` on the target server before the smoke. An unavailable workspace is a runtime configuration gap; do not replace the integrated probe with fixtures. CI uploads synthetic browser failure reports/traces with seven-day retention; staging output stays local.
 
 Runtime: Node.js `22.18.0` from `.node-version`. CI uses same version and does not call paid providers or production DB.
 

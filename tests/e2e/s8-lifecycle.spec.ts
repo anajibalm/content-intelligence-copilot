@@ -50,15 +50,23 @@ async function installFixtureApi(page: Page, options: { hypothesisDelay?: () => 
     await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify(comparison(body)) });
   });
   let hypothesisCalls = 0;
+  let hypothesisSettled = 0;
   await page.route('**/api/hypotheses', async (route: Route) => {
     if (route.request().method() !== 'POST') return route.continue();
     hypothesisCalls += 1;
-    if (options.hypothesisDelay) await options.hypothesisDelay();
-    if (options.hypothesisFailure && hypothesisCalls === 1) return route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ error: 'synthetic provider unavailable' }) });
     const body = postBody(route);
-    await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify(hypothesis(String(body.comparisonId))) });
+    try {
+      if (options.hypothesisDelay) await options.hypothesisDelay();
+      if (options.hypothesisFailure && hypothesisCalls === 1) {
+        await route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ error: 'synthetic provider unavailable' }) });
+      } else {
+        await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify(hypothesis(String(body.comparisonId))) });
+      }
+    } finally {
+      hypothesisSettled += 1;
+    }
   });
-  return { seen, hypothesisCalls: () => hypothesisCalls };
+  return { seen, hypothesisCalls: () => hypothesisCalls, hypothesisSettled: () => hypothesisSettled };
 }
 async function selectTwo(page: Page, distribution = 'ORGANIC') {
   if (distribution !== 'ORGANIC') await page.getByRole('combobox', { name: 'Distribution', exact: true }).selectOption(distribution);
@@ -75,10 +83,13 @@ async function createHypothesis(page: Page) {
   await expect(page.getByText('Synthetic working insight for repeatable browser test.')).toBeVisible();
 }
 
-test.beforeEach(async ({ page }) => {
+test.beforeEach(async ({ page }, testInfo) => {
   page.on('pageerror', (error) => { throw error; });
   page.on('console', (message) => {
-    if (message.type() === 'error' && !message.text().includes('Failed to load resource: the server responded with a status of 503 (Service Unavailable)')) throw new Error(`unexpected console error: ${message.text()}`);
+    const expectedProbe = testInfo.title === 'provider failure is visible and retry succeeds'
+      && message.location().url.endsWith('/api/hypotheses')
+      && message.text().includes('Failed to load resource: the server responded with a status of 503 (Service Unavailable)');
+    if (message.type() === 'error' && !expectedProbe) throw new Error(`unexpected console error: ${message.text()}`);
   });
 });
 
@@ -92,18 +103,22 @@ test('happy path renders artifact and exact source link', async ({ page }) => {
   await expect(page.getByText('Uji berikutnya yang disarankan')).toBeVisible();
   await page.getByRole('link', { name: 'Buka sumber exact' }).click();
   await expect(page).toHaveURL(new RegExp(`batchId=${batchA}.*contentId=${contentsA[0].id}.*metric-snapshot`));
+  await expect(page.locator(`#metric-snapshot-${contentsA[0].snapshots[0].id}`)).toBeVisible();
 });
 
 test('mode change while hypothesis pending clears stale response and allows new flow', async ({ page }) => {
   let release!: () => void;
   const gate = new Promise<void>((resolve) => { release = resolve; });
-  await installFixtureApi(page, { hypothesisDelay: () => gate });
+  const api = await installFixtureApi(page, { hypothesisDelay: () => gate });
   await page.goto(`/?batchId=${batchA}`); await selectTwo(page); await createComparison(page);
   await page.getByRole('button', { name: 'Generate hypothesis' }).click();
   await expect(page.getByRole('button', { name: 'Generating…' })).toBeDisabled();
+  await expect.poll(api.hypothesisCalls).toBe(1);
   await page.getByLabel('Mode').selectOption('PERFORMANCE_CONTRAST');
   await expect(page.getByText('Generate comparison first')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Generate hypothesis', exact: true })).toBeDisabled();
   release();
+  await expect.poll(api.hypothesisSettled).toBe(1);
   await expect(page.getByText('Synthetic working insight for repeatable browser test.')).toHaveCount(0);
   await page.getByRole('button', { name: 'Select all batch' }).click();
   await page.getByRole('list', { name: 'Comparison content selection' }).getByRole('button').nth(2).click();
@@ -112,27 +127,48 @@ test('mode change while hypothesis pending clears stale response and allows new 
 });
 
 test('distribution change clears selection and sends paid body', async ({ page }) => {
-  const { seen } = await installFixtureApi(page);
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => { release = resolve; });
+  const api = await installFixtureApi(page, { hypothesisDelay: () => gate });
   await page.goto(`/?batchId=${batchA}`); await selectTwo(page); await createComparison(page);
+  await page.getByRole('button', { name: 'Generate hypothesis' }).click();
+  await expect(page.getByRole('button', { name: 'Generating…' })).toBeDisabled();
+  await expect.poll(api.hypothesisCalls).toBe(1);
   await page.getByRole('combobox', { name: 'Distribution', exact: true }).selectOption('PAID');
   await expect(page.getByText('0 selected · order preserved')).toBeVisible();
-  await selectTwo(page, 'PAID'); await createComparison(page);
-  expect(seen.at(-1)).toMatchObject({ distribution: 'PAID', contentIds: [contentsA[0].id, contentsA[1].id] });
+  await expect(page.getByText('Generate comparison first')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Generate hypothesis', exact: true })).toBeDisabled();
+  release();
+  await expect.poll(api.hypothesisSettled).toBe(1);
   await expect(page.getByText('Synthetic working insight for repeatable browser test.')).toHaveCount(0);
+  await selectTwo(page, 'PAID'); await createComparison(page);
+  expect(api.seen.at(-1)).toMatchObject({ distribution: 'PAID', contentIds: [contentsA[0].id, contentsA[1].id] });
+  await createHypothesis(page);
+  await expect(page.getByText('Artifact hypothesis-comparison-controlled-paid · confidence LOW', { exact: true })).toBeVisible();
 });
 
 test('selection and batch changes cannot render delayed old response', async ({ page }) => {
-  let release!: () => void;
-  const gate = new Promise<void>((resolve) => { release = resolve; });
-  await installFixtureApi(page, { hypothesisDelay: () => gate });
-  await page.goto(`/?batchId=${batchA}`); await selectTwo(page); await createComparison(page);
-  await page.getByRole('button', { name: 'Generate hypothesis' }).click();
-  await page.getByRole('list', { name: 'Comparison content selection' }).getByRole('button', { name: /Gamma creative e2e-a-3$/, exact: false }).click();
-  await expect(page.getByText('Generate comparison first')).toBeVisible();
-  release(); await expect(page.getByText('Synthetic working insight for repeatable browser test.')).toHaveCount(0);
-  await page.getByRole('combobox', { name: 'Select batch', exact: true }).selectOption(batchB);
-  await expect(page.getByRole('heading', { name: 'Synthetic E2E Batch B', exact: true })).toBeVisible();
-  await expect(page.getByText('Generate comparison first')).toBeVisible();
+  const releases: Array<() => void> = [];
+  const api = await installFixtureApi(page, { hypothesisDelay: () => new Promise<void>((resolve) => { releases.push(resolve); }) });
+  for (const [index, change] of ['selection', 'batch'].entries()) {
+    await test.step(`invalidate pending hypothesis by ${change}`, async () => {
+      await page.goto(`/?batchId=${batchA}`); await selectTwo(page); await createComparison(page);
+      await page.getByRole('button', { name: 'Generate hypothesis' }).click();
+      await expect(page.getByRole('button', { name: 'Generating…' })).toBeDisabled();
+      await expect.poll(api.hypothesisCalls).toBe(index + 1);
+      if (change === 'selection') {
+        await page.getByRole('list', { name: 'Comparison content selection' }).getByRole('button', { name: /Gamma creative e2e-a-3$/, exact: false }).click();
+      } else {
+        await page.getByRole('combobox', { name: 'Select batch', exact: true }).selectOption(batchB);
+        await expect(page.getByRole('heading', { name: 'Synthetic E2E Batch B', exact: true })).toBeVisible();
+      }
+      await expect(page.getByText('Generate comparison first')).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Generate hypothesis', exact: true })).toBeDisabled();
+      releases[index]();
+      await expect.poll(api.hypothesisSettled).toBe(index + 1);
+      await expect(page.getByText('Synthetic working insight for repeatable browser test.')).toHaveCount(0);
+    });
+  }
 });
 
 test('provider failure is visible and retry succeeds', async ({ page }) => {
@@ -151,6 +187,7 @@ test('pending hypothesis ignores double submit', async ({ page }) => {
   await page.goto(`/?batchId=${batchA}`); await selectTwo(page); await createComparison(page);
   const button = page.getByRole('button', { name: 'Generate hypothesis' });
   await button.click(); await expect(page.getByRole('button', { name: 'Generating…' })).toBeDisabled();
+  await expect.poll(api.hypothesisCalls).toBe(1);
   await page.getByRole('button', { name: 'Generating…' }).click({ force: true });
   expect(api.hypothesisCalls()).toBe(1);
   release(); await expect(page.getByText('Synthetic working insight for repeatable browser test.')).toBeVisible();
