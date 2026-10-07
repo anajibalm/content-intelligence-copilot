@@ -22,6 +22,11 @@ function statusFor(error: unknown) {
   return 422;
 }
 
+function messageFor(error: unknown) {
+  if (error instanceof HypothesisNotFoundError || error instanceof HypothesisValidationError || error instanceof HypothesisProviderError) return error.message;
+  return 'hypothesis request failed validation or persistence';
+}
+
 export async function POST(request: Request) {
   let body: unknown;
   try {
@@ -30,13 +35,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'request body must be valid JSON' }, { status: 400 });
   }
   const input = body && typeof body === 'object' ? body as Record<string, unknown> : {};
-  if (!validUuid(input.batchId) || !validUuid(input.comparisonId) || (input.regenerate !== undefined && typeof input.regenerate !== 'boolean')) return NextResponse.json({ error: 'valid batchId and comparisonId are required; regenerate must be boolean' }, { status: 400 });
+  const operationId = input.operationId ?? request.headers.get('idempotency-key');
+  if (!validUuid(input.batchId) || !validUuid(input.comparisonId) || (input.regenerate !== undefined && typeof input.regenerate !== 'boolean') || (operationId !== undefined && !validUuid(operationId))) return NextResponse.json({ error: 'valid batchId and comparisonId are required; regenerate must be boolean; operationId must be UUID' }, { status: 400 });
   let repository: HypothesisRepository | null = null;
   try {
     repository = createHypothesisRepository(hypothesisConfigFromEnv());
-    return NextResponse.json(await repository.create({ batchId: input.batchId, comparisonId: input.comparisonId, regenerate: input.regenerate === true }), { status: 201 });
+    return NextResponse.json(await repository.create({ batchId: input.batchId, comparisonId: input.comparisonId, regenerate: input.regenerate === true, operationId: operationId as string | undefined }), { status: 201 });
   } catch (error) {
-    return NextResponse.json({ error: error instanceof Error ? error.message : 'hypothesis could not be created' }, { status: statusFor(error) });
+    return NextResponse.json({ error: messageFor(error) }, { status: statusFor(error) });
   } finally {
     await repository?.close();
   }
@@ -50,7 +56,7 @@ export async function GET(request: Request) {
     repository = createHypothesisRepository(hypothesisConfigFromEnv());
     return NextResponse.json(await repository.get(hypothesisId));
   } catch (error) {
-    return NextResponse.json({ error: error instanceof Error ? error.message : 'hypothesis could not be read' }, { status: statusFor(error) });
+    return NextResponse.json({ error: messageFor(error) }, { status: statusFor(error) });
   } finally {
     await repository?.close();
   }

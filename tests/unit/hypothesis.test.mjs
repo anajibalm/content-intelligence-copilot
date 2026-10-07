@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import { HYPOTHESIS_RULE_VERSION, evidenceCatalogId, validateHypothesis } from '../../lib/hypothesis/rules.ts';
 
 const evidence = [
-  { id: 'metric-1', sourceType: 'METRIC_SNAPSHOT', sourceId: 'snapshot-1', workspaceId: 'workspace-1', contentId: 'content-1', comparisonId: 'comparison-1', layer: 'OBSERVED', statement: 'OBSERVED views 1200', link: '/?batchId=batch-1&contentId=content-1#metric-snapshot-snapshot-1' },
-  { id: 'feature-1', sourceType: 'CONTENT_FEATURE', sourceId: 'feature-1', workspaceId: 'workspace-1', contentId: 'content-1', comparisonId: 'comparison-1', layer: 'EXTRACTED', statement: 'EXTRACTED format talking_head [UNREVIEWED]', link: '/?batchId=batch-1&contentId=content-1#content-feature-feature-1' },
+  { id: 'metric-1', sourceType: 'METRIC_SNAPSHOT', sourceId: 'snapshot-1', workspaceId: 'workspace-1', batchId: 'batch-1', contentId: 'content-1', comparisonId: 'comparison-1', layer: 'OBSERVED', statement: 'OBSERVED views 1200', link: '/?batchId=batch-1&contentId=content-1#metric-snapshot-snapshot-1' },
+  { id: 'feature-1', sourceType: 'CONTENT_FEATURE', sourceId: 'feature-1', workspaceId: 'workspace-1', batchId: 'batch-1', contentId: 'content-1', comparisonId: 'comparison-1', layer: 'EXTRACTED', statement: 'EXTRACTED format talking_head', reviewState: 'UNREVIEWED', link: '/?batchId=batch-1&contentId=content-1#content-feature-feature-1' },
 ];
 
 function output(overrides = {}) {
@@ -29,6 +29,11 @@ test('invented, duplicate-role, and causal claims are rejected', () => {
   assert.throws(() => validateHypothesis({ workspaceId: 'workspace-1', batchId: 'batch-1', comparisonId: 'comparison-1', comparisonQuality: 'HIGH', sampleSize: 3, primaryMetricQuality: 'VALID', modelOutput: output({ supporting_evidence_ids: ['missing'] }), evidence }), /not in scoped catalog/);
   assert.throws(() => validateHypothesis({ workspaceId: 'workspace-1', batchId: 'batch-1', comparisonId: 'comparison-1', comparisonQuality: 'HIGH', sampleSize: 3, primaryMetricQuality: 'VALID', modelOutput: output({ contradicting_evidence_ids: ['metric-1'] }), evidence }), /multiple roles/);
   assert.throws(() => validateHypothesis({ workspaceId: 'workspace-1', batchId: 'batch-1', comparisonId: 'comparison-1', comparisonQuality: 'HIGH', sampleSize: 3, primaryMetricQuality: 'VALID', modelOutput: output({ statement: 'This proves causal lift.' }), evidence }), /causal certainty/);
+});
+
+test('Indonesian certainty and empty suggestions are rejected', () => {
+  assert.throws(() => validateHypothesis({ workspaceId: 'workspace-1', batchId: 'batch-1', comparisonId: 'comparison-1', comparisonQuality: 'HIGH', sampleSize: 3, primaryMetricQuality: 'VALID', modelOutput: output({ statement: 'Format ini pasti menyebabkan peningkatan views.' }), evidence }), /causal certainty/);
+  assert.throws(() => validateHypothesis({ workspaceId: 'workspace-1', batchId: 'batch-1', comparisonId: 'comparison-1', comparisonQuality: 'HIGH', sampleSize: 3, primaryMetricQuality: 'VALID', modelOutput: output({ suggested_next_test: {} }), evidence }), /actionable object/);
 });
 
 test('wrong comparison and wrong source layer are rejected', () => {

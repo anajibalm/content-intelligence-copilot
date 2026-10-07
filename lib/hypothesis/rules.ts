@@ -9,7 +9,7 @@ export type EvidenceSourceType = 'METRIC_SNAPSHOT' | 'TRANSCRIPT_SEGMENT' | 'VID
 export type EvidenceRole = 'SUPPORTING' | 'CONTRADICTING' | 'CONTEXTUAL';
 export type Confidence = 'LOW' | 'MEDIUM' | 'HIGH';
 
-type Source = { sourceType: EvidenceSourceType; sourceId: string; workspaceId: string; contentId: string; comparisonId: string; layer: EvidenceLayer; statement: string; link: string };
+type Source = { sourceType: EvidenceSourceType; sourceId: string; workspaceId: string; batchId?: string; contentId: string; comparisonId: string; layer: EvidenceLayer; statement: string; link: string; reviewState?: string; qualityState?: string };
 export type EvidenceCatalogItem = Source & { id: string };
 export function evidenceCatalogId(workspaceId: string, comparisonId: string, sourceType: EvidenceSourceType, sourceId: string, layer: EvidenceLayer): string {
   return createHash('sha256').update([workspaceId, comparisonId, sourceType, sourceId, layer].join(':')).digest('hex').slice(0, 32).replace(/^(.{8})(.{4})(.{4})(.{4})(.{12})$/, '$1-$2-$3-$4-$5');
@@ -38,11 +38,26 @@ const ROLE_KEYS: Record<EvidenceRole, keyof HypothesisModelOutput> = {
   CONTRADICTING: 'contradicting_evidence_ids',
   CONTEXTUAL: 'contextual_evidence_ids',
 };
-const CAUSAL_WORDS = /\b(causal|caused|proves?|proven|guarantee|certainly)\b/i;
+const CAUSAL_WORDS = /\b(causal|caused|proves?|proven|guarantee|certainly|pasti|terbukti|membuktikan|menyebabkan|menjamin|jamin)\b/i;
 
 function stringArray(value: unknown, field: string): string[] {
-  if (!Array.isArray(value) || value.some((item) => typeof item !== 'string' || item.length === 0)) throw new Error(`${field} must be an array of evidence IDs`);
+  if (!Array.isArray(value) || value.some((item) => typeof item !== 'string' || item.trim().length === 0)) throw new Error(`${field} must be an array of evidence IDs`);
   return [...new Set(value)];
+}
+
+function containsUnsupportedCausalCertainty(statement: string) {
+  const expression = new RegExp(CAUSAL_WORDS.source, 'gi');
+  let match: RegExpExecArray | null;
+  while ((match = expression.exec(statement))) {
+    const prefix = statement.slice(0, match.index).trim().toLowerCase().split(/\s+/).slice(-2);
+    if (!prefix.includes('tidak') && !prefix.includes('bukan') && !prefix.includes('belum') && !prefix.includes('tanpa')) return true;
+  }
+  return false;
+}
+
+function actionableSuggestion(value: unknown): value is Record<string, unknown> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  return Object.entries(value as Record<string, unknown>).some(([key, item]) => key.trim() && (typeof item === 'number' || typeof item === 'boolean' || (typeof item === 'string' && item.trim().length > 0)));
 }
 
 function cap(capRule: string, reason: string) {
@@ -60,15 +75,16 @@ export function buildEvidenceIds(output: HypothesisModelOutput): string[] {
 export function validateHypothesis(input: HypothesisInput) {
   for (const item of input.evidence) {
     if (!item.id || !item.sourceId || !item.contentId || !item.link) throw new Error(`evidence source is incomplete: ${item.id || 'unknown'}`);
-    const expectedLayer = item.sourceType === 'CONTENT_FEATURE' ? 'EXTRACTED' : item.sourceType === 'METRIC_SNAPSHOT' ? null : 'OBSERVED';
+    if (item.batchId && item.batchId !== input.batchId) throw new Error(`evidence is outside batch scope: ${item.id}`);
+    const expectedLayer = item.sourceType === 'METRIC_SNAPSHOT' ? null : item.sourceType === 'VIDEO_FRAME' ? 'OBSERVED' : 'EXTRACTED';
     if (expectedLayer && item.layer !== expectedLayer) throw new Error(`evidence layer does not match source type: ${item.id}`);
     if (item.sourceType === 'METRIC_SNAPSHOT' && item.layer !== 'OBSERVED' && item.layer !== 'DERIVED') throw new Error(`metric evidence has invalid layer: ${item.id}`);
   }
   const statement = typeof input.modelOutput.statement === 'string' ? input.modelOutput.statement.trim() : '';
   if (!statement) throw new Error('statement must be a non-empty string');
   if (statement.length > 2000) throw new Error('statement exceeds maximum length');
-  if (CAUSAL_WORDS.test(statement)) throw new Error('statement contains unsupported causal certainty');
-  if (!input.modelOutput.suggested_next_test || typeof input.modelOutput.suggested_next_test !== 'object' || Array.isArray(input.modelOutput.suggested_next_test)) throw new Error('suggested_next_test must be an object');
+  if (containsUnsupportedCausalCertainty(statement)) throw new Error('statement contains unsupported causal certainty');
+  if (!actionableSuggestion(input.modelOutput.suggested_next_test)) throw new Error('suggested_next_test must be a non-empty actionable object');
 
   const byId = new Map(input.evidence.map((item) => [item.id, item]));
   const links: Array<{ evidenceId: string; role: EvidenceRole }> = [];
@@ -76,9 +92,10 @@ export function validateHypothesis(input: HypothesisInput) {
     for (const evidenceId of stringArray(input.modelOutput[ROLE_KEYS[role]], ROLE_KEYS[role])) {
       const item = byId.get(evidenceId);
       if (!item) throw new Error(`evidence ID is not in scoped catalog: ${evidenceId}`);
-      if (item.workspaceId !== input.workspaceId || item.comparisonId !== input.comparisonId || item.contentId.length === 0) throw new Error(`evidence is outside workspace/comparison scope: ${evidenceId}`);
+      if (item.workspaceId !== input.workspaceId || item.comparisonId !== input.comparisonId) throw new Error(`evidence is outside workspace/comparison scope: ${evidenceId}`);
       if (item.sourceType === 'CONTENT_FEATURE' && item.layer !== 'EXTRACTED') throw new Error(`feature evidence must remain EXTRACTED: ${evidenceId}`);
-      if ((item.sourceType === 'TRANSCRIPT_SEGMENT' || item.sourceType === 'VIDEO_FRAME') && item.layer !== 'OBSERVED') throw new Error(`media source evidence must remain OBSERVED: ${evidenceId}`);
+      if (item.sourceType === 'TRANSCRIPT_SEGMENT' && item.layer !== 'EXTRACTED') throw new Error(`transcript evidence must remain EXTRACTED: ${evidenceId}`);
+      if (item.sourceType === 'VIDEO_FRAME' && item.layer !== 'OBSERVED') throw new Error(`frame evidence must remain OBSERVED: ${evidenceId}`);
       links.push({ evidenceId, role });
     }
   }
@@ -93,20 +110,15 @@ export function validateHypothesis(input: HypothesisInput) {
   if (input.comparisonQuality !== 'HIGH') caps.push(cap('COMPARISON_QUALITY', `comparison quality is ${input.comparisonQuality}`));
   if (input.primaryMetricQuality === 'SUSPECT') caps.push(cap('SUSPECT_PRIMARY_METRIC', 'suspect primary metric cannot support strong hypothesis'));
   if (input.primaryMetricQuality === 'MISSING' || input.primaryMetricQuality === 'UNAVAILABLE') caps.push(cap('UNAVAILABLE_PERFORMANCE', 'missing or unavailable performance evidence cannot support a confident explanation'));
-  if (input.evidence.every((item) => item.layer === 'OBSERVED' || item.layer === 'DERIVED')) caps.push(cap('LEGACY_ONLY', 'legacy-only evidence cannot exceed MEDIUM'));
-  if (input.evidence.some((item) => item.layer === 'EXTRACTED' && item.statement.toLowerCase().includes('unreviewed'))) caps.push(cap('UNREVIEWED_EXTRACTED', 'unreviewed EXTRACTED evidence caps confidence at LOW'));
+  const cited = new Set(links.map((link) => link.evidenceId));
+  if ([...cited].every((id) => { const item = byId.get(id)!; return item.layer === 'OBSERVED' || item.layer === 'DERIVED'; })) caps.push(cap('LEGACY_ONLY', 'cited evidence contains no extracted interpretation'));
+  if ([...cited].some((id) => { const item = byId.get(id)!; return item.layer === 'EXTRACTED' && (item.reviewState === 'UNREVIEWED' || item.reviewState === 'REJECTED' || item.qualityState === 'UNAVAILABLE' || item.qualityState === 'SUSPECT'); })) caps.push(cap('UNREVIEWED_EXTRACTED', 'cited extracted evidence is unreviewed, rejected, unavailable, or suspect'));
   const finalConfidence = caps.some((item) => ['INSUFFICIENT_SAMPLE', 'ONE_COMPARISON', 'SUSPECT_PRIMARY_METRIC', 'UNAVAILABLE_PERFORMANCE', 'UNREVIEWED_EXTRACTED'].includes(item.rule)) ? 'LOW' : caps.some((item) => item.rule === 'LEGACY_ONLY') && confidence === 'HIGH' ? 'MEDIUM' : confidence;
-  return {
-    statement,
-    links,
-    suggestedNextTest: input.modelOutput.suggested_next_test as Record<string, unknown>,
-    confidence: finalConfidence as Confidence,
-    confidenceCaps: caps,
-  };
+  return { statement, links, suggestedNextTest: input.modelOutput.suggested_next_test as Record<string, unknown>, confidence: finalConfidence as Confidence, confidenceCaps: caps };
 }
 
-export function hashGenerationInput(input: { comparisonId: string; evidence: EvidenceCatalogItem[]; comparisonContext: Record<string, unknown> }) {
-  return createHash('sha256').update(JSON.stringify(input)).digest('hex');
+export function hashGenerationInput(input: { request: Record<string, unknown> }) {
+  return createHash('sha256').update(JSON.stringify(input.request)).digest('hex');
 }
 
 export function promptFor(input: { comparisonId: string; comparisonContext: Record<string, unknown>; evidence: EvidenceCatalogItem[] }) {

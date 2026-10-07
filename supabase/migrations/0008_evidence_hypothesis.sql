@@ -10,8 +10,13 @@ ALTER TABLE hypothesis
   ADD COLUMN IF NOT EXISTS prompt_version text,
   ADD COLUMN IF NOT EXISTS schema_version text,
   ADD COLUMN IF NOT EXISTS input_hash text,
+  ADD COLUMN IF NOT EXISTS operation_id uuid,
+  ADD COLUMN IF NOT EXISTS generation_key text,
   ADD COLUMN IF NOT EXISTS raw_output jsonb NOT NULL DEFAULT '{}'::jsonb,
   ADD COLUMN IF NOT EXISTS suggested_next_test jsonb;
+
+CREATE UNIQUE INDEX IF NOT EXISTS hypothesis_operation_workspace_unique
+  ON hypothesis (workspace_id, generation_key) WHERE generation_key IS NOT NULL;
 
 CREATE INDEX IF NOT EXISTS evidence_workspace_lookup
   ON evidence (workspace_id, created_at DESC);

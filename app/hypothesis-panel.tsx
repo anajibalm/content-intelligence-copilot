@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 type Hypothesis = {
   id: string;
@@ -15,14 +15,16 @@ export default function HypothesisPanel({ batchId, comparisonId }: { batchId: st
   const [result, setResult] = useState<Hypothesis | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const operationId = useRef<string | null>(null);
 
-  async function generate() {
+  async function generate(regenerate = false) {
     if (!comparisonId || pending) return;
     setPending(true);
     setError(null);
     setResult(null);
+    const requestOperationId = regenerate ? crypto.randomUUID() : (operationId.current ??= crypto.randomUUID());
     try {
-      const response = await fetch('/api/hypotheses', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ batchId, comparisonId }) });
+      const response = await fetch('/api/hypotheses', { method: 'POST', headers: { 'content-type': 'application/json', 'idempotency-key': requestOperationId }, body: JSON.stringify({ batchId, comparisonId, regenerate, operationId: requestOperationId }) });
       const body = await response.json() as Hypothesis & { error?: string };
       if (!response.ok) throw new Error(body.error ?? 'Hypothesis unavailable');
       setResult(body);
@@ -35,7 +37,7 @@ export default function HypothesisPanel({ batchId, comparisonId }: { batchId: st
 
   return <section className="hypothesis-panel" aria-labelledby="hypothesis-heading">
     <div className="section-heading"><div><p className="eyebrow">S8 / WHY · EVIDENCE</p><h2 id="hypothesis-heading">Evidence-backed working insight</h2></div><span className="status">{comparisonId ? 'Comparison selected' : 'Generate comparison first'}</span></div>
-    <button type="button" onClick={generate} disabled={!comparisonId || pending}>{pending ? 'Generating…' : 'Generate hypothesis'}</button>
+    <button type="button" onClick={() => generate(false)} disabled={!comparisonId || pending}>{pending ? 'Generating…' : 'Generate hypothesis'}</button>{result && <button type="button" onClick={() => generate(true)} disabled={pending}>Regenerate hypothesis</button>}
     {error && <p className="error-state" role="alert">{error}</p>}
     {result && <div className="hypothesis-result" aria-live="polite">
       <p className="muted">Artifact {result.id} · confidence {result.confidence}</p>
