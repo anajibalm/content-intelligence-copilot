@@ -23,12 +23,13 @@
   "tests": {
     "focused": "PASS: 13 tests",
     "full": "PASS: 83 tests",
+    "browser_synthetic": "PASS: npm run test:e2e; 6/6 S8 lifecycle tests on Chromium, 1 worker",
     "lint": "PASS with 3 existing warnings: two img warnings and one exhaustive-deps warning",
     "typecheck": "PASS",
     "fixtures": "PASS",
     "build": "PASS",
     "diff_check": "PASS",
-    "migration": "0009_s8_operation_basis.sql applied to cic-postgres-r1; operation_id workspace uniqueness and evidence basis column verified"
+    "unit_test_script_restored": "PASS: npm test; 83 tests"
   },
   "staging": {
     "database": "cic-postgres-r1",
@@ -56,12 +57,13 @@
       "operation_binding": "same operation reused across another comparison/action rejected by binding validation"
     },
     "browser": {
-      "runtime": "Brave/OMP browser automation attempted against http://localhost:3120; automation tool returned navigation stack error before interaction",
-      "context_protection": "source/API lifecycle probes PASS; delayed browser interaction remains unavailable",
-      "errors": "browser interaction proof blocked by automation tool navigation error"
+      "synthetic": "PASS: 6/6 lifecycle flows; happy path exact source link; mode/distribution/selection/batch invalidation; provider failure retry; double-submit guard",
+      "browser_version": "Playwright Chromium from @playwright/test 1.63.0",
+      "staging": "BLOCKED: default test server lacked CIC_DATABASE_URL, CIC_WORKSPACE_ID, and CIC_STORAGE_ROOT; no real staging browser claim",
+      "expected_errors": "Synthetic provider HTTP 503 was asserted as visible failure; expected console 503 resource error was filtered specifically"
     }
   },
-  "limits": ["Synthetic staging dataset; no real brand approval", "No production deployment claim", "Browser delayed-response interaction proof unavailable: automation tool navigation errored; API and repository probes passed"],
+  "limits": ["Synthetic staging dataset; no real brand approval", "No production deployment claim", "Integrated staging browser smoke unavailable because required CIC runtime variables were absent in test-server environment"],
   "review_fix": {
     "date": "2026-10-07",
     "changes": [
@@ -69,16 +71,17 @@
       "Catalog uses selected comparison/batch, latest transcript/extraction basis, and excludes rejected features",
       "Workspace-scoped generation_key and operation IDs prevent duplicate normal/retry/regenerate artifacts; raw provider response and request hash persist",
       "Indonesian certainty terms and empty suggestions are rejected; cited extracted quality/review state drives caps",
-      "Provider text suggested_next_test normalized into actionable object at API trust boundary"
+      "Provider text suggested_next_test normalized into actionable object at API trust boundary",
+      "Playwright Chromium suite added with six repeatable synthetic S8 lifecycle flows; staging smoke remains explicit and separate"
     ],
-      "operation_replay": "PASS: committed normal operation replayed with provider endpoint forced unavailable; same ID/inputHash returned",
-      "frozen_basis": "PASS: old hypothesis retained original feature basis after correction; explicit regenerate persisted corrected basis",
-      "context_invalidation": "PASS in source review: compare invalidation clears parent hypothesis ID, batch/back-forward clears comparison, and hypothesis requests abort/version-guard; delayed browser proof unavailable",
-      "api_operation_id": "PASS: absent, body/header, precedence, and malformed UUID regression coverage"
+    "operation_replay": "PASS: committed normal operation replayed with provider endpoint forced unavailable; same ID/inputHash returned",
+    "frozen_basis": "PASS: old hypothesis retained original feature basis after correction; explicit regenerate persisted corrected basis",
+    "context_invalidation": "PASS: compare invalidation clears parent hypothesis ID, batch/back-forward clears comparison, hypothesis requests abort/version-guard; six browser lifecycle tests pass",
+    "api_operation_id": "PASS: absent, body/header, precedence, and malformed UUID regression coverage"
   },
   "delivery": {
     "tested_source_sha": "486979115ecff33fe528243504260b20ff96265c",
-    "tested_source_verification": "focused 13 tests; full 83 tests; lint/typecheck/fixtures/build/diff check PASS; migration applied; API create/replay/correction/regenerate probes PASS; browser delayed-response proof unavailable",
+    "tested_source_verification": "focused 13 tests; full 83 tests; synthetic browser 6/6; lint/typecheck/fixtures/build/diff check PASS; migration applied; API create/replay/correction/regenerate probes PASS",
     "final_head_before_receipt": "486979115ecff33fe528243504260b20ff96265c",
     "final_head_ci": "37569849145 PASS",
     "pr": "https://github.com/anajibalm/content-intelligence-copilot/pull/30",

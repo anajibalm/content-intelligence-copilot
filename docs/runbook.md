@@ -58,6 +58,14 @@ Jangan commit `.env`, `.env.*`, `node_modules/`, `.next/`, `*.tsbuildinfo`, `cov
     npm run build
     git diff --check
 
+Browser verification:
+
+    npx playwright install chromium
+    npm run test:e2e
+    npm run test:e2e:staging
+
+Synthetic UI tests use sanitized `page.route()` fixtures. Integrated staging smoke needs running CIC runtime and reports provider/API limits; do not treat synthetic approval as real brand approval. Failure traces and HTML reports stay local under `test-results/` and `playwright-report/`.
+
 Runtime: Node.js `22.18.0` from `.node-version`. CI uses same version and does not call paid providers or production DB.
 
 ## Security
