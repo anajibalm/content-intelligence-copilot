@@ -11,10 +11,11 @@ const nextTest = { id: 's10-test-1', hypothesisId, variableToTest: 'opening styl
 
 async function installApi(page: Page) {
   const state = { notes: [] as RecordValue[], nextTests: [] as RecordValue[] };
+  const batches = fixture.batches;
   await page.route('**/api/workspace**', async (route: Route) => await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ batches: fixture.batches, selectedBatch: fixture.batches[0], contents: [content], selectedContent: { ...content, frames: [], audio: { url: null, available: false }, transcript: [], anchors: [], extraction: [] }, analysis: { synthetic: true, ranking: { status: 'READY', reason: null, rankedGroups: [], excluded: [] }, kpis: [], snapshots: [] } }) }));
   await page.route('**/api/hypotheses?hypothesisId=*', async (route: Route) => await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ id: hypothesisId, batchId, statement: 'Synthetic insight', confidence: 'LOW', confidenceCaps: [], suggestedNextTest: null, evidence: [] }) }));
   await page.route(`**/api/hypotheses/${hypothesisId}/s10`, async (route: Route) => {
-    if (route.request().method() === 'GET') return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ hypothesisId, notes: state.notes, nextTests: state.nextTests }) });
+    if (route.request().method() === 'GET') return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ hypothesisId, batches, notes: state.notes, nextTests: state.nextTests }) });
     const body = route.request().postDataJSON() as RecordValue;
     if (body.kind === 'NOTE') state.notes = [{ ...note, body: String(body.body), author: String(body.author) }];
     if (body.kind === 'NEXT_TEST') state.nextTests = [{ ...nextTest, ...body }];
@@ -41,11 +42,23 @@ test('S10 notes and Next Test create edit status reload', async ({ page }) => {
   await panel.getByRole('button', { name: 'Save note edit' }).click();
   await expect(panel.getByText('Synthetic human context edited', { exact: true })).toBeVisible();
   for (const [label, value] of [['Variable yang diuji', 'opening style'], ['Variant A', 'direct claim'], ['Variant B', 'question'], ['Controls', 'same duration'], ['Expected result', 'variant A higher saves'], ['Owner', 'synthetic_analyst'], ['Success metric', 'save rate'], ['Measurement window', '7 days']] as const) await panel.getByLabel(label).fill(value);
+  await panel.getByLabel('Target batch').selectOption(fixture.batches[1].id);
   await panel.getByRole('button', { name: 'Create Next Test' }).click();
-  await expect(panel.getByText('Status: PROPOSED · Test ID: s10-test-1', { exact: true })).toBeVisible();
+  const testArticle = panel.locator('article').filter({ hasText: 'opening style' });
+  await expect(testArticle).toContainText(fixture.batches[1].id);
+  await testArticle.getByRole('button', { name: 'Edit' }).click();
+  await panel.getByLabel('Variable yang diuji').fill('opening style edited');
+  await panel.getByLabel('Expected result').fill('edited result');
+  await panel.getByLabel('Owner').fill('edited_owner');
+  await panel.getByLabel('Success metric').fill('edited metric');
+  await panel.getByLabel('Measurement window').fill('14 days');
+  await panel.getByRole('button', { name: 'Save Next Test edit' }).click();
+  await expect(panel.getByText('opening style edited', { exact: true })).toBeVisible();
+  await expect(testArticle).toContainText('edited result');
   await panel.getByLabel('Status s10-test-1').selectOption('COMPLETED');
   await expect(panel.getByText('Status: COMPLETED · Test ID: s10-test-1', { exact: true })).toBeVisible();
   await page.reload();
   await expect(page.getByText('Synthetic human context edited', { exact: true })).toBeVisible();
+  await expect(page.getByText('opening style edited', { exact: true })).toBeVisible();
   await expect(page.getByText('Status: COMPLETED · Test ID: s10-test-1', { exact: true })).toBeVisible();
 });

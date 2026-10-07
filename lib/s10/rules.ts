@@ -15,6 +15,10 @@ export class S10NotFoundError extends Error {
     this.name = 'S10NotFoundError';
   }
 }
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function validUuid(value: string): boolean { return UUID.test(value); }
+
 
 export type NextTestInput = {
   variableToTest: unknown;
@@ -54,6 +58,8 @@ export function validateNoteInput(input: NoteInput): { body: string; author: str
 export function validateNextTestInput(input: NextTestInput): {
   variableToTest: string; variantA: string; variantB: string; controls: string; expectedResult: string; owner: string; successMetric: string; measurementWindow: string; targetBatchId?: string;
 } {
+  const targetBatchId = input.targetBatchId === undefined ? undefined : requiredText(input.targetBatchId, 'targetBatchId');
+  if (targetBatchId !== undefined && !validUuid(targetBatchId)) throw new S10ValidationError('targetBatchId must be a valid UUID');
   return {
     variableToTest: requiredText(input.variableToTest, 'variableToTest'),
     variantA: requiredText(input.variantA, 'variantA'),
@@ -63,7 +69,7 @@ export function validateNextTestInput(input: NextTestInput): {
     owner: requiredText(input.owner, 'owner'),
     successMetric: requiredText(input.successMetric, 'successMetric'),
     measurementWindow: requiredText(input.measurementWindow, 'measurementWindow'),
-    targetBatchId: input.targetBatchId === undefined ? undefined : requiredText(input.targetBatchId, 'targetBatchId'),
+    targetBatchId,
   };
 }
 
@@ -71,7 +77,10 @@ export function validateNextTestPatch(input: NextTestPatch): Record<string, stri
   const patch: Record<string, string> & { status?: NextTestStatus } = {};
   for (const [key, field] of [['variableToTest', 'variableToTest'], ['variantA', 'variantA'], ['variantB', 'variantB'], ['controls', 'controls'], ['expectedResult', 'expectedResult'], ['owner', 'owner'], ['successMetric', 'successMetric'], ['measurementWindow', 'measurementWindow'], ['targetBatchId', 'targetBatchId']] as const) {
     const value = optionalText(input[key], field);
-    if (value !== undefined) patch[key] = value;
+    if (value !== undefined) {
+      if (key === 'targetBatchId' && !validUuid(value)) throw new S10ValidationError('targetBatchId must be a valid UUID');
+      patch[key] = value;
+    }
   }
   if (input.status !== undefined) patch.status = validStatus(input.status);
   if (Object.keys(patch).length === 0) throw new S10ValidationError('at least one Next Test field is required');

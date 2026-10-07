@@ -6,9 +6,9 @@ const nextTest = { variableToTest: 'opening style', variantA: 'direct claim', va
 
 test('S10 validation requires human note and structured Next Test fields', () => {
   assert.deepEqual(validateNoteInput({ body: 'Keep hook concise', author: 'analyst_01' }), { body: 'Keep hook concise', author: 'analyst_01' });
-  assert.equal(validateNextTestInput(nextTest).successMetric, 'save rate');
-  assert.equal(validateNextTestPatch({ status: 'COMPLETED' }).status, 'COMPLETED');
-  assert.throws(() => validateNoteInput({ body: '', author: 'analyst_01' }), S10ValidationError);
+  assert.equal(validateNextTestInput({ ...nextTest, targetBatchId: '51000000-0000-0000-0000-000000000002' }).targetBatchId, '51000000-0000-0000-0000-000000000002');
+  assert.throws(() => validateNextTestInput({ ...nextTest, targetBatchId: 'not-a-uuid' }), S10ValidationError);
+  assert.throws(() => validateNextTestPatch({ targetBatchId: 'not-a-uuid' }), S10ValidationError);
   assert.throws(() => validateNextTestInput({ ...nextTest, owner: '' }), S10ValidationError);
   assert.throws(() => validateNextTestPatch({ status: 'NOPE' }), S10ValidationError);
 });

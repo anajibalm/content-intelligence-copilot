@@ -31,6 +31,17 @@ test('integrated S10 notes and Next Test persist scoped edits and reload', async
   expect(nextTest.status()).toBe(201);
   const nextTestRecord = await body(nextTest);
   const nextTestId = String(nextTestRecord.id);
+  expect(nextTestRecord.targetBatchId).toBe(batchId);
+  const editedTest = await request.patch(`${baseURL}/api/hypotheses/${hypothesisId}/s10/next-tests/${nextTestId}`, { data: { variableToTest: `opening style edited ${suffix}`, expectedResult: 'edited result', owner: `edited_${author}`, successMetric: 'edited metric', measurementWindow: '14 days', targetBatchId: batchId } });
+  expect(editedTest.status()).toBe(200);
+  const editedTestRecord = await body(editedTest);
+  expect(editedTestRecord.id).toBe(nextTestId);
+  expect(editedTestRecord.variableToTest).toBe(`opening style edited ${suffix}`);
+  expect(editedTestRecord.targetBatchId).toBe(batchId);
+  const invalidTarget = await request.patch(`${baseURL}/api/hypotheses/${hypothesisId}/s10/next-tests/${nextTestId}`, { data: { targetBatchId: 'not-a-uuid' } });
+  expect(invalidTarget.status()).toBe(400);
+  const missingTarget = await request.patch(`${baseURL}/api/hypotheses/${hypothesisId}/s10/next-tests/${nextTestId}`, { data: { targetBatchId: randomUUID() } });
+  expect(missingTarget.status()).toBe(404);
   const invalidStatus = await request.patch(`${baseURL}/api/hypotheses/${hypothesisId}/s10/next-tests/${nextTestId}`, { data: { status: 'INVALID' } });
   expect(invalidStatus.status()).toBe(400);
   const completed = await request.patch(`${baseURL}/api/hypotheses/${hypothesisId}/s10/next-tests/${nextTestId}`, { data: { status: 'COMPLETED' } });
@@ -41,10 +52,11 @@ test('integrated S10 notes and Next Test persist scoped edits and reload', async
   await page.goto(`${baseURL}/?batchId=${batchId}&hypothesisId=${hypothesisId}`);
   await expect(page.getByRole('heading', { name: 'Notes & Next Test', exact: true })).toBeVisible();
   await expect(page.getByText(noteEdited, { exact: true })).toBeVisible();
-  await expect(page.getByText(`opening style ${suffix}`, { exact: true })).toBeVisible();
+  await expect(page.getByText(`opening style edited ${suffix}`, { exact: true })).toBeVisible();
   await expect(page.getByText(`Status: COMPLETED · Test ID: ${nextTestId}`, { exact: true })).toBeVisible();
   await page.reload();
   await expect(page.getByText(noteEdited, { exact: true })).toBeVisible();
+  await expect(page.getByText(`opening style edited ${suffix}`, { exact: true })).toBeVisible();
   await expect(page.getByText(`Status: COMPLETED · Test ID: ${nextTestId}`, { exact: true })).toBeVisible();
 
   const persisted = await request.get(`${baseURL}/api/hypotheses/${hypothesisId}/s10`);
@@ -53,8 +65,8 @@ test('integrated S10 notes and Next Test persist scoped edits and reload', async
   const persistedNotes = persistedBody.notes as Array<Record<string, unknown>>;
   const persistedTests = persistedBody.nextTests as Array<Record<string, unknown>>;
   expect(persistedNotes.some((row) => row.id === noteId && row.body === noteEdited && row.hypothesisId === hypothesisId)).toBe(true);
-  expect(persistedTests.some((row) => row.id === nextTestId && row.status === 'COMPLETED' && row.targetBatchId === batchId)).toBe(true);
+  expect(persistedTests.some((row) => row.id === nextTestId && row.status === 'COMPLETED' && row.targetBatchId === batchId && row.variableToTest === `opening style edited ${suffix}` && row.expectedResult === 'edited result' && row.owner === `edited_${author}` && row.successMetric === 'edited metric' && row.measurementWindow === '14 days')).toBe(true);
 
-  const db = await pool.query<{ notes: string; tests: string }>('SELECT (SELECT count(*) FROM analyst_note WHERE workspace_id = $1 AND hypothesis_id = $2 AND id = $3)::text AS notes, (SELECT count(*) FROM next_test WHERE workspace_id = $1 AND hypothesis_id = $2 AND id = $4)::text AS tests', [workspaceId, hypothesisId, noteId, nextTestId]);
-  expect(db.rows[0]).toEqual({ notes: '1', tests: '1' });
+  const db = await pool.query<{ notes: string; tests: string; variable_to_test: string; expected_result: string; target_batch_id: string }>('SELECT (SELECT count(*) FROM analyst_note WHERE workspace_id = $1 AND hypothesis_id = $2 AND id = $3)::text AS notes, (SELECT count(*) FROM next_test WHERE workspace_id = $1 AND hypothesis_id = $2 AND id = $4)::text AS tests, (SELECT variable_to_test FROM next_test WHERE workspace_id = $1 AND hypothesis_id = $2 AND id = $4) AS variable_to_test, (SELECT expected_result FROM next_test WHERE workspace_id = $1 AND hypothesis_id = $2 AND id = $4) AS expected_result, (SELECT target_batch_id FROM next_test WHERE workspace_id = $1 AND hypothesis_id = $2 AND id = $4) AS target_batch_id', [workspaceId, hypothesisId, noteId, nextTestId]);
+  expect(db.rows[0]).toEqual({ notes: '1', tests: '1', variable_to_test: `opening style edited ${suffix}`, expected_result: 'edited result', target_batch_id: batchId });
 });

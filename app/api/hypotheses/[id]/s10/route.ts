@@ -12,7 +12,7 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
   const { id } = await context.params;
   if (!validUuid(id)) return NextResponse.json({ error: 'valid hypothesisId is required' }, { status: 400 });
   let repository: S10Repository | null = null;
-  try { repository = createS10Repository(s10ConfigFromEnv()); return NextResponse.json({ hypothesisId: id, notes: await repository.listNotes(id), nextTests: await repository.listNextTests(id) }); }
+  try { repository = createS10Repository(s10ConfigFromEnv()); return NextResponse.json({ hypothesisId: id, batches: await repository.listBatches(id), notes: await repository.listNotes(id), nextTests: await repository.listNextTests(id) }); }
   catch (error) { return NextResponse.json({ error: messageFor(error) }, { status: statusFor(error) }); }
   finally { await repository?.close(); }
 }
