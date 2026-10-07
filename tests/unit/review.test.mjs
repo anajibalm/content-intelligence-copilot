@@ -13,6 +13,7 @@ import {
 
 const reviewer = 'analyst_01';
 const reasonCode = 'WRONG_CLASSIFICATION';
+const extractionRunId = 'run-1';
 const features = [
   { id: 'f1', aiValue: 'topic_a', reviewState: 'UNREVIEWED' },
   { id: 'f2', aiValue: 'format_a', reviewState: 'UNREVIEWED' },
@@ -46,15 +47,17 @@ test('feature and hypothesis validation enforce required correction data', () =>
 });
 
 test('content review accepts corrections only for CORRECT and rejects duplicates', () => {
-  rejects(() => validateContentReviewInput({ decision: 'CONFIRM', reviewer, corrections: [{ contentFeatureId: 'f1', value: 'x' }] }));
+  rejects(() => validateContentReviewInput({ decision: 'CONFIRM', reviewer, extractionRunId, corrections: [{ contentFeatureId: 'f1', value: 'x' }] }));
   rejects(() => validateContentReviewInput({
     decision: 'CORRECT',
     reviewer,
+    extractionRunId,
     corrections: [{ contentFeatureId: 'f1', value: 'x' }, { contentFeatureId: 'f1', value: 'y' }],
   }));
   const input = validateContentReviewInput({
     decision: 'CORRECT',
     reviewer,
+    extractionRunId,
     corrections: [{ contentFeatureId: 'f1', value: 'topic_corrected', reasonCode }],
   });
   assert.equal(input.corrections[0].value, 'topic_corrected');
@@ -64,6 +67,7 @@ test('content review plan confirms untouched AI originals and never rewrites rev
   const input = validateContentReviewInput({
     decision: 'CORRECT',
     reviewer,
+    extractionRunId,
     corrections: [{ contentFeatureId: 'f1', value: 'topic_corrected', reasonCode }],
   });
   assert.deepEqual(planContentReview(features, input), [
@@ -73,6 +77,7 @@ test('content review plan confirms untouched AI originals and never rewrites rev
   rejects(() => planContentReview(features, validateContentReviewInput({
     decision: 'CORRECT',
     reviewer,
+    extractionRunId,
     corrections: [{ contentFeatureId: 'f3', value: 'bad', reasonCode }],
   })));
   rejects(() => planContentReview(features, {

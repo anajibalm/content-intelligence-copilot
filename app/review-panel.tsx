@@ -3,9 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import { REVIEW_REASONS, type ReviewReason } from "../lib/domain/types.ts";
 
-type Feature = { id: string; fieldName: string; aiValue: string; reviewedValue: string | null; reviewState: string };
-type FeatureReviewRecord = { id: string; contentFeatureId: string; fieldName: string; decision: string; reasonCode: ReviewReason | null; goldenLabel: boolean; reviewer: string; note: string | null; createdAt: string };
-type FeatureCorrectionRecord = { id: string; contentFeatureId: string; fieldName: string; originalAiValue: string; correctedValue: string; reasonCode: ReviewReason; reviewer: string; note: string | null; createdAt: string };
+type Feature = { id: string; extractionRunId: string; fieldName: string; aiValue: string; reviewedValue: string | null; reviewState: string };
+type FeatureReviewRecord = { id: string; contentFeatureId: string; extractionRunId: string; fieldName: string; decision: string; reasonCode: ReviewReason | null; goldenLabel: boolean; reviewer: string; note: string | null; createdAt: string };
+type FeatureCorrectionRecord = { id: string; contentFeatureId: string; extractionRunId: string; fieldName: string; originalAiValue: string; correctedValue: string; reasonCode: ReviewReason; reviewer: string; note: string | null; createdAt: string };
 type ContentReviewHistory = { contentId: string; reviews: FeatureReviewRecord[]; corrections: FeatureCorrectionRecord[] };
 type HypothesisReviewRecord = { id: string; hypothesisId: string; decision: string; reasonCode: ReviewReason | null; editedStatement: string | null; goldenLabel: boolean; reviewer: string; note: string | null; createdAt: string };
 
@@ -85,6 +85,7 @@ export function FeatureReviewPanel({ contentId, features, onReviewed }: { conten
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
+          extractionRunId: features[0]?.extractionRunId,
           decision,
           reviewer: reviewer.trim(),
           note: note.trim() || undefined,
@@ -117,8 +118,8 @@ export function FeatureReviewPanel({ contentId, features, onReviewed }: { conten
         setPending(false);
       }
     }
-  }
 
+  }
   return <>
     <p className="muted">AI originals remain separate from reviewed values. Unreviewed extraction caps confidence at LOW.</p>
     <dl>{features.map((feature) => <div id={`content-feature-${feature.id}`} key={feature.id}>

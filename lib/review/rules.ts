@@ -125,17 +125,21 @@ export function validateHypothesisReviewInput(input: Record<string, unknown>): H
   return { decision, reviewer, reasonCode, note: optionalText(input.note), editedStatement, goldenLabel: optionalGoldenLabel(input.goldenLabel, decision) };
 }
 
-export type ReviewableFeature = { id: string; aiValue: string; reviewState: string };
+export type ReviewableFeature = { id: string; aiValue: string; reviewedValue: string | null; reviewState: string };
 export type PlannedFeatureReview = { contentFeatureId: string; decision: FeatureReviewDecision; value: string | null; reasonCode: ReviewReason | null };
-
 export type ContentReviewInput = {
   decision: FeatureReviewDecision;
+  extractionRunId: string;
   reviewer: string;
   reasonCode: ReviewReason | null;
   note: string | null;
   goldenLabel: boolean;
   corrections: Array<{ contentFeatureId: string; value: string; reasonCode: ReviewReason | null }>;
 };
+
+function requiredRunId(value: unknown): string {
+  return requiredText(value, 'extractionRunId');
+}
 
 /**
  * Content-level request shape: Confirm All / Correct fields / Reject All.
@@ -144,6 +148,7 @@ export type ContentReviewInput = {
 export function validateContentReviewInput(input: Record<string, unknown>): ContentReviewInput {
   const decision = input.decision;
   if (!isFeatureReviewDecision(decision)) throw new ReviewValidationError(`decision must be one of ${FEATURE_REVIEW_DECISIONS.join('|')}`);
+  const extractionRunId = requiredRunId(input.extractionRunId);
   const reviewer = requiredText(input.reviewer, 'reviewer');
   const reasonCode = optionalReason(input.reasonCode, 'reasonCode');
   if (decision === 'REJECT' && reasonCode === null) throw new ReviewValidationError('reasonCode is required for REJECT');
@@ -165,13 +170,12 @@ export function validateContentReviewInput(input: Record<string, unknown>): Cont
     if (seen.has(correction.contentFeatureId)) throw new ReviewValidationError(`duplicate correction for content feature ${correction.contentFeatureId}`);
     seen.add(correction.contentFeatureId);
   }
-  return { decision, reviewer, reasonCode, note: optionalText(input.note), goldenLabel: optionalGoldenLabel(input.goldenLabel, decision), corrections };
+  return { decision, extractionRunId, reviewer, reasonCode, note: optionalText(input.note), goldenLabel: optionalGoldenLabel(input.goldenLabel, decision), corrections };
 }
 
 /**
- * Deterministic plan for one content's features. Only UNREVIEWED features are touched:
- * an existing decision is never overwritten, so review history stays append-only and
- * the AI original is carried through untouched for persistence to preserve.
+ * Deterministic plan for one selected extraction run. Existing decisions stay
+ * untouched; only UNREVIEWED features enter new review history.
  */
 export function planContentReview(features: readonly ReviewableFeature[], input: ContentReviewInput): PlannedFeatureReview[] {
   const unreviewed = features.filter((feature) => feature.reviewState === 'UNREVIEWED');

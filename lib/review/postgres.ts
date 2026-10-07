@@ -20,6 +20,7 @@ export interface ReviewRepositoryConfig {
 export interface FeatureReviewRecord {
   id: string;
   contentFeatureId: string;
+  extractionRunId: string;
   fieldName: string;
   decision: FeatureReviewDecision;
   reasonCode: ReviewReason | null;
@@ -32,6 +33,7 @@ export interface FeatureReviewRecord {
 export interface FeatureCorrectionRecord {
   id: string;
   contentFeatureId: string;
+  extractionRunId: string;
   fieldName: string;
   originalAiValue: string;
   correctedValue: string;
@@ -44,6 +46,7 @@ export interface FeatureCorrectionRecord {
 export interface ContentReviewDecision {
   contentFeatureId: string;
   fieldName: string;
+  extractionRunId: string;
   decision: FeatureReviewDecision;
   aiValue: string;
   reviewedValue: string | null;
@@ -87,13 +90,14 @@ type FeatureRow = {
   id: string;
   field_name: string;
   ai_value: string;
+  reviewed_value: string | null;
   review_state: string;
   extraction_run_id: string;
 };
-
 type FeatureReviewRow = {
   id: string;
   content_feature_id: string;
+  extraction_run_id: string;
   field_name: string;
   decision: FeatureReviewDecision;
   reason_code: ReviewReason | null;
@@ -106,6 +110,7 @@ type FeatureReviewRow = {
 type FeatureCorrectionRow = {
   id: string;
   content_feature_id: string;
+  extraction_run_id: string;
   field_name: string;
   original_ai_value: string;
   corrected_value: string;
@@ -127,7 +132,7 @@ type HypothesisReviewRow = {
   created_at: string;
 };
 
-const FEATURE_COLUMNS = 'id, field_name, ai_value, review_state, extraction_run_id';
+const FEATURE_COLUMNS = 'id, field_name, ai_value, reviewed_value, review_state, extraction_run_id';
 
 export function reviewConfigFromEnv(): ReviewRepositoryConfig {
   const connectionString = process.env.CIC_DATABASE_URL ?? process.env.DATABASE_URL;
@@ -140,6 +145,7 @@ function featureReviewRecord(row: FeatureReviewRow): FeatureReviewRecord {
   return {
     id: row.id,
     contentFeatureId: row.content_feature_id,
+    extractionRunId: row.extraction_run_id,
     fieldName: row.field_name,
     decision: row.decision,
     reasonCode: row.reason_code,
@@ -154,6 +160,7 @@ function featureCorrectionRecord(row: FeatureCorrectionRow): FeatureCorrectionRe
   return {
     id: row.id,
     contentFeatureId: row.content_feature_id,
+    extractionRunId: row.extraction_run_id,
     fieldName: row.field_name,
     originalAiValue: row.original_ai_value,
     correctedValue: row.corrected_value,
@@ -211,14 +218,14 @@ export function createReviewRepository(config: ReviewRepositoryConfig): ReviewRe
        WHERE workspace_id = $3 AND id = $4`,
       [reviewedValue, reviewState, config.workspaceId, feature.id],
     );
-    return { contentFeatureId: feature.id, fieldName: feature.field_name, decision: input.decision, aiValue: feature.ai_value, reviewedValue, reviewState, goldenLabel: input.goldenLabel };
+    return { contentFeatureId: feature.id, fieldName: feature.field_name, extractionRunId: feature.extraction_run_id, decision: input.decision, aiValue: feature.ai_value, reviewedValue, reviewState, goldenLabel: input.goldenLabel };
   }
 
-  async function contentFeatures(client: PoolClient, contentId: string): Promise<FeatureRow[]> {
+  async function contentFeatures(client: PoolClient, contentId: string, extractionRunId: string): Promise<FeatureRow[]> {
     const rows = await client.query<FeatureRow>(
       `SELECT ${FEATURE_COLUMNS} FROM content_feature
-       WHERE workspace_id = $1 AND content_id = $2 ORDER BY field_name FOR UPDATE`,
-      [config.workspaceId, contentId],
+       WHERE workspace_id = $1 AND content_id = $2 AND extraction_run_id = $3 ORDER BY field_name FOR UPDATE`,
+      [config.workspaceId, contentId, extractionRunId],
     );
     return rows.rows;
   }
@@ -234,12 +241,17 @@ export function createReviewRepository(config: ReviewRepositoryConfig): ReviewRe
       await client.query('BEGIN');
       const content = await client.query<{ id: string }>('SELECT id FROM content WHERE workspace_id = $1 AND id = $2 FOR UPDATE', [config.workspaceId, contentId]);
       if (!content.rows[0]) throw new ReviewNotFoundError('content not found in workspace');
-      const features = await contentFeatures(client, contentId);
+      const extractionRun = await client.query<{ id: string }>(
+        'SELECT id FROM extraction_run WHERE workspace_id = $1 AND content_id = $2 AND id = $3 FOR UPDATE',
+        [config.workspaceId, contentId, input.extractionRunId],
+      );
+      if (!extractionRun.rows[0]) throw new ReviewNotFoundError('extraction run not found for content');
+      const features = await contentFeatures(client, contentId, input.extractionRunId);
       const plan = planContentReview(
-        features.map((row) => ({ id: row.id, aiValue: row.ai_value, reviewState: row.review_state })),
+        features.map((row) => ({ id: row.id, aiValue: row.ai_value, reviewedValue: row.reviewed_value, reviewState: row.review_state })),
         input,
       );
-      if (plan.length === 0) throw new ReviewValidationError('content has no unreviewed extracted features to review');
+      if (plan.length === 0) throw new ReviewValidationError('extraction run has no extracted features to review');
       const byId = new Map(features.map((row) => [row.id, row]));
       const decisions: ContentReviewDecision[] = [];
       for (const entry of plan) {
@@ -294,13 +306,13 @@ export function createReviewRepository(config: ReviewRepositoryConfig): ReviewRe
     if (!content.rows[0]) throw new ReviewNotFoundError('content not found in workspace');
     const [reviews, corrections] = await Promise.all([
       pool.query<FeatureReviewRow>(
-        `SELECT fr.id, fr.content_feature_id, cf.field_name, fr.decision, fr.reason_code, fr.golden_label, fr.reviewer, fr.note, fr.created_at
+        `SELECT fr.id, fr.content_feature_id, fr.extraction_run_id, cf.field_name, fr.decision, fr.reason_code, fr.golden_label, fr.reviewer, fr.note, fr.created_at
          FROM feature_review fr JOIN content_feature cf ON cf.id = fr.content_feature_id
          WHERE fr.workspace_id = $1 AND cf.content_id = $2 ORDER BY fr.created_at, fr.id`,
         [config.workspaceId, contentId],
       ),
       pool.query<FeatureCorrectionRow>(
-        `SELECT fc.id, fc.content_feature_id, cf.field_name, fc.original_ai_value, fc.corrected_value, fc.reason_code, fc.reviewer, fc.note, fc.created_at
+        `SELECT fc.id, fc.content_feature_id, fc.extraction_run_id, cf.field_name, fc.original_ai_value, fc.corrected_value, fc.reason_code, fc.reviewer, fc.note, fc.created_at
          FROM feature_correction fc JOIN content_feature cf ON cf.id = fc.content_feature_id
          WHERE fc.workspace_id = $1 AND cf.content_id = $2 ORDER BY fc.created_at, fc.id`,
         [config.workspaceId, contentId],
