@@ -30,7 +30,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     repository = createReviewRepository(reviewConfigFromEnv());
     return NextResponse.json(await repository.reviewContent(id, body as Record<string, unknown>), { status: 201 });
   } catch (error) {
-    return NextResponse.json({ error: String((error as Error).message ?? error) }, { status: statusFor(error) });
+    return NextResponse.json({ error: error instanceof ReviewValidationError || error instanceof ReviewNotFoundError ? error.message : 'Content review unavailable' }, { status: statusFor(error) });
   } finally {
     await repository?.close();
   }
@@ -44,7 +44,7 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
     repository = createReviewRepository(reviewConfigFromEnv());
     return NextResponse.json(await repository.contentHistory(id));
   } catch (error) {
-    return NextResponse.json({ error: String((error as Error).message ?? error) }, { status: statusFor(error) });
+    return NextResponse.json({ error: error instanceof ReviewValidationError || error instanceof ReviewNotFoundError ? error.message : 'Content review history unavailable' }, { status: statusFor(error) });
   } finally {
     await repository?.close();
   }
