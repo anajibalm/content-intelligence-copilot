@@ -1,0 +1,253 @@
+{
+  "golden_set": {
+    "version": "golden-v0.1",
+    "evaluation_fixture": "synthetic",
+    "labelled_before_ai_output": true,
+    "protocol": "Synthetic evaluation fixture: planned blind-label protocol records labels before AI comparison; no human labeling receipt claimed.",
+    "source": {
+      "extraction_fixture": "extraction.json",
+      "extraction_run_id": "exr_barakat_008_01_run_1",
+      "content_id": "content_barakat_008_01",
+      "external_post_id": "7420000000000000001"
+    }
+  },
+  "labels": [
+    {
+      "label_id": "gl_barakat_008_01_topic",
+      "content_feature_id": "cfeat_barakat_008_01_topic",
+      "field_key": "topic",
+      "reviewer": "analyst_barakat_01",
+      "labelled_at": "2026-10-05T09:00:00.000Z",
+      "human_value": "herbal_supplement",
+      "ai_comparison": {
+        "extraction_run_id": "exr_barakat_008_01_run_1",
+        "ai_value": "herbal_supplement",
+        "verdict": "exact",
+        "reason_code": null
+      }
+    },
+    {
+      "label_id": "gl_barakat_008_01_format",
+      "content_feature_id": "cfeat_barakat_008_01_format",
+      "field_key": "format",
+      "reviewer": "analyst_barakat_01",
+      "labelled_at": "2026-10-05T09:01:00.000Z",
+      "human_value": "talking_head_demonstration",
+      "ai_comparison": {
+        "extraction_run_id": "exr_barakat_008_01_run_1",
+        "ai_value": "talking_head_demonstration",
+        "verdict": "exact",
+        "reason_code": null
+      }
+    },
+    {
+      "label_id": "gl_barakat_008_01_hook_type",
+      "content_feature_id": "cfeat_barakat_008_01_hook_type",
+      "field_key": "hook_type",
+      "reviewer": "analyst_barakat_01",
+      "labelled_at": "2026-10-05T09:02:00.000Z",
+      "human_value": "pattern_interrupt",
+      "ai_comparison": {
+        "extraction_run_id": "exr_barakat_008_01_run_1",
+        "ai_value": "pattern_interrupt",
+        "verdict": "exact",
+        "reason_code": null
+      }
+    },
+    {
+      "label_id": "gl_barakat_008_01_hook_subject",
+      "content_feature_id": "cfeat_barakat_008_01_hook_subject",
+      "field_key": "hook_subject",
+      "reviewer": "analyst_barakat_01",
+      "labelled_at": "2026-10-05T09:03:00.000Z",
+      "human_value": "retention_warning",
+      "ai_comparison": {
+        "extraction_run_id": "exr_barakat_008_01_run_1",
+        "ai_value": "retention_warning",
+        "verdict": "exact",
+        "reason_code": null
+      }
+    },
+    {
+      "label_id": "gl_barakat_008_01_talent_type",
+      "content_feature_id": "cfeat_barakat_008_01_talent_type",
+      "field_key": "talent_type",
+      "reviewer": "analyst_barakat_01",
+      "labelled_at": "2026-10-05T09:04:00.000Z",
+      "human_value": "single_presenter",
+      "ai_comparison": {
+        "extraction_run_id": "exr_barakat_008_01_run_1",
+        "ai_value": "single_presenter",
+        "verdict": "exact",
+        "reason_code": null
+      }
+    },
+    {
+      "label_id": "gl_barakat_008_01_talent_familiarity",
+      "content_feature_id": "cfeat_barakat_008_01_talent_familiarity",
+      "field_key": "talent_familiarity",
+      "reviewer": "analyst_barakat_01",
+      "labelled_at": "2026-10-05T09:05:00.000Z",
+      "human_value": "brand_owned",
+      "ai_comparison": {
+        "extraction_run_id": "exr_barakat_008_01_run_1",
+        "ai_value": "brand_owned",
+        "verdict": "exact",
+        "reason_code": null
+      }
+    },
+    {
+      "label_id": "gl_barakat_008_01_opening_style",
+      "content_feature_id": "cfeat_barakat_008_01_opening_style",
+      "field_key": "opening_style",
+      "reviewer": "analyst_barakat_01",
+      "labelled_at": "2026-10-05T09:06:00.000Z",
+      "human_value": "direct_claim",
+      "ai_comparison": {
+        "extraction_run_id": "exr_barakat_008_01_run_1",
+        "ai_value": "direct_claim",
+        "verdict": "exact",
+        "reason_code": null
+      }
+    },
+    {
+      "label_id": "gl_barakat_008_01_pacing",
+      "content_feature_id": "cfeat_barakat_008_01_pacing",
+      "field_key": "pacing",
+      "reviewer": "analyst_barakat_01",
+      "labelled_at": "2026-10-05T09:07:00.000Z",
+      "human_value": "fast",
+      "ai_comparison": {
+        "extraction_run_id": "exr_barakat_008_01_run_1",
+        "ai_value": "fast",
+        "verdict": "exact",
+        "reason_code": null
+      }
+    },
+    {
+      "label_id": "gl_barakat_008_01_narrative_structure",
+      "content_feature_id": "cfeat_barakat_008_01_narrative_structure",
+      "field_key": "narrative_structure",
+      "reviewer": "analyst_barakat_01",
+      "labelled_at": "2026-10-05T09:08:00.000Z",
+      "human_value": "hook_claim_proof_cta",
+      "ai_comparison": {
+        "extraction_run_id": "exr_barakat_008_01_run_1",
+        "ai_value": "hook_claim_proof_cta",
+        "verdict": "exact",
+        "reason_code": null
+      }
+    },
+    {
+      "label_id": "gl_barakat_008_01_emotional_trigger",
+      "content_feature_id": "cfeat_barakat_008_01_emotional_trigger",
+      "field_key": "emotional_trigger",
+      "reviewer": "analyst_barakat_01",
+      "labelled_at": "2026-10-05T09:09:00.000Z",
+      "human_value": "curiosity",
+      "ai_comparison": {
+        "extraction_run_id": "exr_barakat_008_01_run_1",
+        "ai_value": "curiosity",
+        "verdict": "uncertain",
+        "reason_code": "MISSED_VISUAL_CONTEXT"
+      }
+    },
+    {
+      "label_id": "gl_barakat_008_01_tension_type",
+      "content_feature_id": "cfeat_barakat_008_01_tension_type",
+      "field_key": "tension_type",
+      "reviewer": "analyst_barakat_01",
+      "labelled_at": "2026-10-05T09:10:00.000Z",
+      "human_value": "problem_solution",
+      "ai_comparison": {
+        "extraction_run_id": "exr_barakat_008_01_run_1",
+        "ai_value": "problem_solution",
+        "verdict": "exact",
+        "reason_code": null
+      }
+    },
+    {
+      "label_id": "gl_barakat_008_01_product_placement",
+      "content_feature_id": "cfeat_barakat_008_01_product_placement",
+      "field_key": "product_placement",
+      "reviewer": "analyst_barakat_01",
+      "labelled_at": "2026-10-05T09:11:00.000Z",
+      "human_value": "direct_demonstration",
+      "ai_comparison": {
+        "extraction_run_id": "exr_barakat_008_01_run_1",
+        "ai_value": "explicit_demonstration",
+        "verdict": "acceptable",
+        "reason_code": null
+      }
+    },
+    {
+      "label_id": "gl_barakat_008_01_cta_type",
+      "content_feature_id": "cfeat_barakat_008_01_cta_type",
+      "field_key": "cta_type",
+      "reviewer": "analyst_barakat_01",
+      "labelled_at": "2026-10-05T09:12:00.000Z",
+      "human_value": "watch_through_prompt",
+      "ai_comparison": {
+        "extraction_run_id": "exr_barakat_008_01_run_1",
+        "ai_value": "shop_prompt",
+        "verdict": "incorrect",
+        "reason_code": "WRONG_CLASSIFICATION"
+      }
+    }
+  ],
+  "stability_runs": [
+    {
+      "content_id": "content_barakat_008_01",
+      "run_1": {
+        "extraction_run_id": "exr_barakat_008_01_run_1",
+        "values": {
+          "topic": "herbal_supplement",
+          "format": "talking_head_demonstration",
+          "hook_type": "pattern_interrupt",
+          "hook_subject": "retention_warning",
+          "talent_type": "single_presenter",
+          "talent_familiarity": "brand_owned",
+          "opening_style": "direct_claim",
+          "pacing": "fast",
+          "narrative_structure": "hook_claim_proof_cta",
+          "emotional_trigger": "curiosity",
+          "tension_type": "problem_solution",
+          "product_placement": "explicit_demonstration",
+          "cta_type": "shop_prompt"
+        }
+      },
+      "run_2": {
+        "extraction_run_id": "exr_barakat_008_01_run_2",
+        "values": {
+          "topic": "herbal_supplement",
+          "format": "talking_head_demonstration",
+          "hook_type": "pattern_interrupt",
+          "hook_subject": "retention_warning",
+          "talent_type": "single_presenter",
+          "talent_familiarity": "brand_owned",
+          "opening_style": "direct_claim",
+          "pacing": "fast",
+          "narrative_structure": "hook_claim_proof_cta",
+          "emotional_trigger": "pride",
+          "tension_type": "problem_solution",
+          "product_placement": "explicit_demonstration",
+          "cta_type": "comment_prompt"
+        }
+      },
+      "stable_fields": [
+        "topic",
+        "format",
+        "hook_type",
+        "hook_subject",
+        "talent_type",
+        "talent_familiarity",
+        "opening_style",
+        "pacing",
+        "narrative_structure",
+        "tension_type",
+        "product_placement"
+      ],
+      "unstable_fields": ["emotional_trigger", "cta_type"]
+    }
+  ]
+}

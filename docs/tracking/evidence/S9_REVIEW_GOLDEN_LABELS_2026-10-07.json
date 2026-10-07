@@ -1,0 +1,62 @@
+{
+  "evidence_date": "2026-10-07",
+  "provenance": "Executor: OMP local repo agent; Review guidance: ChatGPT; owner merge approval pending",
+  "branch": "task/10",
+  "scope": "S9 analyst feature review, hypothesis review, append-only history, and golden-label fixture",
+  "implementation": {
+    "rules": "lib/review/rules.ts",
+    "repository": "lib/review/postgres.ts",
+    "feature_review_api": "POST /api/workspace/features/:id/review and POST/GET /api/workspace/contents/:id/review",
+    "hypothesis_review_api": "POST/GET /api/hypotheses/review",
+    "ui": "app/review-panel.tsx, app/workspace-client.tsx, app/hypothesis-panel.tsx",
+    "migration": "supabase/migrations/0010_s9_review_golden_labels.sql and supabase/migrations/0011_s9_feature_review_history.sql",
+    "golden_fixture": "fixtures/golden-labels.json",
+    "fixture_validator": "scripts/validate-fixtures.mjs"
+  },
+  "behavior": {
+    "feature_review": "Confirm All, Correct fields, Reject All; only UNREVIEWED features are touched",
+    "hypothesis_review": "Approve, Edit, Reject; edited statement stays on append-only review row so evidence links remain immutable",
+    "reasons": "Reject and uncertain/incorrect golden findings carry explicit controlled reason codes",
+    "originals": "AI original stays separate from reviewed/corrected value",
+    "history": "feature_review, feature_correction, and review rows append history; existing decisions are not overwritten",
+    "golden_labels": "13 fingerprint fields preserve reviewer, timestamp, source extraction run, AI original, human value, per-field verdict, and two-run stability partition; no aggregate score"
+  },
+  "tests": {
+    "unit": "PASS: npm test; 89 tests",
+    "focused_review": "PASS: npx tsc --noEmit, node --test tests/unit/review.test.mjs; 5 review-rule tests",
+    "fixtures": "PASS: npm run validate:fixtures; five fixtures",
+    "integrated_staging": "PASS: npx playwright test tests/e2e/s9-integrated.spec.ts --reporter=line --retries=0; 2/2 tests; content review re-review, golden guard, append-only history, hypothesis evidence preservation",
+    "synthetic_browser": "PASS: npm run test:e2e; 6/6 S8 Chromium flows; npm run test:e2e:s9; 2/2 S9 Chromium flows including Confirm All, Correct fields twice, Reject All, reload readback, append-only history, hypothesis Approve/Edit/Reject and persisted hypothesis reload",
+    "lint": "PASS with 3 existing warnings: two img warnings and one exhaustive-deps warning",
+    "typecheck": "PASS: npm run typecheck",
+    "build": "PASS: npm run build; BUILD_EXIT=0",
+    "diff_check": "PASS: git diff --check"
+  },
+  "staging": {
+    "database": "cic-postgres-r1",
+    "server": "http://127.0.0.1:3121",
+    "workspace": "10000000-0000-0000-0000-000000000001",
+    "batch": "51000000-0000-0000-0000-000000000002",
+    "migration": "PASS: migrations 0010_s9_review_golden_labels.sql and 0011_s9_feature_review_history.sql applied additively; review columns, reject constraint, edited statement, and lookup indexes verified",
+    "workspace_api": "PASS: GET /api/workspace?batchId=51000000-0000-0000-0000-000000000002 returned HTTP 200 with 12 contents",
+    "feature_review_api": "PASS: artifact content fa077ea5-ef36-4f61-b450-5aed14166509 has 13 features, 13 append-only feature reviews, 3 corrections, 0 unreviewed; extraction run 61d3e0b8-39cf-46ec-b84c-f8d6a167f6fe preserved; browser rendered AI originals, reviewed values, frames, transcript, and history",
+    "hypothesis_review_api": "PASS: persisted hypothesis eb1f97ea-5d83-483a-bd37-d8f4170048c7 retained 2 evidence links; browser Edit -> Approve -> Reject with OVERCLAIM then reload rendered reviewed statement and append-only history; DB rows EDIT, APPROVE, REJECT",
+    "browser": "PASS: task/10 server http://127.0.0.1:3121; CIC_* names verified in process without values; tests/e2e/s9-review.spec.ts 3/3 and tests/e2e/s9-integrated.spec.ts 2/2; feature re-review, golden guard, append-only history, hypothesis evidence preservation",
+    "synthetic_browser": "PASS: npm run test:e2e:s9 2/2; Confirm All -> Correct A -> Correct B and hypothesis Edit -> Approve -> Reject -> reload; integrated S9 2/2 after source guard"
+  },
+  "limits": [
+    "Synthetic Chromium proves UI transitions and reload behavior, not real-brand approval.",
+    "Existing staging artifact was already reviewed; this does not disable the review UI contract. Confirm All is unavailable when no UNREVIEWED features remain, while Correct fields remains available after reviewer entry for eligible unreviewed features. Integrated synthetic fixture proves Confirm -> Correct A -> Correct B; no cross-workspace UUID lookup is used as artifact evidence.",
+    "No production deployment, production data, real-provider acceptance, or real-brand approval claim.",
+    "No persistent data reset performed; 9router and Hindsight were not restarted or killed."
+  ],
+  "delivery": {
+    "tested_source_sha": "0001a3a",
+    "final_head": "0834b33599155997763492b1888633e59e6f24ab",
+    "pr": "https://github.com/anajibalm/content-intelligence-copilot/pull/31",
+    "ci": "Build & Test PASS; run 37614558614 on HEAD 0834b33599155997763492b1888633e59e6f24ab",
+    "tracking_status": "Review",
+    "merge": "not performed",
+    "next_slice": "S10 and S13 not started"
+  }
+}

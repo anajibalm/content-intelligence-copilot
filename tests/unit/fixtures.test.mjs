@@ -11,6 +11,7 @@ import {
   checkExtractionState,
   checkTranscriptOrdering,
   checkNoProviderPayload,
+  checkGoldenLabels,
   EVIDENCE_TYPES,
 } from '../../scripts/validate-fixtures.mjs';
 
@@ -20,7 +21,7 @@ const snapshot = fixtures['metric-snapshot.json'];
 const transcript = fixtures['transcript.json'];
 const extraction = fixtures['extraction.json'];
 
-test('all four fixtures load as JSON objects', () => {
+test('all five fixtures load as JSON objects', () => {
   for (const [name, f] of Object.entries(fixtures)) {
     assert.equal(typeof f, 'object', `${name} must be an object`);
     assert.notEqual(f, null, `${name} must not be null`);
@@ -64,7 +65,7 @@ test('distribution lives only in metric snapshot, never on content', () => {
 // --- Invariant: evidence ontology values ----------------------------------
 
 test('evidence uses only OBSERVED/DERIVED/EXTRACTED/INFERRED', () => {
-  for (const [name, f] of Object.entries(fixtures)) {
+  for (const [name, f] of Object.entries(fixtures).filter(([name]) => name !== 'golden-labels.json')) {
     const errors = checkEvidenceOntology(f, name);
     assert.deepEqual(errors, [], `${name}: ${errors.join('; ')}`);
     assert.ok(Array.isArray(f.evidence) && f.evidence.length > 0, `${name} must carry evidence`);
@@ -89,6 +90,24 @@ test('evidence uses only OBSERVED/DERIVED/EXTRACTED/INFERRED', () => {
     'validator must reject EXTRACTED evidence pointing at metric_snapshot',
   );
 });
+
+test('golden labels preserve AI originals and stability partitions', () => {
+  const golden = fixtures['golden-labels.json'];
+  assert.deepEqual(checkGoldenLabels(golden, extraction), []);
+
+  const collapsed = structuredClone(golden);
+  collapsed.score = 0.9;
+  assert.ok(checkGoldenLabels(collapsed, extraction).some((error) => error.includes('collapsed quality')));
+
+  const uncertain = structuredClone(golden);
+  uncertain.labels.find((label) => label.field_key === 'emotional_trigger').ai_comparison.reason_code = null;
+  assert.ok(checkGoldenLabels(uncertain, extraction).some((error) => error.includes('requires a reason_code')));
+
+  const unstable = structuredClone(golden);
+  unstable.stability_runs[0].stable_fields.push('cta_type');
+  assert.ok(checkGoldenLabels(unstable, extraction).some((error) => error.includes('partition') || error.includes('listed stable')));
+});
+
 
 // --- Invariant: extraction AI-original / unreviewed state -----------------
 

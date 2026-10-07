@@ -49,9 +49,18 @@ async function installFixtureApi(page: Page, options: { hypothesisDelay?: () => 
     seen.push(body);
     await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify(comparison(body)) });
   });
+  await page.route('**/api/hypotheses/review**', async (route: Route) => {
+    if (route.request().method() === 'GET') {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ hypothesisId: new URL(route.request().url()).searchParams.get('hypothesisId'), reviews: [] }) });
+      return;
+    }
+    await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 'synthetic-review', decision: 'APPROVE', reviewer: 'synthetic', reasonCode: null, editedStatement: null, goldenLabel: false, note: null, createdAt: '2026-10-07T00:00:00.000Z' }) });
+  });
   let hypothesisCalls = 0;
   let hypothesisSettled = 0;
   await page.route('**/api/hypotheses', async (route: Route) => {
+    const url = new URL(route.request().url());
+    if (url.pathname.includes('/api/hypotheses/review')) return route.fallback();
     if (route.request().method() !== 'POST') return route.continue();
     hypothesisCalls += 1;
     const body = postBody(route);
