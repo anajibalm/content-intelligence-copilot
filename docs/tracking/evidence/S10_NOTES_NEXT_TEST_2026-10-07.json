@@ -1,0 +1,63 @@
+{
+  "evidence_date": "2026-10-07",
+  "provenance": "Executor: OMP local repo agent; reviewer patch author preserved as ChatGPT Reviewer; owner approval required before merge",
+  "branch": "task/11",
+  "scope": "S10 analyst notes and structured Next Test attached to reviewed hypothesis",
+  "implementation": {
+    "reviewer_patch": "cc96a1195b82b284f6fdb318439c98a27cfc47ca; author ChatGPT Reviewer <chatgpt-reviewer@localhost>; restored npm run test:e2e:staging",
+    "rules": "lib/s10/rules.ts",
+    "repository": "lib/s10/postgres.ts",
+    "api": "app/api/hypotheses/[id]/s10/route.ts, app/api/hypotheses/[id]/s10/notes/[noteId]/route.ts, app/api/hypotheses/[id]/s10/next-tests/[testId]/route.ts",
+    "ui": "app/s10-panel.tsx, app/hypothesis-panel.tsx, app/workspace-client.tsx",
+    "migration": "supabase/migrations/0012_s10_notes_next_test.sql"
+  },
+  "behavior": {
+    "notes": "Human notes are scoped to workspace and hypothesis, editable, reloadable, and never inserted into evidence or confidence calculation",
+    "next_test": "Structured fields preserve hypothesis reference, variable, variants, controls, expected result, owner, success metric, measurement window, target batch, and next_test_status; target batch selection uses workspace + brand scope, not hypothesis-origin batch equality",
+    "validation": "Required empty fields, malformed UUIDs, foreign hypothesis IDs, foreign or cross-brand target batches, and invalid statuses are rejected before write",
+    "selection": "Workspace selection changes key persisted insight panel and clears stale comparison state; no old selected insight is presented as current selection"
+  },
+  "tests": {
+    "unit": "PASS: npm test; 90/90",
+    "s10_rules": "PASS: node --test tests/unit/s10.test.mjs; 1/1",
+    "fixtures": "PASS: npm run validate:fixtures",
+    "typecheck": "PASS: npm run typecheck",
+    "lint": "PASS with 3 existing warnings: two img warnings and one exhaustive-deps warning",
+    "build": "PASS: npm run build",
+    "diff_check": "PASS: git diff --check",
+    "browser": "PASS: env -u CIC_E2E_STAGING_URL npm run test:e2e -- --retries=0; 10/10, S8/S9/S10 browser suites",
+    "s10_browser": "PASS: tests/e2e/s10-notes-next-test.spec.ts; 1/1 create, target batch B selection, field edit, same-ID status transition, reload",
+    "integrated_staging": "PASS: tests/e2e/s10-integrated.spec.ts; 1/1 on task-owned server http://127.0.0.1:3124; real API/UI/DB, target B create, target A edit, field edit, reload, same ID, foreign-brand rejection, no-write count readback",
+    "staging_listing": "PASS: npm run test:e2e:staging -- --list; staging-smoke.spec.ts found"
+  },
+  "staging": {
+    "database": "cic-postgres-r1",
+    "server": "http://127.0.0.1:3124",
+    "workspace_id": "10000000-0000-0000-0000-000000000001",
+    "hypothesis_id": "eb1f97ea-5d83-483a-bd37-d8f4170048c7",
+    "source_batch_id": "51000000-0000-0000-0000-000000000002",
+    "target_batch_b_id": "51000000-0000-0000-0000-000000000003",
+    "foreign_brand_batch_id": "30000000-0000-0000-0000-000000000003",
+    "note_id": "5a915926-63e5-4157-b11a-fc9307bfedb4",
+    "next_test_id": "d6bf76b0-71b8-4da7-bdce-7433bb406226",
+    "ui_and_db_values": "PASS: target B persisted, then target A persisted; variable_to_test opening style edited 88ebf239, expected_result edited result, owner edited_integrated_s10_88ebf239, success_metric edited metric, measurement_window 14 days, status COMPLETED; hypothesis remained on source batch",
+    "foreign_brand_probe": "PASS: POST and PATCH target 30000000-0000-0000-0000-000000000003 returned HTTP 404; next_test count unchanged",
+    "migration": "PASS: 0012_s10_notes_next_test.sql applied additively; expected_result, owner, success_metric, measurement_window, analyst_note.updated_at, and lookup indexes verified",
+    "data_reset": "none"
+  },
+  "delivery": {
+    "reviewer_patch_commit": "cc96a1195b82b284f6fdb318439c98a27cfc47ca",
+    "tested_source_sha": "11fd5c2cb93cb26cc004377fd7087a7f13dcec14",
+    "pr": "https://github.com/anajibalm/content-intelligence-copilot/pull/32",
+    "ci": "Build & Test PASS; run 37638650317 on exact source HEAD 11fd5c2cb93cb26cc004377fd7087a7f13dcec14; S10 spec included",
+    "tracking_status": "Review",
+    "baseline": "PASS: VIBE_CODING_PROTOCOL.md §5 now holds consolidated MVP workflow rules from baseline A; AGENTS.md remains domain/runtime/memory authority and points to §5; baseline D not copied",
+    "merge": "not performed",
+    "next_slice": "S13 not started"
+  },
+  "limits": [
+    "Synthetic browser uses repository fixtures; integrated staging uses stored hypothesis and real Postgres/API/UI/DB paths.",
+    "No generation provider, scoring, scheduler, production deployment, or real-brand approval claim.",
+    "9router and Hindsight were not restarted or killed."
+  ]
+}

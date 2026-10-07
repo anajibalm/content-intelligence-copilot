@@ -2,10 +2,12 @@
 
 import { useEffect, useRef, useState } from "react";
 import { HypothesisReviewControls } from "./review-panel";
+import { S10Panel } from "./s10-panel";
 
 type Hypothesis = {
-  id: string;
+  batchId: string;
   statement: string;
+  id: string;
   confidence: string;
   confidenceCaps: Array<{ rule: string; reason: string }>;
   suggestedNextTest: Record<string, unknown> | null;
@@ -84,6 +86,7 @@ export default function HypothesisPanel({ batchId, comparisonId }: { batchId: st
       {result.suggestedNextTest && <div><strong>Uji berikutnya yang disarankan</strong><pre>{JSON.stringify(result.suggestedNextTest, null, 2)}</pre></div>}
       <div><strong>Bukti</strong><ul>{result.evidence.map((item) => <li key={item.id}><span className="status">{item.role} · {item.layer} · {item.source_type}</span> {item.statement} {item.link && <a href={item.link}>Buka sumber exact</a>}</li>)}</ul></div>
       <HypothesisReviewControls hypothesisId={result.id} />
+      <S10Panel hypothesisId={result.id} targetBatchId={result.batchId} />
     </div>}
   </section>;
 }
