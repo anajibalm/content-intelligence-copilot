@@ -1,0 +1,96 @@
+{
+  "evidence_date": "2026-10-07",
+  "provenance": "Executor: OMP local repo agent; Review guidance: ChatGPT; owner merge approval pending",
+  "branch": "feat/s8-evidence-hypothesis",
+  "implementation": {
+    "rules": "lib/hypothesis/rules.ts",
+    "repository": "lib/hypothesis/postgres.ts",
+    "api": "POST /api/hypotheses and GET /api/hypotheses?hypothesisId=...",
+    "ui": "app/hypothesis-panel.tsx, app/compare-panel.tsx, app/workspace-client.tsx",
+    "migration": "supabase/migrations/0008_evidence_hypothesis.sql, supabase/migrations/0009_s8_operation_basis.sql",
+    "versions": { "rule": "hypothesis-v1", "prompt": "hypothesis-prompt-v1", "schema": "hypothesis-schema-v1" },
+    "provider_contract_fix": "commit 84a0200 normalizes provider string suggested_next_test into actionable object at API trust boundary"
+  },
+  "behavior": {
+    "scope": "comparison workspace and selected batch only; exact frozen comparison snapshots plus current transcript segments, frames, and non-rejected current content features",
+    "layers": ["OBSERVED", "DERIVED", "EXTRACTED", "INFERRED"],
+    "provenance": "evidence_source stores one exact source FK; hypothesis stores raw provider response, model/provider metadata, prompt/schema versions, request hash, and immutable source basis",
+    "caps": "sample size, one-comparison, comparison quality, suspect/unavailable primary metrics, and cited unreviewed/rejected/unavailable/suspect extracted evidence deterministically force LOW confidence",
+    "language": "English and Indonesian causal certainty terms rejected; next test must contain an actionable value",
+    "history": "evidence, sources, hypotheses, links append-only through PostgreSQL triggers",
+    "retry": "workspace-scoped generation_key prevents duplicate normal or regenerate artifacts; operation ID replays committed result"
+  },
+  "tests": {
+    "focused": "PASS: 13 tests",
+    "full": "PASS: 83 tests",
+    "browser_synthetic": "PASS: npm run test:e2e; 6/6 S8 lifecycle tests on Playwright Chromium, 1 worker",
+    "browser_integrated": "PASS: CIC_E2E_STAGING_URL=http://localhost:3120 npm run test:e2e:staging; 1/1 staging smoke",
+    "lint": "PASS with 3 existing warnings: two img warnings and one exhaustive-deps warning",
+    "typecheck": "PASS",
+    "fixtures": "PASS",
+    "build": "PASS",
+    "diff_check": "PASS",
+    "unit_test_script_restored": "PASS: npm test; 83 tests"
+  },
+  "staging": {
+    "database": "cic-postgres-r1",
+    "server": "http://localhost:3120",
+    "workspace": "10000000-0000-0000-0000-000000000001",
+    "batch": "51000000-0000-0000-0000-000000000002",
+    "api_workspace": "HTTP 200; CIC_DATABASE_URL, CIC_WORKSPACE_ID, and CIC_STORAGE_ROOT present in application process; credentials not displayed",
+    "comparison": "staging smoke returned HTTP 201",
+    "hypothesis": "staging smoke returned HTTP 201 and persisted GET returned HTTP 200 with same artifact ID",
+    "exact_source": "source URL stayed on target origin, batchId matched, contentId matched selected staging content, source hash matched metric-snapshot/transcript-segment/video-frame/content-feature, rendered anchor visible",
+    "provider": {
+      "status": "PASS",
+      "http": 200,
+      "endpoint": "http://localhost:20128/v1/chat/completions",
+      "model": "cx/gpt-5.6-luna",
+      "provider": "9router",
+      "credentials": "configured owner runtime used; key not displayed or persisted"
+    },
+    "browser": {
+      "status": "PASS",
+      "command": "CIC_E2E_STAGING_URL=http://localhost:3120 npm run test:e2e:staging",
+      "browser_version": "Playwright Chromium from @playwright/test 1.63.0",
+      "console_errors": "none"
+    },
+    "persistence": {
+      "hypothesis": "aba66b41-2156-445a-a2e1-4c53cb92be7e",
+      "confidence": "LOW",
+      "evidence_links": 8,
+      "create": "POST /api/hypotheses returned HTTP 201",
+      "readback": "GET /api/hypotheses returned HTTP 200 with immutable basis and current feature review state separated",
+      "replay_provider_unavailable": "repository replay returned same hypothesis ID and inputHash without provider call",
+      "correction_regenerate": "feature correction persisted; explicit regenerate cited corrected basis while old hypothesis retained original UNREVIEWED basis",
+      "operation_binding": "same operation reused across another comparison/action rejected by binding validation"
+    }
+  },
+  "limits": ["Synthetic staging dataset; no real brand approval", "No production deployment claim", "Integrated staging browser smoke proves configured local CIC wiring only; it does not prove production"],
+  "review_fix": {
+    "date": "2026-10-07",
+    "changes": [
+      "S6 explicit content list restored in workspace UI; exact source anchors resolve to source IDs",
+      "Catalog uses selected comparison/batch, latest transcript/extraction basis, and excludes rejected features",
+      "Workspace-scoped generation_key and operation IDs prevent duplicate normal/retry/regenerate artifacts; raw provider response and request hash persist",
+      "Indonesian certainty terms and empty suggestions are rejected; cited extracted quality/review state drives caps",
+      "Provider text suggested_next_test normalized into actionable object at API trust boundary",
+      "Playwright reviewer patch verifies pending invalidation, exact staging source, GET readback, and CI failure artifacts"
+    ],
+    "operation_replay": "PASS: committed normal operation replayed with provider endpoint forced unavailable; same ID/inputHash returned",
+    "frozen_basis": "PASS: old hypothesis retained original feature basis after correction; explicit regenerate persisted corrected basis",
+    "context_invalidation": "PASS: compare invalidation clears parent hypothesis ID, batch/back-forward clears comparison, hypothesis requests abort/version-guard; six browser lifecycle tests pass",
+    "api_operation_id": "PASS: absent, body/header, precedence, and malformed UUID regression coverage"
+  },
+  "delivery": {
+    "tested_source_sha": "b0eaa2b",
+    "tested_source_verification": "focused 13 tests; full 83 tests; synthetic browser 6/6; integrated staging browser 1/1; lint/typecheck/fixtures/build/diff check PASS; API create/replay/correction/regenerate probes PASS",
+    "final_head_before_receipt": "313bf25",
+    "final_head_ci": "37578008664 Build & Test PASS on 313bf25",
+    "pr": "https://github.com/anajibalm/content-intelligence-copilot/pull/30",
+    "pr_state": "OPEN",
+    "tracking_status": "Review",
+    "merge": "not performed",
+    "next_slice": "S9 not started"
+  }
+}
