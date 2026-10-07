@@ -83,7 +83,7 @@
     "tested_source_sha": "8eefb80",
     "tested_source_verification": "focused 13 tests; full 83 tests; synthetic browser 6/6; lint/typecheck/fixtures/build/diff check PASS; migration applied; API create/replay/correction/regenerate probes PASS",
     "final_head_before_receipt": "8eefb80",
-    "final_head_ci": "pending on pushed HEAD",
+    "final_head_ci": "37575733910 Build & Test PASS",
     "pr": "https://github.com/anajibalm/content-intelligence-copilot/pull/30",
     "pr_state": "OPEN",
     "tracking_status": "Review",
