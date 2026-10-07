@@ -15,20 +15,23 @@
     }
   },
   "behavior": {
-    "scope": "comparison workspace and selected batch only; exact frozen comparison snapshots plus scoped transcript segments, frames, and content features",
+    "scope": "comparison workspace and selected batch only; exact frozen comparison snapshots plus current transcript segments, frames, and non-rejected current content features",
     "layers": ["OBSERVED", "DERIVED", "EXTRACTED", "INFERRED"],
-    "provenance": "evidence_source stores one exact source FK; hypothesis stores raw model output, model/provider metadata, prompt/schema versions, and input hash",
-    "caps": "sample size, one-comparison, comparison quality, suspect/unavailable primary metrics, and unreviewed EXTRACTED evidence deterministically force LOW confidence",
-    "language": "causal certainty terms rejected; next test required",
-    "history": "evidence, sources, hypotheses, links append-only through PostgreSQL triggers"
+    "provenance": "evidence_source stores one exact source FK; hypothesis stores raw provider response, model/provider metadata, prompt/schema versions, request hash, and immutable source basis",
+    "caps": "sample size, one-comparison, comparison quality, suspect/unavailable primary metrics, and cited unreviewed/rejected/unavailable/suspect extracted evidence deterministically force LOW confidence",
+    "language": "English and Indonesian causal certainty terms rejected; next test must contain an actionable value",
+    "history": "evidence, sources, hypotheses, links append-only through PostgreSQL triggers",
+    "retry": "workspace-scoped generation_key prevents duplicate normal or regenerate artifacts; operation ID replays committed result"
   },
   "tests": {
-    "focused": "node --test tests/unit/hypothesis.test.mjs PASS: 4 tests",
-    "full": "npm test PASS: 74 tests",
-    "lint": "PASS with 3 existing warnings: two img warnings and one existing exhaustive-deps warning",
+    "focused": "PASS: 8 tests",
+    "full": "PASS: 78 tests",
+    "lint": "PASS with 3 warnings: two img warnings and one existing exhaustive-deps warning",
     "typecheck": "PASS",
+    "fixtures": "PASS",
     "build": "PASS",
-    "migration": "0008_evidence_hypothesis.sql applied successfully to cic-postgres-r1"
+    "diff_check": "PASS",
+    "migration": "0008_evidence_hypothesis.sql reapplied; generation uniqueness index verified"
   },
   "staging": {
     "database": "cic-postgres-r1",
@@ -49,9 +52,9 @@
     "browser": {
       "surface": "Workspace renders S8 / WHY · EVIDENCE panel below controlled compare",
       "screenshot": "/tmp/omp-sshots-159c4a01253f5d2c.png",
-      "limit": "Panel visible in DOM; no generated browser click run recorded"
+      "limit": "Managed browser timed out before interaction; API readback/object mapping verified separately"
     },
-    "provider_blocker": "Configured 9router structured generation previously returned HTTP 401 Invalid API key; owner must correct runtime key before real-provider acceptance"
+    "provider_blocker": "Configured endpoint probe returned HTTP 000 connection failure; prior verified 9router run returned HTTP 401 Invalid API key; owner must correct runtime endpoint/key before real-provider acceptance"
   },
   "limits": [
     "Synthetic staging dataset; no real brand approval",
@@ -61,18 +64,17 @@
   "review_fix": {
     "date": "2026-10-07",
     "changes": [
-      "Evidence IDs are deterministic per workspace/comparison/source/layer; retry returns existing hypothesis by input hash unless regenerate=true.",
-      "Repository rejects comparison items outside selected batch and validator rejects wrong comparison scope and source-layer mismatch.",
-      "Hypothesis persists rule_version and readback returns exact source links with snapshot/transcript/frame/feature anchors.",
-      "Prompt requests concise Bahasa Indonesia working insight and suggested next test; UI renders Indonesian next-test label and source links."
+      "S6 explicit content list restored in workspace UI; exact source anchors resolve to source IDs",
+      "Catalog uses selected comparison/batch, latest transcript/extraction basis, and excludes rejected features",
+      "Workspace-scoped generation_key and operation IDs prevent duplicate normal/retry/regenerate artifacts; raw provider response and request hash persist",
+      "Indonesian certainty terms and empty suggestions are rejected; cited extracted quality/review state drives caps"
     ],
-    "focused_tests": "PASS: 7 tests",
-    "retry_probe": "Two identical POST requests returned HTTP 201 with same hypothesis ID 03b94ea0-52bf-4bfc-a29f-c982312d6569.",
-    "browser": "Real browser comparison generated, Generate hypothesis enabled, provider-backed staging result rendered LOW confidence, caps, Indonesian next-test label, and exact evidence links.",
+    "focused_tests": "PASS: 8 tests",
+    "retry_probe": "DB uniqueness verified for workspace-scoped generation_key; normal retries and regenerate operations use separate keys",
+    "browser": "Browser interaction proof unavailable because managed browser timed out; API exact-source object mapping passed",
     "limits": [
-      "Review-fix prompt file was not present in repository, Downloads, or /home; applied S8 acceptance requirements from integrated prompt and existing PR scope.",
-      "Local structured-provider stub remains used; configured 9router previously returned HTTP 401 Invalid API key.",
-      "Synthetic staging dataset; no real brand approval or production claim."
+      "Synthetic staging dataset; no real brand approval or production claim",
+      "Configured real provider unavailable; no real-provider acceptance claim"
     ]
   },
   "delivery": {
