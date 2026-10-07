@@ -13,7 +13,7 @@ Status labels reflect evidence available at tracking checkpoint, not historical 
 | S6 | Batch Workspace UI | P0 | Core MVP | Partial | Existing fixture shell only; runtime data surface remains open |
 | S7 | Controlled Compare | P0 | Core MVP | Blocked by S4,S5,S6 | Pair/group/batch scope, frozen snapshot IDs, explicit variables |
 | S8 | Evidence and hypothesis | P0 | Core MVP | Blocked by S4,S5,S7 | Provenance-linked evidence, deterministic confidence caps, cited hypotheses |
-| S9 | Analyst review and golden labels | P0 | Core MVP | Blocked by S4,S8 | Approve/edit/reject, append-only history, preserved AI originals |
+| S9 | Analyst review and golden labels | P0 | Core MVP | Review | `lib/review/rules.ts`, review APIs/UI, additive migration `0010_s9_review_golden_labels.sql`, golden fixture validator, unit tests 88/88, synthetic Chromium 2/2; staging API persistence PASS; configured staging hypothesis browser flow blocked by provider HTTP 503 |
 | S10 | Notes and Next Test | P0 | Core MVP | Blocked by S8,S9 | Structured data, owner/success metric/measurement window, persistence |
 | S11 | Ads CSV / paid enrichment | P1 | P1 Enhancements | Blocked by S5 | Import raw observations with Organic/Paid isolation and quality handling |
 | S12 | Consumer Says Lite | P1 | P1 Enhancements | Blocked by S6 | Positive/negative/neutral sentiment, sample guards, counts, quotes, empty state |
