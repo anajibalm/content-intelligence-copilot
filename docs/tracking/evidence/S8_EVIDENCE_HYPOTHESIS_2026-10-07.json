@@ -8,11 +8,7 @@
     "api": "POST /api/hypotheses and GET /api/hypotheses?hypothesisId=...",
     "ui": "app/hypothesis-panel.tsx, app/compare-panel.tsx, app/workspace-client.tsx",
     "migration": "supabase/migrations/0008_evidence_hypothesis.sql",
-    "versions": {
-      "rule": "hypothesis-v1",
-      "prompt": "hypothesis-prompt-v1",
-      "schema": "hypothesis-schema-v1"
-    },
+    "versions": { "rule": "hypothesis-v1", "prompt": "hypothesis-prompt-v1", "schema": "hypothesis-schema-v1" },
     "provider_contract_fix": "commit 84a0200 normalizes provider string suggested_next_test into actionable object at API trust boundary"
   },
   "behavior": {
@@ -60,18 +56,16 @@
       "replay": "same operationId returned HTTP 201 with identical hypothesis ID and inputHash"
     },
     "browser": {
-      "runtime": "Playwright via Brave Origin 153.1.95.104",
+      "runtime": "Brave Origin 153.1.95.104 via OMP browser automation; local Playwright CLI unavailable (npx --no-install playwright canceled because package is not installed)",
       "surface": "Workspace renders S8 / WHY · EVIDENCE panel below controlled compare",
       "provider_generation": "PASS: browser Generate hypothesis rendered real-provider artifact and LOW caps",
       "exact_source": "PASS: click opened #metric-snapshot-51000000-0000-0000-0000-000000000201 on content 51000000-0000-0000-0000-000000000101",
       "context_protection": "PASS: rapid reselection ended on content 51000000-0000-0000-0000-000000000102; aborted stale request did not show Workspace unavailable",
-      "errors": "one expected aborted request during reselection; no HTTP 4xx/5xx observed in tested flow"
+      "errors": "one expected aborted request during reselection; no HTTP 4xx/5xx observed in tested flow",
+      "tool_limit": "Requested Playwright package unavailable; browser interaction proof used Brave local browser automation"
     }
   },
-  "limits": [
-    "Synthetic staging dataset; no real brand approval",
-    "No production deployment claim"
-  ],
+  "limits": ["Synthetic staging dataset; no real brand approval", "No production deployment claim", "Playwright package unavailable in local checkout; exact interaction proof uses Brave browser automation"],
   "review_fix": {
     "date": "2026-10-07",
     "changes": [
@@ -83,14 +77,12 @@
     ],
     "focused_tests": "PASS: 9 tests",
     "retry_probe": "DB uniqueness verified for workspace-scoped generation_key; normal retries and regenerate operations use separate keys",
-    "browser": "Brave exact-source click and stale-response/context protection PASS",
-    "limits": [
-      "Synthetic staging dataset; no real brand approval or production claim"
-    ]
+    "browser": "Brave exact-source click and stale-response/context protection PASS; Playwright package unavailable",
+    "limits": ["Synthetic staging dataset; no real brand approval or production claim"]
   },
   "delivery": {
     "tested_source_sha": "84a0200",
-    "tested_source_verification": "provider HTTP 200; API POST 201, GET 200, replay same ID/inputHash; browser exact-source and context protection PASS",
+    "tested_source_verification": "provider HTTP 200; API POST 201, GET 200, replay same ID/inputHash; Brave browser exact-source and context protection PASS; Playwright package unavailable",
     "final_head_before_receipt": "84a0200",
     "final_head_ci": null,
     "pr": "https://github.com/anajibalm/content-intelligence-copilot/pull/30",
