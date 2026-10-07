@@ -379,8 +379,8 @@
       "verification_requirements": [
         "Pair/group/batch, quality, immutability, and empty-selection tests"
       ],
-      "proposed_status": "Review",
-      "status_reason": "Review fixes verified at 7260e5fe43d848608cfcfaf7509d3ee07a8e6a5b; API/persistence acceptance passes for pair/group/batch and browser proof is partial because local automation is unavailable.",
+      "proposed_status": "Done",
+      "status_reason": "PR #29 merged as a7038747cb493a5ca5139e24a9112f0d4bfd39ea; browser/API/persistence acceptance and exact-head CI passed; one unexplained settled 404 remains documented.",
       "dependency_keys": [
         "S4",
         "S5",
