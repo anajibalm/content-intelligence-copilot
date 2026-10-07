@@ -66,7 +66,7 @@ Penjelasan tiap tahap:
 
 - `README.md` — product, status, setup singkat, dan scope truth.
 - `CONTRIBUTING.md` — contribution, labels, Project status, verification, dan delivery.
-- `AGENTS.md` — domain invariants.
+- `AGENTS.md` — domain invariants, bahasa laporan, Hindsight/Obsidian, dan aturan proses mesin.
 - `VIBE_CODING_PROTOCOL.md` — workflow agent, snapshot, push, dan anti-loop.
 - `.node-version` — Node.js runtime pin untuk local/CI.
 - `.github/workflows/ci.yml` — lint, typecheck, tests, fixtures, build.
@@ -136,7 +136,7 @@ Solusi: satu snapshot checkpoint per logical delivery; jangan membuat commit han
 
 ## 5. SESSION BOOTSTRAP (WAJIB tiap mulai kerja)
 
-1. Baca `AGENTS.md`.
+1. Baca `AGENTS.md`, termasuk aturan bahasa, RECALL awal tugas, dan ownership proses mesin.
 2. Baca control docs CIC aktual: `docs/contracts/`, `docs/decisions/`, `docs/tracking/`.
 3. Baca `docs/source/IMPLEMENTATION_PLAN_v0.1.md`.
 4. Verifikasi `pwd`, branch, HEAD, upstream, staged files, dan status.
@@ -148,7 +148,7 @@ Solusi: satu snapshot checkpoint per logical delivery; jangan membuat commit han
 2. **Checkpoint berdasarkan acceptance:** laporkan setelah alur staging yang disyaratkan terbukti. Checks PASS saja belum berarti story selesai; acceptance yang belum terbukti tetap dicatat sebagai partial/blocked.
 3. **Satu review lengkap per checkpoint:** kumpulkan temuan penghalang acceptance sekaligus; kosmetik masuk backlog.
 4. **Review ulang hanya delta:** ulangi pemeriksaan yang terdampak perubahan, tetap jalankan required delivery checks. Koreksi kecil boleh dibuat reviewer; perubahan material dikerjakan OMP. Satu penulis aktif per branch, handoff eksplisit, dan author asli dipertahankan.
-5. **Integrasi dan rekonsiliasi:** setelah approval owner, integrasikan PR dan perbarui issue, Project custom `Tracking Status`, receipt, Hindsight, serta Obsidian dalam satu checkpoint. Memory mendukung konteks; frozen contracts tetap authority produk. Jika sinkronisasi gagal, catat gap tanpa mengarang keberhasilan.
+5. **Integrasi dan rekonsiliasi:** setelah approval owner, integrasikan PR dan perbarui issue, Project custom `Tracking Status`, receipt, Hindsight, serta Obsidian dalam satu checkpoint. Ikuti aturan memori `AGENTS.md`: RETAIN hanya konteks baru yang layak, paling banyak satu ringkasan per tugas/checkpoint; Obsidian diperbarui sekali per checkpoint. Memory mendukung konteks; frozen contracts tetap authority produk. Jika sinkronisasi gagal, catat gap tanpa mengarang keberhasilan.
 
 Tinjau efektivitas aturan ini setelah checkpoint S7 dari hambatan yang benar-benar terjadi; jangan menambah sistem governance atau review ulang tanpa perubahan relevan.
 
@@ -208,5 +208,5 @@ README, glossary, setup, FAQ, runbook, dan architecture entrypoints hanya meruju
 
 ---
 
-Terakhir diupdate: 2026-10-06
+Terakhir diupdate: 2026-10-07
 Maintainer: Najib (owner)
