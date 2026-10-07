@@ -76,8 +76,8 @@
     ]
   },
   "delivery": {
-    "tested_source_sha": "28be12dfe96a6ca69a8360957fa1b7cae3115800",
-    "exact_head_ci": "37559554211",
+    "tested_source_sha": "beba36cd9b3b6b650f79bca9b35803824c733176",
+    "exact_head_ci": "37559686447",
     "pr": "https://github.com/anajibalm/content-intelligence-copilot/pull/30",
     "pr_state": "OPEN",
     "merge": "not performed"
