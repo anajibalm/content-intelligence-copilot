@@ -13,7 +13,7 @@ Status labels reflect evidence available at tracking checkpoint, not historical 
 | S6 | Batch Workspace UI | P0 | Core MVP | Partial | Existing fixture shell only; runtime data surface remains open |
 | S7 | Controlled Compare | P0 | Core MVP | Blocked by S4,S5,S6 | Pair/group/batch scope, frozen snapshot IDs, explicit variables |
 | S8 | Evidence and hypothesis | P0 | Core MVP | Blocked by S4,S5,S7 | Provenance-linked evidence, deterministic confidence caps, cited hypotheses |
-| S9 | Analyst review and golden labels | P0 | Core MVP | Review | `lib/review/rules.ts`, review APIs/UI, additive migrations `0010_s9_review_golden_labels.sql` and `0011_s9_feature_review_history.sql`, golden fixture validator, npm test 89/89, synthetic Chromium 2/2 S9 and 6/6 S8; migration and feature review API evidence recorded, current staging browser smoke unavailable because port 3121 was not listening |
+| S9 | Analyst review and golden labels | P0 | Core MVP | Review | `lib/review/rules.ts`, review APIs/UI, additive migrations `0010_s9_review_golden_labels.sql` and `0011_s9_feature_review_history.sql`, golden fixture validator, `npm test` 89/89, synthetic Chromium 2/2 S9 and 6/6 S8, integrated staging 2/2, migration and feature review API evidence recorded; no production or real-brand claim |
 | S10 | Notes and Next Test | P0 | Core MVP | Blocked by S8,S9 | Structured data, owner/success metric/measurement window, persistence |
 | S11 | Ads CSV / paid enrichment | P1 | P1 Enhancements | Blocked by S5 | Import raw observations with Organic/Paid isolation and quality handling |
 | S12 | Consumer Says Lite | P1 | P1 Enhancements | Blocked by S6 | Positive/negative/neutral sentiment, sample guards, counts, quotes, empty state |
