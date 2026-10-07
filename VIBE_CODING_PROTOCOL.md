@@ -134,23 +134,27 @@ Solusi: satu snapshot checkpoint per logical delivery; jangan membuat commit han
 - Gunakan custom Project `Tracking Status`: Backlog, Ready, In Progress, Review, Blocked, Done.
 - Existing issue status, body, manifest, dan Project state tidak boleh saling berlawanan.
 
-## 5. SESSION BOOTSTRAP (WAJIB tiap mulai kerja)
+## 5. ATURAN AKTIF MVP DAN SESSION BOOTSTRAP
 
-1. Baca `AGENTS.md`, termasuk aturan bahasa, RECALL awal tugas, dan ownership proses mesin.
-2. Baca control docs CIC aktual: `docs/contracts/`, `docs/decisions/`, `docs/tracking/`.
-3. Baca `docs/source/IMPLEMENTATION_PLAN_v0.1.md`.
-4. Verifikasi `pwd`, branch, HEAD, upstream, staged files, dan status.
-5. Jika mismatch branch/HEAD atau perubahan unrelated ditemukan, preserve dan klasifikasikan; jangan reset, clean, atau stash otomatis.
-6. Hanya kerjakan task yang disetujui owner.
-### Aturan eksekusi dan review MVP
+Frozen contracts menentukan perilaku; issue menentukan scope dan acceptance; Git menentukan versi; receipt menyimpan bukti; custom Project `Tracking Status` menentukan tahap. Baca `AGENTS.md`, issue, contract relevan, dan delta sejak checkpoint. Verifikasi branch, tree, remote, dependency, runtime, provider, dan input nyata. Pertahankan perubahan lokal. Satu penulis aktif per branch; handoff eksplisit; author patch dipertahankan.
 
-1. **Preflight sebelum coding:** cek dependency, runtime, provider, dan input nyata yang diperlukan. Laporkan prerequisite yang belum tersedia; jangan membuat fallback yang memalsukan acceptance.
-2. **Checkpoint berdasarkan acceptance:** laporkan setelah alur staging yang disyaratkan terbukti. Checks PASS saja belum berarti story selesai; acceptance yang belum terbukti tetap dicatat sebagai partial/blocked.
-3. **Satu review lengkap per checkpoint:** kumpulkan temuan penghalang acceptance sekaligus; kosmetik masuk backlog.
-4. **Review ulang hanya delta:** ulangi pemeriksaan yang terdampak perubahan, tetap jalankan required delivery checks. Koreksi kecil boleh dibuat reviewer; perubahan material dikerjakan OMP. Satu penulis aktif per branch, handoff eksplisit, dan author asli dipertahankan.
-5. **Integrasi dan rekonsiliasi:** setelah approval owner, integrasikan PR dan perbarui issue, Project custom `Tracking Status`, receipt, Hindsight, serta Obsidian dalam satu checkpoint. Ikuti aturan memori `AGENTS.md`: RETAIN hanya konteks baru yang layak, paling banyak satu ringkasan per tugas/checkpoint; Obsidian diperbarui sekali per checkpoint. Memory mendukung konteks; frozen contracts tetap authority produk. Jika sinkronisasi gagal, catat gap tanpa mengarang keberhasilan.
+Setiap hasil acceptance wajib punya tes atau probe dan hasil yang dapat diperiksa. Bedakan synthetic/mock, integrated staging, real provider, dan production. Route mock bukan bukti integrasi. Input synthetic dalam staging wajib diberi label. Prerequisite belum tersedia berarti Blocked; checks green saja bukan acceptance.
 
-Tinjau efektivitas aturan ini setelah checkpoint S7 dari hambatan yang benar-benar terjadi; jangan menambah sistem governance atau review ulang tanpa perubahan relevan.
+Reviewer mengumpulkan temuan penghalang acceptance dalam satu review. Perbaikan kecil dapat dibuat reviewer setelah handoff; perubahan material dikerjakan OMP. Review ulang hanya delta terdampak; required delivery checks tetap berjalan. Kosmetik dan ide tambahan masuk backlog.
+
+Delivery memakai commit paths yang disetujui tanpa secrets, media, atau runtime artifacts. Push feature branch, pastikan local = remote, dan tunggu CI required pada HEAD PR terbaru. Receipt menunjuk SHA source yang diuji; jangan mengejar SHA receipt sendiri. `Review` berarti acceptance, staging, dan CI terpenuhi dengan PR belum merged. `Done` memerlukan approval owner, merge aktual, dan acceptance terpenuhi. Jangan kill 9router atau Hindsight.
+
+Per checkpoint buat satu receipt berisi H→bukti, tested SHA, command/count, artifact IDs, CI, batas, dan gap. PR menautkan receipt. Perbarui dan baca balik Project; issue hanya berubah bila scope/acceptance/dependency atau tautan receipt berubah. `PLAN_COVERAGE.md` hanya peta scope/dependency; jangan edit status manual. Obsidian mencatat keputusan/perjalanan pada integrasi atau batas sprint, satu kali per checkpoint. Hindsight memakai recall spesifik; retain maksimal sekali hanya konteks baru; queued ditulis pending tanpa retain ulang. Gangguan catatan/memori adalah gap administratif, bukan hasil acceptance aplikasi.
+
+Bootstrap wajib:
+1. Baca `AGENTS.md`, control docs CIC, dan `docs/source/IMPLEMENTATION_PLAN_v0.1.md`.
+2. Verifikasi `pwd`, branch, HEAD, upstream, staged files, tree, dan status.
+3. Preserve mismatch atau perubahan unrelated; jangan reset, clean, atau stash otomatis.
+4. Kerjakan hanya task yang disetujui owner.
+5. Sebelum coding, cek prerequisite nyata; jangan membuat fallback yang memalsukan acceptance.
+6. Setelah acceptance terbukti, jalankan required checks dan rekonsiliasi sekali.
+
+Required checks repo: `npm run lint`, `npm run typecheck`, `npm test`, `npm run validate:fixtures`, `npm run build`, `git diff --check`, serta staging/browser checks yang diwajibkan story.
 
 ---
 
