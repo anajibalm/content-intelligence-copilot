@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { HypothesisReviewControls } from "./review-panel";
 
 type Hypothesis = {
   id: string;
@@ -67,6 +68,7 @@ export default function HypothesisPanel({ batchId, comparisonId }: { batchId: st
       {result.confidenceCaps.length > 0 && <p className="notice">{result.confidenceCaps.map((cap) => `${cap.rule}: ${cap.reason}`).join(' · ')}</p>}
       {result.suggestedNextTest && <div><strong>Uji berikutnya yang disarankan</strong><pre>{JSON.stringify(result.suggestedNextTest, null, 2)}</pre></div>}
       <div><strong>Bukti</strong><ul>{result.evidence.map((item) => <li key={item.id}><span className="status">{item.role} · {item.layer} · {item.source_type}</span> {item.statement} {item.link && <a href={item.link}>Buka sumber exact</a>}</li>)}</ul></div>
+      <HypothesisReviewControls hypothesisId={result.id} />
     </div>}
   </section>;
 }

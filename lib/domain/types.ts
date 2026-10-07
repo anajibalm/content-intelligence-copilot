@@ -534,12 +534,19 @@ export interface ContentFeature {
   updatedAt: string;
 }
 
+/**
+ * Append-only feature review decision (DB trigger blocks UPDATE/DELETE).
+ * reasonCode is required when decision = 'REJECT' (DB CHECK); goldenLabel marks
+ * analyst-approved ground truth and is never allowed for a rejection (contract §11).
+ */
 export interface FeatureReview {
   id: FeatureReviewId;
   workspaceId: WorkspaceId;
   contentFeatureId: ContentFeatureId;
   extractionRunId: ExtractionRunId;
   decision: FeatureReviewDecision;
+  reasonCode: ReviewReason | null;
+  goldenLabel: boolean;
   reviewer: string;
   note: string | null;
   createdAt: string;
@@ -677,7 +684,9 @@ export interface HypothesisEvidence {
 
 /**
  * Append-only hypothesis review history (DB trigger blocks UPDATE/DELETE).
- * reasonCode is required when decision = 'REJECT' (DB CHECK).
+ * reasonCode is required when decision = 'REJECT' (DB CHECK). The hypothesis row
+ * itself is immutable, so an EDIT carries its statement here and the existing
+ * hypothesis_evidence links stay untouched.
  */
 export interface Review {
   id: ReviewId;
@@ -685,6 +694,8 @@ export interface Review {
   hypothesisId: HypothesisId;
   decision: HypothesisReviewDecision;
   reasonCode: ReviewReason | null;
+  editedStatement: string | null;
+  goldenLabel: boolean;
   note: string | null;
   reviewer: string;
   createdAt: string;

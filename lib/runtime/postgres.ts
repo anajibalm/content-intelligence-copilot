@@ -47,7 +47,8 @@ export interface DurableRuntime {
   claim(workerId: string, leaseMs: number): Promise<DurableJob | null>;
   runOne(workerId: string): Promise<DurableJob | null>;
   addAnchor(input: { contentId: string; frameId: string; note?: string }): Promise<void>;
-  reviewFeature(input: { contentFeatureId: string; decision: 'CONFIRM' | 'CORRECT' | 'REJECT'; reviewer: string; value?: string; reasonCode?: string; note?: string }): Promise<void>;
+  // Feature review lives in lib/review/postgres.ts (one rule path for content-level
+  // and single-feature decisions); the runtime owns processing jobs only.
   resolveArtifact(contentId: string, requestedFile: string): Promise<string | null>;
   toPublic(job: DurableJob): DurableJob;
   close(): Promise<void>;
@@ -353,42 +354,6 @@ export function createPostgresRuntime(options: PostgresRuntimeOptions): DurableR
 
   }
 
-  async function reviewFeature(input: { contentFeatureId: string; decision: 'CONFIRM' | 'CORRECT' | 'REJECT'; reviewer: string; value?: string; reasonCode?: string; note?: string }): Promise<void> {
-    const client = await pool.connect();
-    try {
-      await client.query('BEGIN');
-      const feature = await client.query<{ workspace_id: string; extraction_run_id: string; ai_value: string }>(
-        'SELECT workspace_id, extraction_run_id, ai_value FROM content_feature WHERE workspace_id = $1 AND id = $2 FOR UPDATE',
-        [options.workspaceId, input.contentFeatureId],
-      );
-      const row = feature.rows[0];
-      if (!row) throw new Error('content feature not found');
-      const reviewedValue = input.decision === 'CONFIRM' ? row.ai_value : input.decision === 'CORRECT' ? input.value : null;
-      if (input.decision === 'CORRECT' && !reviewedValue) throw new Error('corrected value is required');
-      if (input.decision === 'CORRECT') await client.query(
-        `INSERT INTO feature_correction (workspace_id, content_feature_id, extraction_run_id, original_ai_value, corrected_value, reason_code, note, reviewer)
-         VALUES ($1, $2, $3, $4, $5, $6::review_reason, $7, $8)`,
-        [row.workspace_id, input.contentFeatureId, row.extraction_run_id, row.ai_value, reviewedValue, input.reasonCode ?? 'OTHER', input.note ?? null, input.reviewer],
-      );
-      await client.query(
-        `INSERT INTO feature_review (workspace_id, content_feature_id, extraction_run_id, decision, reviewer, note)
-         VALUES ($1, $2, $3, $4::feature_review_decision, $5, $6)`,
-        [row.workspace_id, input.contentFeatureId, row.extraction_run_id, input.decision, input.reviewer, input.note ?? null],
-      );
-      await client.query(
-        `UPDATE content_feature SET reviewed_value = $1, review_state = $2::feature_review_state, updated_at = now()
-         WHERE workspace_id = $3 AND id = $4`,
-        [reviewedValue, input.decision === 'CONFIRM' ? 'CONFIRMED' : input.decision === 'CORRECT' ? 'CORRECTED' : 'REJECTED', options.workspaceId, input.contentFeatureId],
-      );
-      await client.query('COMMIT');
-    } catch (error) {
-      await client.query('ROLLBACK');
-      throw error;
-    } finally {
-      client.release();
-    }
-  }
-
   async function resolveArtifact(contentId: string, requestedFile: string): Promise<string | null> {
     const result = await pool.query<{ storage_path: string }>(
       `SELECT storage_path FROM video_frame WHERE workspace_id = $1 AND content_id = $2
@@ -440,7 +405,7 @@ export function createPostgresRuntime(options: PostgresRuntimeOptions): DurableR
     }
   }
 
-  return { enqueue, list, get, claim, runOne, recover, addAnchor, reviewFeature, resolveArtifact, close: () => pool.end(), toPublic: (job: DurableJob) => toPublicJob(job, options.storageRoot) };
+  return { enqueue, list, get, claim, runOne, recover, addAnchor, resolveArtifact, close: () => pool.end(), toPublic: (job: DurableJob) => toPublicJob(job, options.storageRoot) };
 }
 
 export interface RuntimeConfig {
