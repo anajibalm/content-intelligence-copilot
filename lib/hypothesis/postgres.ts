@@ -84,19 +84,25 @@ function sourceLink(batchId: string, contentId: string, sourceType?: string, sou
   return `/?batchId=${encodeURIComponent(batchId)}&contentId=${encodeURIComponent(contentId)}${anchor}`;
 }
 
-function parseModelOutput(value: unknown): HypothesisModelOutput {
+export function parseModelOutput(value: unknown): HypothesisModelOutput {
   const candidate = value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : null;
   if (!candidate) throw new HypothesisProviderError('provider returned a non-object response');
   const raw = candidate.choices && Array.isArray(candidate.choices) ? (candidate.choices[0] as Record<string, unknown> | undefined)?.message : candidate;
   const content = raw && typeof raw === 'object' ? (raw as Record<string, unknown>).content : raw;
-  if (typeof content === 'object' && content !== null) return content as HypothesisModelOutput;
-  if (typeof content !== 'string') throw new HypothesisProviderError('provider response did not contain structured JSON');
-  const cleaned = content.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
-  try {
-    return JSON.parse(cleaned) as HypothesisModelOutput;
-  } catch {
-    throw new HypothesisProviderError('provider returned malformed JSON');
-  }
+  let parsed: unknown;
+  if (typeof content === 'object' && content !== null) parsed = content;
+  else if (typeof content === 'string') {
+    const cleaned = content.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
+    try {
+      parsed = JSON.parse(cleaned);
+    } catch {
+      throw new HypothesisProviderError('provider returned malformed JSON');
+    }
+  } else throw new HypothesisProviderError('provider response did not contain structured JSON');
+  const output = parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed as HypothesisModelOutput : null;
+  if (!output) throw new HypothesisProviderError('provider returned a non-object response');
+  if (typeof output.suggested_next_test === 'string' && output.suggested_next_test.trim()) output.suggested_next_test = { action: output.suggested_next_test.trim() };
+  return output;
 }
 
 function catalogEvidence(workspaceId: string, batchId: string, comparisonId: string, items: ItemRow[], snapshots: Map<string, SnapshotRow>, sources: SourceRow[]): EvidenceCatalogItem[] {

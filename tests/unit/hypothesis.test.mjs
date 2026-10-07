@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { HYPOTHESIS_RULE_VERSION, evidenceCatalogId, validateHypothesis } from '../../lib/hypothesis/rules.ts';
+import { parseModelOutput } from '../../lib/hypothesis/postgres.ts';
 
 const evidence = [
   { id: 'metric-1', sourceType: 'METRIC_SNAPSHOT', sourceId: 'snapshot-1', workspaceId: 'workspace-1', batchId: 'batch-1', contentId: 'content-1', comparisonId: 'comparison-1', layer: 'OBSERVED', statement: 'OBSERVED views 1200', link: '/?batchId=batch-1&contentId=content-1#metric-snapshot-snapshot-1' },
@@ -34,6 +35,11 @@ test('invented, duplicate-role, and causal claims are rejected', () => {
 test('Indonesian certainty and empty suggestions are rejected', () => {
   assert.throws(() => validateHypothesis({ workspaceId: 'workspace-1', batchId: 'batch-1', comparisonId: 'comparison-1', comparisonQuality: 'HIGH', sampleSize: 3, primaryMetricQuality: 'VALID', modelOutput: output({ statement: 'Format ini pasti menyebabkan peningkatan views.' }), evidence }), /causal certainty/);
   assert.throws(() => validateHypothesis({ workspaceId: 'workspace-1', batchId: 'batch-1', comparisonId: 'comparison-1', comparisonQuality: 'HIGH', sampleSize: 3, primaryMetricQuality: 'VALID', modelOutput: output({ suggested_next_test: {} }), evidence }), /actionable object/);
+});
+
+test('provider string suggestion normalizes to actionable object', () => {
+  const result = parseModelOutput({ choices: [{ message: { content: JSON.stringify({ statement: 'Observed difference.', supporting_evidence_ids: ['metric-1'], contradicting_evidence_ids: [], contextual_evidence_ids: [], suggested_next_test: 'Ulangi dengan beberapa sampel valid.', confidence: 'LOW' }) } }] });
+  assert.deepEqual(result.suggested_next_test, { action: 'Ulangi dengan beberapa sampel valid.' });
 });
 
 test('wrong comparison and wrong source layer are rejected', () => {
