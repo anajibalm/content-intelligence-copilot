@@ -131,39 +131,44 @@ test.beforeEach(async ({ page }) => {
   page.on('console', (message) => { if (message.type() === 'error') throw new Error(`unexpected console error: ${message.text()}`); });
 });
 
-test('Confirm All, Correct fields, Reject All persist append-only review history', async ({ page }) => {
+test('Confirm All, Correct fields twice, Reject All persist append-only review history', async ({ page }) => {
   const api = await installReviewApi(page);
-  await page.goto(`/?batchId=${batchId}&contentId=${contents[0].id}`);
+  const contentId = contents[0].id;
+  await page.goto(`/?batchId=${batchId}&contentId=${contentId}`);
   await page.getByLabel('Reviewer').fill('analyst_confirm');
   await page.getByRole('button', { name: 'Confirm All' }).click();
   await expect(page.getByText('Review history (append-only)')).toBeVisible();
   await expect(page.getByText('CONFIRMED').first()).toBeVisible();
   await page.reload();
-  await expect(page.getByText('State: CONFIRMED').first()).toBeVisible();
-  expect(api.histories.get(contents[0].id)?.reviews).toHaveLength(2);
-
-  await page.goto(`/?batchId=${batchId}&contentId=${contents[1].id}`);
-  await page.getByLabel('Reviewer').fill('analyst_correct');
+  await page.getByLabel('Reviewer').fill('analyst_correct_a');
+  await expect(page.getByRole('button', { name: 'Correct fields' })).toBeEnabled();
   await page.getByRole('button', { name: 'Correct fields' }).click();
-  await page.locator(`#content-feature-s9-${contents[1].id}-topic .review-correction input`).fill('topic-corrected-A');
+  await page.locator(`#content-feature-s9-${contentId}-topic .review-correction input`).fill('topic-corrected-A');
+  await page.getByLabel('Mark as golden label (analyst ground truth)').check();
   await page.getByRole('button', { name: 'Save corrections' }).click();
-  await expect(page.getByText('CORRECTED').first()).toBeVisible();
-  await page.reload();
   await expect(page.getByText('AI original: topic-ai · Reviewed: topic-corrected-A · State: CORRECTED')).toBeVisible();
-  await page.getByLabel('Reviewer').fill('analyst_correct_again');
+  await page.getByLabel('Reviewer').fill('analyst_correct_b');
   await page.getByRole('button', { name: 'Correct fields' }).click();
-  await page.locator(`#content-feature-s9-${contents[1].id}-topic .review-correction input`).fill('topic-corrected-B');
+  await page.locator(`#content-feature-s9-${contentId}-topic .review-correction input`).fill('topic-corrected-B');
   await page.getByRole('button', { name: 'Save corrections' }).click();
   await expect(page.getByText('AI original: topic-ai · Reviewed: topic-corrected-B · State: CORRECTED')).toBeVisible();
-  expect(api.histories.get(contents[1].id)?.corrections.map((row) => row.correctedValue)).toEqual(['topic-corrected-A', 'topic-corrected-B']);
-  expect(api.histories.get(contents[1].id)?.corrections.every((row) => row.originalAiValue === 'topic-ai')).toBe(true);
+  await page.reload();
+  await expect(page.getByText('AI original: topic-ai · Reviewed: topic-corrected-B · State: CORRECTED')).toBeVisible();
+  expect(api.histories.get(contentId)?.reviews.map((row) => row.decision)).toEqual(['CONFIRM', 'CONFIRM', 'CORRECT', 'CORRECT']);
+  expect(api.histories.get(contentId)?.corrections.map((row) => row.correctedValue)).toEqual(['topic-corrected-A', 'topic-corrected-B']);
+  expect(api.histories.get(contentId)?.corrections.every((row) => row.originalAiValue === 'topic-ai')).toBe(true);
+  expect(api.histories.get(contentId)?.reviews.filter((row) => row.goldenLabel).map((row) => row.reviewedValue)).toEqual(['topic-corrected-A']);
+});
 
-  await page.goto(`/?batchId=${batchId}&contentId=${contents[2].id}`);
+test('Reject All keeps explicit reason on separate same-content fixture', async ({ page }) => {
+  const api = await installReviewApi(page);
+  const contentId = contents[2].id;
+  await page.goto(`/?batchId=${batchId}&contentId=${contentId}`);
   await page.getByLabel('Reviewer').fill('analyst_reject');
   await page.getByLabel('Reject reason (required for Reject All)').selectOption('WRONG_CLASSIFICATION');
   await page.getByRole('button', { name: 'Reject All' }).click();
   await expect(page.getByText('REJECTED').first()).toBeVisible();
-  expect(api.histories.get(contents[2].id)?.reviews.every((review) => review.reasonCode === 'WRONG_CLASSIFICATION')).toBe(true);
+  expect(api.histories.get(contentId)?.reviews.every((review) => review.reasonCode === 'WRONG_CLASSIFICATION')).toBe(true);
 });
 
 test('Approve, Edit, Reject hypothesis controls persist reviewed statement after reload', async ({ page }) => {

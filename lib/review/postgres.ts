@@ -267,7 +267,7 @@ export function createReviewRepository(config: ReviewRepositoryConfig): ReviewRe
           reasonCode: entry.reasonCode,
           note: input.note,
           reviewer: input.reviewer,
-          goldenLabel: input.goldenLabel,
+          goldenLabel: input.goldenLabel && entry.decision === 'CORRECT',
         }));
       }
       await client.query('COMMIT');
