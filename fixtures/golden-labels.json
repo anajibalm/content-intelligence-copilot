@@ -1,9 +1,9 @@
 {
   "golden_set": {
     "version": "golden-v0.1",
+    "evaluation_fixture": "synthetic",
     "labelled_before_ai_output": true,
-    "protocol": "Analyst labelled every fingerprint field from the raw video before any AI extraction output was shown.",
-    "reviewer": "analyst_barakat_01",
+    "protocol": "Synthetic evaluation fixture: planned blind-label protocol records labels before AI comparison; no human labeling receipt claimed.",
     "source": {
       "extraction_fixture": "extraction.json",
       "extraction_run_id": "exr_barakat_008_01_run_1",

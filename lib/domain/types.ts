@@ -546,6 +546,7 @@ export interface FeatureReview {
   extractionRunId: ExtractionRunId;
   decision: FeatureReviewDecision;
   reasonCode: ReviewReason | null;
+  reviewedValue: string | null;
   goldenLabel: boolean;
   reviewer: string;
   note: string | null;
@@ -695,6 +696,7 @@ export interface Review {
   decision: HypothesisReviewDecision;
   reasonCode: ReviewReason | null;
   editedStatement: string | null;
+  reviewedStatement: string;
   goldenLabel: boolean;
   note: string | null;
   reviewer: string;

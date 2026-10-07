@@ -24,6 +24,7 @@ export interface FeatureReviewRecord {
   fieldName: string;
   decision: FeatureReviewDecision;
   reasonCode: ReviewReason | null;
+  reviewedValue: string | null;
   goldenLabel: boolean;
   reviewer: string;
   note: string | null;
@@ -71,6 +72,7 @@ export interface HypothesisReviewRecord {
   decision: HypothesisReviewDecision;
   reasonCode: ReviewReason | null;
   editedStatement: string | null;
+  reviewedStatement: string;
   goldenLabel: boolean;
   reviewer: string;
   note: string | null;
@@ -101,12 +103,12 @@ type FeatureReviewRow = {
   field_name: string;
   decision: FeatureReviewDecision;
   reason_code: ReviewReason | null;
+  reviewed_value: string | null;
   golden_label: boolean;
   reviewer: string;
   note: string | null;
   created_at: string;
 };
-
 type FeatureCorrectionRow = {
   id: string;
   content_feature_id: string;
@@ -126,12 +128,12 @@ type HypothesisReviewRow = {
   decision: HypothesisReviewDecision;
   reason_code: ReviewReason | null;
   edited_statement: string | null;
+  reviewed_statement: string;
   golden_label: boolean;
   reviewer: string;
   note: string | null;
   created_at: string;
 };
-
 const FEATURE_COLUMNS = 'id, field_name, ai_value, reviewed_value, review_state, extraction_run_id';
 
 export function reviewConfigFromEnv(): ReviewRepositoryConfig {
@@ -149,6 +151,7 @@ function featureReviewRecord(row: FeatureReviewRow): FeatureReviewRecord {
     fieldName: row.field_name,
     decision: row.decision,
     reasonCode: row.reason_code,
+    reviewedValue: row.reviewed_value,
     goldenLabel: row.golden_label,
     reviewer: row.reviewer,
     note: row.note,
@@ -178,6 +181,7 @@ function hypothesisReviewRecord(row: HypothesisReviewRow): HypothesisReviewRecor
     decision: row.decision,
     reasonCode: row.reason_code,
     editedStatement: row.edited_statement,
+    reviewedStatement: row.reviewed_statement,
     goldenLabel: row.golden_label,
     reviewer: row.reviewer,
     note: row.note,
@@ -208,9 +212,9 @@ export function createReviewRepository(config: ReviewRepositoryConfig): ReviewRe
       );
     }
     await client.query(
-      `INSERT INTO feature_review (workspace_id, content_feature_id, extraction_run_id, decision, reason_code, golden_label, reviewer, note)
-       VALUES ($1, $2, $3, $4::feature_review_decision, $5::review_reason, $6, $7, $8)`,
-      [config.workspaceId, feature.id, feature.extraction_run_id, input.decision, reasonCode, input.goldenLabel, input.reviewer, input.note],
+      `INSERT INTO feature_review (workspace_id, content_feature_id, extraction_run_id, decision, reason_code, reviewed_value, golden_label, reviewer, note)
+       VALUES ($1, $2, $3, $4::feature_review_decision, $5::review_reason, $6, $7, $8, $9)`,
+      [config.workspaceId, feature.id, feature.extraction_run_id, input.decision, reasonCode, reviewedValue, input.goldenLabel, input.reviewer, input.note],
     );
     const reviewState = featureReviewStateFor(input.decision);
     await client.query(
@@ -276,10 +280,7 @@ export function createReviewRepository(config: ReviewRepositoryConfig): ReviewRe
     }
   }
 
-  /**
-   * Single-feature review with the same rules as the content-level path: only an
-   * unreviewed feature is decided, so a decision is never silently overwritten.
-   */
+  /** Single-feature review appends a new event and updates current projection. */
   async function reviewFeature(contentFeatureId: string, rawInput: Record<string, unknown>): Promise<ContentReviewDecision> {
     const input: FeatureReviewInput = validateFeatureReviewInput(rawInput);
     const client = await pool.connect();
@@ -288,7 +289,6 @@ export function createReviewRepository(config: ReviewRepositoryConfig): ReviewRe
       const found = await client.query<FeatureRow>(`SELECT ${FEATURE_COLUMNS} FROM content_feature WHERE workspace_id = $1 AND id = $2 FOR UPDATE`, [config.workspaceId, contentFeatureId]);
       const feature = found.rows[0];
       if (!feature) throw new ReviewNotFoundError('content feature not found in workspace');
-      if (feature.review_state !== 'UNREVIEWED') throw new ReviewValidationError(`content feature is already ${feature.review_state} and cannot be reviewed again`);
       const decision = await applyFeatureReview(client, feature, input);
       await client.query('COMMIT');
       return decision;
@@ -306,7 +306,7 @@ export function createReviewRepository(config: ReviewRepositoryConfig): ReviewRe
     if (!content.rows[0]) throw new ReviewNotFoundError('content not found in workspace');
     const [reviews, corrections] = await Promise.all([
       pool.query<FeatureReviewRow>(
-        `SELECT fr.id, fr.content_feature_id, fr.extraction_run_id, cf.field_name, fr.decision, fr.reason_code, fr.golden_label, fr.reviewer, fr.note, fr.created_at
+        `SELECT fr.id, fr.content_feature_id, fr.extraction_run_id, cf.field_name, fr.decision, fr.reason_code, fr.reviewed_value, fr.golden_label, fr.reviewer, fr.note, fr.created_at
          FROM feature_review fr JOIN content_feature cf ON cf.id = fr.content_feature_id
          WHERE fr.workspace_id = $1 AND cf.content_id = $2 ORDER BY fr.created_at, fr.id`,
         [config.workspaceId, contentId],
@@ -331,15 +331,27 @@ export function createReviewRepository(config: ReviewRepositoryConfig): ReviewRe
     if (typeof rawId !== 'string' || rawId.trim().length === 0) throw new ReviewValidationError('hypothesisId is required');
     const hypothesisId = rawId.trim();
     const input = validateHypothesisReviewInput(rawInput);
-    const hypothesis = await pool.query<{ id: string }>('SELECT id FROM hypothesis WHERE workspace_id = $1 AND id = $2', [config.workspaceId, hypothesisId]);
-    if (!hypothesis.rows[0]) throw new ReviewNotFoundError('hypothesis not found in workspace');
-    const inserted = await pool.query<HypothesisReviewRow>(
-      `INSERT INTO review (workspace_id, hypothesis_id, decision, reason_code, edited_statement, golden_label, note, reviewer)
-       VALUES ($1, $2, $3::hypothesis_review_decision, $4::review_reason, $5, $6, $7, $8)
-       RETURNING id, hypothesis_id, decision, reason_code, edited_statement, golden_label, reviewer, note, created_at`,
-      [config.workspaceId, hypothesisId, input.decision, input.reasonCode, input.editedStatement, input.goldenLabel, input.note, input.reviewer],
-    );
-    return hypothesisReviewRecord(inserted.rows[0]);
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      const hypothesis = await client.query<{ id: string; statement: string }>('SELECT id, statement FROM hypothesis WHERE workspace_id = $1 AND id = $2 FOR UPDATE', [config.workspaceId, hypothesisId]);
+      if (!hypothesis.rows[0]) throw new ReviewNotFoundError('hypothesis not found in workspace');
+      const previous = await client.query<{ reviewed_statement: string }>('SELECT reviewed_statement FROM review WHERE workspace_id = $1 AND hypothesis_id = $2 ORDER BY created_at DESC, id DESC LIMIT 1', [config.workspaceId, hypothesisId]);
+      const reviewedStatement = input.editedStatement ?? previous.rows[0]?.reviewed_statement ?? hypothesis.rows[0].statement;
+      const inserted = await client.query<HypothesisReviewRow>(
+        `INSERT INTO review (workspace_id, hypothesis_id, decision, reason_code, edited_statement, reviewed_statement, golden_label, note, reviewer)
+         VALUES ($1, $2, $3::hypothesis_review_decision, $4::review_reason, $5, $6, $7, $8, $9)
+         RETURNING id, hypothesis_id, decision, reason_code, edited_statement, reviewed_statement, golden_label, reviewer, note, created_at`,
+        [config.workspaceId, hypothesisId, input.decision, input.reasonCode, input.editedStatement, reviewedStatement, input.goldenLabel, input.note, input.reviewer],
+      );
+      await client.query('COMMIT');
+      return hypothesisReviewRecord(inserted.rows[0]);
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
   }
 
   /** Append-only hypothesis review history, oldest first. */
@@ -347,7 +359,7 @@ export function createReviewRepository(config: ReviewRepositoryConfig): ReviewRe
     const hypothesis = await pool.query<{ id: string }>('SELECT id FROM hypothesis WHERE workspace_id = $1 AND id = $2', [config.workspaceId, hypothesisId]);
     if (!hypothesis.rows[0]) throw new ReviewNotFoundError('hypothesis not found in workspace');
     const rows = await pool.query<HypothesisReviewRow>(
-      `SELECT id, hypothesis_id, decision, reason_code, edited_statement, golden_label, reviewer, note, created_at
+      `SELECT id, hypothesis_id, decision, reason_code, edited_statement, reviewed_statement, golden_label, reviewer, note, created_at
        FROM review WHERE workspace_id = $1 AND hypothesis_id = $2 ORDER BY created_at, id`,
       [config.workspaceId, hypothesisId],
     );

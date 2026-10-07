@@ -95,6 +95,8 @@ export default function WorkspaceClient() {
     const query = new URLSearchParams();
     if (nextBatchId) query.set("batchId", nextBatchId);
     if (nextContentId) query.set("contentId", nextContentId);
+    const persistedHypothesisId = new URLSearchParams(window.location.search).get("hypothesisId");
+    if (persistedHypothesisId) query.set("hypothesisId", persistedHypothesisId);
     const nextUrl = `${window.location.pathname}${query.size ? `?${query}` : ""}`;
     window.history[replace ? "replaceState" : "pushState"]({}, "", nextUrl);
     setBatchId(nextBatchId);

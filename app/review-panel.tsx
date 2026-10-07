@@ -4,12 +4,10 @@ import { useEffect, useRef, useState } from "react";
 import { REVIEW_REASONS, type ReviewReason } from "../lib/domain/types.ts";
 
 type Feature = { id: string; extractionRunId: string; fieldName: string; aiValue: string; reviewedValue: string | null; reviewState: string };
-type FeatureReviewRecord = { id: string; contentFeatureId: string; extractionRunId: string; fieldName: string; decision: string; reasonCode: ReviewReason | null; goldenLabel: boolean; reviewer: string; note: string | null; createdAt: string };
+type FeatureReviewRecord = { id: string; contentFeatureId: string; extractionRunId: string; fieldName: string; decision: string; reasonCode: ReviewReason | null; reviewedValue: string | null; goldenLabel: boolean; reviewer: string; note: string | null; createdAt: string };
 type FeatureCorrectionRecord = { id: string; contentFeatureId: string; extractionRunId: string; fieldName: string; originalAiValue: string; correctedValue: string; reasonCode: ReviewReason; reviewer: string; note: string | null; createdAt: string };
 type ContentReviewHistory = { contentId: string; reviews: FeatureReviewRecord[]; corrections: FeatureCorrectionRecord[] };
-type HypothesisReviewRecord = { id: string; hypothesisId: string; decision: string; reasonCode: ReviewReason | null; editedStatement: string | null; goldenLabel: boolean; reviewer: string; note: string | null; createdAt: string };
-
-/** Reviewer identity, note, and golden-label consent are required on every decision for traceability. */
+type HypothesisReviewRecord = { id: string; hypothesisId: string; decision: string; reasonCode: ReviewReason | null; editedStatement: string | null; reviewedStatement: string; goldenLabel: boolean; reviewer: string; note: string | null; createdAt: string };
 function ReviewMeta({ reviewer, setReviewer, note, setNote, goldenLabel, setGoldenLabel }: {
   reviewer: string;
   setReviewer: (value: string) => void;
@@ -71,8 +69,8 @@ export function FeatureReviewPanel({ contentId, features, onReviewed }: { conten
 
   const unreviewed = features.filter((feature) => feature.reviewState === "UNREVIEWED");
   const correctionEntries = Object.entries(corrections).filter(([, value]) => value.trim().length > 0);
-  const blocked = pending || reviewer.trim().length === 0 || unreviewed.length === 0;
-
+  const blocked = pending || reviewer.trim().length === 0 || features.length === 0;
+  const confirmBlocked = blocked || unreviewed.length === 0;
   async function submit(decision: "CONFIRM" | "CORRECT" | "REJECT") {
     if (blocked) return;
     const currentRequest = ++requestId.current;
@@ -125,8 +123,8 @@ export function FeatureReviewPanel({ contentId, features, onReviewed }: { conten
     <dl>{features.map((feature) => <div id={`content-feature-${feature.id}`} key={feature.id}>
       <dt>{feature.fieldName}</dt>
       <dd>AI original: {feature.aiValue} · Reviewed: {feature.reviewedValue ?? "unreviewed"} · State: {feature.reviewState}</dd>
-      {mode === "CORRECT" && feature.reviewState === "UNREVIEWED" && <dd className="review-correction">
-        <label>Corrected value<input value={corrections[feature.id] ?? ""} onChange={(event) => setCorrections((current) => ({ ...current, [feature.id]: event.target.value }))} placeholder="Leave empty to confirm the AI original" /></label>
+      {mode === "CORRECT" && <dd className="review-correction">
+        <label>Corrected value<input value={corrections[feature.id] ?? ""} onChange={(event) => setCorrections((current) => ({ ...current, [feature.id]: event.target.value }))} placeholder="Leave empty to keep current reviewed value" /></label>
         <ReasonSelect label="Correction reason" value={correctionReasons[feature.id] ?? ""} onChange={(value) => setCorrectionReasons((current) => ({ ...current, [feature.id]: value }))} />
       </dd>}
     </div>)}</dl>
@@ -135,7 +133,7 @@ export function FeatureReviewPanel({ contentId, features, onReviewed }: { conten
       <ReviewMeta reviewer={reviewer} setReviewer={setReviewer} note={note} setNote={setNote} goldenLabel={goldenLabel} setGoldenLabel={setGoldenLabel} />
       <ReasonSelect label="Reject reason (required for Reject All)" value={reasonCode} onChange={setReasonCode} />
       <div className="review-actions">
-        <button type="button" onClick={() => submit("CONFIRM")} disabled={blocked}>{pending ? "Saving…" : "Confirm All"}</button>
+        <button type="button" onClick={() => submit("CONFIRM")} disabled={confirmBlocked}>{pending ? "Saving…" : "Confirm All"}</button>
         <button type="button" onClick={() => setMode(mode === "CORRECT" ? "IDLE" : "CORRECT")} disabled={blocked}>{mode === "CORRECT" ? "Cancel corrections" : "Correct fields"}</button>
         {mode === "CORRECT" && <button type="button" onClick={() => submit("CORRECT")} disabled={blocked || correctionEntries.length === 0}>{pending ? "Saving…" : "Save corrections"}</button>}
         <button type="button" onClick={() => submit("REJECT")} disabled={blocked || reasonCode === ""}>{pending ? "Saving…" : "Reject All"}</button>
@@ -234,8 +232,10 @@ export function HypothesisReviewControls({ hypothesisId }: { hypothesisId: strin
     }
   }
 
+  const latestReviewedStatement = reviews.reduce<string | null>((value, review) => review.reviewedStatement || review.editedStatement || value, null);
   return <div className="review-panel">
     <div className="section-heading"><div><p className="eyebrow">S9 / HYPOTHESIS REVIEW</p><h3>Review hypothesis</h3></div><span className="status">{reviews.length} review record{reviews.length === 1 ? "" : "s"}</span></div>
+    {latestReviewedStatement && <p className="notice">Current reviewed statement: {latestReviewedStatement}</p>}
     <ReviewMeta reviewer={reviewer} setReviewer={setReviewer} note={note} setNote={setNote} goldenLabel={goldenLabel} setGoldenLabel={setGoldenLabel} />
     <ReasonSelect label="Reject reason (required for Reject)" value={reasonCode} onChange={setReasonCode} />
     {mode === "EDIT" && <label>Edited statement<textarea value={editedStatement} onChange={(event) => setEditedStatement(event.target.value)} rows={3} placeholder="Rewritten working insight; evidence links stay untouched" /></label>}

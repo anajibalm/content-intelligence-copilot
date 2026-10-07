@@ -174,31 +174,29 @@ export function validateContentReviewInput(input: Record<string, unknown>): Cont
 }
 
 /**
- * Deterministic plan for one selected extraction run. Existing decisions stay
- * untouched; only UNREVIEWED features enter new review history.
+ * Explicit review events may correct or reject prior decisions. Confirm only
+ * fills unreviewed features; it never resets an existing reviewed projection.
  */
 export function planContentReview(features: readonly ReviewableFeature[], input: ContentReviewInput): PlannedFeatureReview[] {
-  const unreviewed = features.filter((feature) => feature.reviewState === 'UNREVIEWED');
   const byId = new Map(features.map((feature) => [feature.id, feature]));
   const corrected = new Map<string, { value: string; reasonCode: ReviewReason | null }>();
   for (const correction of input.corrections) {
     const feature = byId.get(correction.contentFeatureId);
     if (!feature) throw new ReviewNotFoundError(`content feature ${correction.contentFeatureId} is not part of this content`);
-    if (feature.reviewState !== 'UNREVIEWED') throw new ReviewValidationError(`content feature ${correction.contentFeatureId} is already ${feature.reviewState} and cannot be corrected again`);
     corrected.set(correction.contentFeatureId, { value: correction.value, reasonCode: correction.reasonCode });
   }
+  const planned: PlannedFeatureReview[] = [];
   if (input.decision === 'CORRECT') {
-    return unreviewed.map((feature) => {
+    for (const feature of features) {
       const correction = corrected.get(feature.id);
-      return correction
-        ? { contentFeatureId: feature.id, decision: 'CORRECT' as const, value: correction.value, reasonCode: correction.reasonCode ?? input.reasonCode }
-        : { contentFeatureId: feature.id, decision: 'CONFIRM' as const, value: feature.aiValue, reasonCode: null };
-    });
+      if (correction) planned.push({ contentFeatureId: feature.id, decision: 'CORRECT', value: correction.value, reasonCode: correction.reasonCode ?? input.reasonCode });
+      else if (feature.reviewState === 'UNREVIEWED') planned.push({ contentFeatureId: feature.id, decision: 'CONFIRM', value: feature.aiValue, reasonCode: null });
+    }
+    return planned;
   }
-  return unreviewed.map((feature) => ({
-    contentFeatureId: feature.id,
-    decision: input.decision,
-    value: input.decision === 'CONFIRM' ? feature.aiValue : null,
-    reasonCode: input.decision === 'REJECT' ? input.reasonCode : null,
-  }));
+  for (const feature of features) {
+    if (input.decision === 'CONFIRM' && feature.reviewState !== 'UNREVIEWED') continue;
+    planned.push({ contentFeatureId: feature.id, decision: input.decision, value: input.decision === 'CONFIRM' ? feature.aiValue : null, reasonCode: input.decision === 'REJECT' ? input.reasonCode : null });
+  }
+  return planned;
 }

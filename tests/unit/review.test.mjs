@@ -15,9 +15,9 @@ const reviewer = 'analyst_01';
 const reasonCode = 'WRONG_CLASSIFICATION';
 const extractionRunId = 'run-1';
 const features = [
-  { id: 'f1', aiValue: 'topic_a', reviewState: 'UNREVIEWED' },
-  { id: 'f2', aiValue: 'format_a', reviewState: 'UNREVIEWED' },
-  { id: 'f3', aiValue: 'already_reviewed', reviewState: 'CONFIRMED' },
+  { id: 'f1', aiValue: 'topic_a', reviewedValue: null, reviewState: 'UNREVIEWED' },
+  { id: 'f2', aiValue: 'format_a', reviewedValue: null, reviewState: 'UNREVIEWED' },
+  { id: 'f3', aiValue: 'already_reviewed', reviewedValue: 'old_value', reviewState: 'CONFIRMED' },
 ];
 
 function rejects(fn, ErrorType = ReviewValidationError) {
@@ -74,12 +74,6 @@ test('content review plan confirms untouched AI originals and never rewrites rev
     { contentFeatureId: 'f1', decision: 'CORRECT', value: 'topic_corrected', reasonCode },
     { contentFeatureId: 'f2', decision: 'CONFIRM', value: 'format_a', reasonCode: null },
   ]);
-  rejects(() => planContentReview(features, validateContentReviewInput({
-    decision: 'CORRECT',
-    reviewer,
-    extractionRunId,
-    corrections: [{ contentFeatureId: 'f3', value: 'bad', reasonCode }],
-  })));
   rejects(() => planContentReview(features, {
     decision: 'CONFIRM',
     reviewer,
@@ -88,4 +82,15 @@ test('content review plan confirms untouched AI originals and never rewrites rev
     goldenLabel: false,
     corrections: [{ contentFeatureId: 'missing', value: 'bad', reasonCode: null }],
   }), ReviewNotFoundError);
+});
+
+test('content review permits correction A to B and preserves previous event semantics', () => {
+  const first = validateContentReviewInput({ decision: 'CORRECT', reviewer, extractionRunId, corrections: [{ contentFeatureId: 'f3', value: 'corrected_a', reasonCode }] });
+  const second = validateContentReviewInput({ decision: 'CORRECT', reviewer, extractionRunId, corrections: [{ contentFeatureId: 'f3', value: 'corrected_b', reasonCode }] });
+  assert.deepEqual(planContentReview(features, first), [
+    { contentFeatureId: 'f1', decision: 'CONFIRM', value: 'topic_a', reasonCode: null },
+    { contentFeatureId: 'f2', decision: 'CONFIRM', value: 'format_a', reasonCode: null },
+    { contentFeatureId: 'f3', decision: 'CORRECT', value: 'corrected_a', reasonCode },
+  ]);
+  assert.deepEqual(planContentReview([{ ...features[2], reviewedValue: 'corrected_a', reviewState: 'CORRECTED' }], second), [{ contentFeatureId: 'f3', decision: 'CORRECT', value: 'corrected_b', reasonCode }]);
 });
