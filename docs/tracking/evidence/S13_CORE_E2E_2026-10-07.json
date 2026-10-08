@@ -162,11 +162,11 @@
   },
   "delivery": {
     "branch": "task/14",
-    "tested_source_sha": "c69ef8bbf72a8a2d4cccca752a525dbc9e462c33",
+    "tested_source_sha": "a409c0b80fbe793b5f69a1f9cc2cf53ca61815754",
     "receipt_path": "docs/tracking/evidence/S13_CORE_E2E_2026-10-07.json",
     "human_packet_paths": ["docs/tracking/evidence/S13_HUMAN_EVALUATION_PACKET_2026-10-08.csv", "docs/tracking/evidence/S13_HUMAN_EVALUATION_PACKET_2026-10-08.md"],
     "pr": "https://github.com/anajibalm/content-intelligence-copilot/pull/33",
-    "ci": "previous Build & Test PASS run 37708355929 verified source HEAD c69ef8bbf72a8a2d4cccca752a525dbc9e462c33; stability receipt delta awaits CI",
+    "ci": "Build & Test PASS; run 37709431254 verified source HEAD a409c0b80fbe793b5f69a1f9cc2cf53ca61815754",
     "project_status": "Blocked: H1 primary E2E PASS and H2 packet ready; actual blind human labeling and C1 owner decision pending",
     "c1_v02_freeze": "PENDING explicit product decision C1 #17; no freeze performed",
     "merge": "not performed"
