@@ -1,5 +1,5 @@
 {
-  "evidence_date": "2026-10-07",
+  "evidence_date": "2026-10-08",
   "story": "S13",
   "status": "Blocked",
   "baseline": {
@@ -81,8 +81,68 @@
     "human_packet_fields_per_video": 13,
     "human_packet_labels": "EMPTY pending evaluator; no AI answers, reviewed answers, or model confidence included",
     "human_packet_format": "13 plain label columns plus reviewer, labelled_at_utc, and notes; one blind human pass",
-    "human_packet_stability": "Repeat model extraction on a subset of videos with comparable input/model/prompt/schema; no second blind human labeling pass required",
-    "model_stability_status": "PENDING: comparable extraction run IDs and per-field stable/unstable results not supplied in this packet",
+    "human_packet_stability": "Repeat model extraction on a subset of videos with comparable input/model/prompt/schema; no second blind human labeling pass required; evidence recorded in model_stability",
+    "model_stability": {
+      "status": "PASS: two controlled repeat pairs on two Barakat videos; each pair reused persisted transcript/frame input; no acquisition or transcription rerun",
+      "subset_size": 2,
+      "fields_per_video": 13,
+      "comparison": "exact string equality per field; stable means identical AI value, unstable means different AI value",
+      "videos": [
+        {
+          "content_id": "c338b3f5-b451-4f69-bc66-7e1b7d29a298",
+          "extraction_run_ids": ["906f9c32-06b6-4d4a-a1a9-caa03559d388", "ec1133ec-696e-4f39-b6ef-e32e7ed7c62a"],
+          "input_hashes": ["sha256:17f62dcc6970b61f5bd48698f35782cef5d547731a0bf6d659e4b25746fb339c", "sha256:17f62dcc6970b61f5bd48698f35782cef5d547731a0bf6d659e4b25746fb339c"],
+          "input_hash_equal": true,
+          "provider": "9router",
+          "model": "cx/gpt-5.6-luna",
+          "prompt_version": "fingerprint-v0.1",
+          "schema_version": "fingerprint-v0.1",
+          "run_status": ["SUCCEEDED", "SUCCEEDED"],
+          "fields": {
+            "topic": {"status": "unstable", "run_1": "Dampak kurma terhadap risiko gigi berlubang dan perawatan gigi", "run_2": "Kurma dan risiko gigi berlubang"},
+            "format": {"status": "unstable", "run_1": "Video pendek vertikal dengan presenter berbicara langsung ke kamera", "run_2": "Video pendek vertikal edukasi dengan talking head"},
+            "hook_type": {"status": "stable", "run_1": "Pertanyaan provokatif", "run_2": "Pertanyaan provokatif"},
+            "hook_subject": {"status": "unstable", "run_1": "Kurma dan risiko gigi berlubang", "run_2": "Kurma"},
+            "talent_type": {"status": "stable", "run_1": "Presenter pria tunggal", "run_2": "Presenter pria tunggal"},
+            "talent_familiarity": {"status": "unstable", "run_1": "Tidak dapat dipastikan dari bukti tersedia", "run_2": "Tidak dapat dipastikan dari metadata"},
+            "opening_style": {"status": "unstable", "run_1": "Close-up kurma lalu presenter memegang kurma dengan teks pertanyaan", "run_2": "Presenter memegang kurma dan menantang kepercayaan penonton"},
+            "pacing": {"status": "unstable", "run_1": "Sedang hingga cepat dengan beberapa perpindahan adegan", "run_2": "Sedang hingga cepat"},
+            "narrative_structure": {"status": "unstable", "run_1": "Masalah kesehatan, penjelasan singkat, solusi produk, pertanyaan penutup", "run_2": "Hook, penjelasan risiko, saran perawatan, promosi produk, pertanyaan penutup"},
+            "emotional_trigger": {"status": "stable", "run_1": "Kekhawatiran terhadap kesehatan gigi", "run_2": "Kekhawatiran terhadap kesehatan gigi"},
+            "tension_type": {"status": "unstable", "run_1": "Risiko gigi berlubang akibat makanan lengket atau manis", "run_2": "Kontradiksi antara makanan sehat dan risiko gigi berlubang"},
+            "product_placement": {"status": "unstable", "run_1": "Pasta gigi ditampilkan sebagai solusi perawatan gigi, merek tidak terlihat jelas", "run_2": "Pasta gigi herbal ditampilkan sebagai solusi"},
+            "cta_type": {"status": "unstable", "run_1": "Pertanyaan ajakan berinteraksi", "run_2": "Pertanyaan retoris untuk mendorong respons penonton"}
+          }
+        },
+        {
+          "content_id": "aa3c553e-681d-4cb5-bfab-a185e4f6cb9b",
+          "extraction_run_ids": ["73c9d4df-c611-4443-8b08-9ab7fc60dd75", "1c78ec32-3622-41ea-ab67-74629f2c57b5"],
+          "input_hashes": ["sha256:d12194dd5d0b1113df691afc63f42108515f89fd7f30a2ca14e2113b6fb69249", "sha256:d12194dd5d0b1113df691afc63f42108515f89fd7f30a2ca14e2113b6fb69249"],
+          "input_hash_equal": true,
+          "provider": "9router",
+          "model": "cx/gpt-5.6-luna",
+          "prompt_version": "fingerprint-v0.1",
+          "schema_version": "fingerprint-v0.1",
+          "run_status": ["SUCCEEDED", "SUCCEEDED"],
+          "fields": {
+            "topic": {"status": "unstable", "run_1": "Pasta gigi alami untuk kesehatan gigi dan gusi", "run_2": "Pasta gigi berbahan alami untuk kesehatan gigi dan gusi"},
+            "format": {"status": "unstable", "run_1": "Iklan video pendek vertikal dengan presenter berbicara ke kamera", "run_2": "Iklan produk gaya talking-head vertikal"},
+            "hook_type": {"status": "unstable", "run_1": "Pertanyaan yang menantang asumsi penonton", "run_2": "Pertanyaan menantang"},
+            "hook_subject": {"status": "unstable", "run_1": "Anggapan bahwa semua pasta gigi sama", "run_2": "Anggapan semua pasta gigi sama"},
+            "talent_type": {"status": "unstable", "run_1": "Presenter pria berbicara langsung ke kamera", "run_2": "Pembuat konten pria"},
+            "talent_familiarity": {"status": "unstable", "run_1": "Tidak dapat dipastikan dari bukti tersedia", "run_2": "Tidak dapat dipastikan dari bukti yang tersedia"},
+            "opening_style": {"status": "unstable", "run_1": "Pembukaan langsung dengan pertanyaan retoris dan teks layar", "run_2": "Pembicara menghadap kamera dengan pertanyaan langsung"},
+            "pacing": {"status": "unstable", "run_1": "Sedang dengan beberapa perpindahan adegan", "run_2": "Sedang hingga cepat"},
+            "narrative_structure": {"status": "unstable", "run_1": "Masalah kesehatan gigi dan gusi, penjelasan, solusi produk, ajakan bertindak", "run_2": "Masalah penggunaan pasta gigi, edukasi manfaat, solusi produk, penutup promosi"},
+            "emotional_trigger": {"status": "stable", "run_1": "Kekhawatiran terhadap kesehatan gigi dan gusi", "run_2": "Kekhawatiran terhadap kesehatan gigi dan gusi"},
+            "tension_type": {"status": "unstable", "run_1": "Kesalahpahaman tentang kesamaan semua pasta gigi", "run_2": "Kontras antara pasta gigi biasa dan pasta gigi berbahan alami"},
+            "product_placement": {"status": "unstable", "run_1": "Integrasi eksplisit melalui penyebutan, tampilan, dan demonstrasi produk Barakat", "run_2": "Penempatan eksplisit pada bagian akhir dengan produk dipegang dan ditampilkan"},
+            "cta_type": {"status": "unstable", "run_1": "Ajakan mencoba produk dan mengikuti pesan merek #YakInBarakat", "run_2": "Ajakan mencoba atau menggunakan produk"}
+          }
+        }
+      ]
+    },
+    "model_stability_evidence": "PASS: model_stability contains content IDs, paired extraction run IDs, equal input hashes, provider/model/prompt/schema, and 13 per-field stable/unstable values for each of two videos",
     "blind_human_label_status": "PENDING: packet ready for owner-selected evaluator; actual labels and provenance not submitted",
     "claim_limit": "synthetic 13 labels and empty human packet are not actual blind human evaluation"
   },
@@ -97,15 +157,16 @@
     "build": "PASS: npm run build",
     "diff_check": "PASS: git diff --check",
     "synthetic_browser": "PASS: env -u CIC_E2E_STAGING_URL npm run test:e2e -- --retries=0; 10/10",
-    "actual_staging_browser": "PASS: fresh primary create flow; 1/1"
+    "actual_staging_browser": "PASS: fresh primary create flow; 1/1",
+    "model_stability_test": "PASS: controlled repeat from persisted transcript/frame input; 2 videos x 13 fields; no acquisition/transcription rerun"
   },
   "delivery": {
     "branch": "task/14",
-    "tested_source_sha": "4743462f0c27afbd597276f0809b866189acbc1c",
+    "tested_source_sha": "c69ef8bbf72a8a2d4cccca752a525dbc9e462c33",
     "receipt_path": "docs/tracking/evidence/S13_CORE_E2E_2026-10-07.json",
     "human_packet_paths": ["docs/tracking/evidence/S13_HUMAN_EVALUATION_PACKET_2026-10-08.csv", "docs/tracking/evidence/S13_HUMAN_EVALUATION_PACKET_2026-10-08.md"],
     "pr": "https://github.com/anajibalm/content-intelligence-copilot/pull/33",
-    "ci": "Build & Test PASS; run 37657030640 verified source HEAD 4743462f0c27afbd597276f0809b866189acbc1c",
+    "ci": "previous Build & Test PASS run 37708355929 verified source HEAD c69ef8bbf72a8a2d4cccca752a525dbc9e462c33; stability receipt delta awaits CI",
     "project_status": "Blocked: H1 primary E2E PASS and H2 packet ready; actual blind human labeling and C1 owner decision pending",
     "c1_v02_freeze": "PENDING explicit product decision C1 #17; no freeze performed",
     "merge": "not performed"
