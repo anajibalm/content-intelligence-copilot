@@ -101,7 +101,7 @@ async function createComparison(page: Page) {
 }
 async function createHypothesis(page: Page) {
   await page.getByRole('button', { name: 'Buat hipotesis', exact: true }).click();
-  await expect(page.getByText('Synthetic working insight for repeatable browser test.')).toBeVisible();
+  await expect(page.locator('.hypothesis-result').getByText('Synthetic working insight for repeatable browser test.', { exact: true })).toBeVisible();
 }
 
 test.beforeEach(async ({ page }, testInfo) => {
@@ -142,7 +142,7 @@ test('mode change while hypothesis pending clears stale response and allows new 
   await expect(page.getByRole('button', { name: 'Buat hipotesis', exact: true })).toBeDisabled();
   release();
   await expect.poll(api.hypothesisSettled).toBe(1);
-  await expect(page.getByText('Synthetic working insight for repeatable browser test.')).toHaveCount(0);
+  await expect(page.locator('.hypothesis-result').getByText('Synthetic working insight for repeatable browser test.', { exact: true })).toHaveCount(0);
   await page.getByRole('button', { name: 'Pilih semua anggota batch' }).click();
   await page.getByRole('list', { name: 'Pilihan konten perbandingan' }).getByRole('button').nth(2).click();
   await createComparison(page); await createHypothesis(page);
@@ -163,7 +163,7 @@ test('distribution change clears selection and sends paid body', async ({ page }
   await expect(page.getByRole('button', { name: 'Buat hipotesis', exact: true })).toBeDisabled();
   release();
   await expect.poll(api.hypothesisSettled).toBe(1);
-  await expect(page.getByText('Synthetic working insight for repeatable browser test.')).toHaveCount(0);
+  await expect(page.locator('.hypothesis-result').getByText('Synthetic working insight for repeatable browser test.', { exact: true })).toHaveCount(0);
   await selectTwo(page, 'PAID'); await createComparison(page);
   expect(api.seen.at(-1)).toMatchObject({ distribution: 'PAID', contentIds: [contentsA[0].id, contentsA[1].id] });
   await createHypothesis(page);
@@ -189,7 +189,7 @@ test('selection and batch changes cannot render delayed old response', async ({ 
       await expect(page.getByRole('button', { name: 'Buat hipotesis', exact: true })).toBeDisabled();
       releases[index]();
       await expect.poll(api.hypothesisSettled).toBe(index + 1);
-      await expect(page.getByText('Synthetic working insight for repeatable browser test.')).toHaveCount(0);
+      await expect(page.locator('.hypothesis-result').getByText('Synthetic working insight for repeatable browser test.', { exact: true })).toHaveCount(0);
     });
   }
 });
@@ -200,7 +200,7 @@ test('provider failure is visible and retry succeeds', async ({ page }) => {
   await page.getByRole('button', { name: 'Buat hipotesis', exact: true }).click();
   await expect(page.getByText('synthetic provider unavailable', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Buat hipotesis', exact: true }).click();
-  await expect(page.getByText('Synthetic working insight for repeatable browser test.')).toBeVisible();
+  await expect(page.locator('.hypothesis-result').getByText('Synthetic working insight for repeatable browser test.', { exact: true })).toBeVisible();
 });
 
 test('pending hypothesis ignores double submit', async ({ page }) => {
@@ -213,5 +213,5 @@ test('pending hypothesis ignores double submit', async ({ page }) => {
   await expect.poll(api.hypothesisCalls).toBe(1);
   await page.getByRole('button', { name: 'Membuat hipotesis…' }).click({ force: true });
   expect(api.hypothesisCalls()).toBe(1);
-  release(); await expect(page.getByText('Synthetic working insight for repeatable browser test.')).toBeVisible();
+  release(); await expect(page.locator('.hypothesis-result').getByText('Synthetic working insight for repeatable browser test.', { exact: true })).toBeVisible();
 });
