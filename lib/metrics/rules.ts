@@ -82,8 +82,8 @@ export function deriveMetrics(rawMetrics, qualityByMetric) {
 
 export function normalizeMetricSnapshot(input) {
   assertDistribution(input.distribution);
-  const rawMetrics = {};
-  const qualityByMetric = {};
+  const rawMetrics: Record<string, number | null> = {};
+  const qualityByMetric: Record<string, { state: string; reason: string | null }> = {};
   for (const [name, entry] of Object.entries(input.rawMetrics ?? {})) {
     if (DERIVED_RAW_KEYS.has(name)) throw new Error(`raw metrics cannot contain derived metric: ${name}`);
     const normalized = metricEntry(entry, name);
@@ -91,6 +91,9 @@ export function normalizeMetricSnapshot(input) {
     qualityByMetric[name] = { state: normalized.quality, reason: normalized.reason };
   }
   const derivedMetrics = deriveMetrics(rawMetrics, qualityByMetric);
+  qualityByMetric.engagement_rate = derivedMetrics.engagement_rate.value != null
+    ? { state: 'VALID', reason: null }
+    : { state: derivedMetrics.engagement_rate.sourceMetricNames.some((name) => qualityByMetric[name]?.state === 'SUSPECT') ? 'SUSPECT' : 'UNAVAILABLE', reason: 'INVALID_VALUE' };
   const states = Object.values(qualityByMetric).map((item) => item.state);
   const quality = states.includes('SUSPECT') ? 'SUSPECT'
     : states.some((item) => item === 'VALID') ? 'VALID'

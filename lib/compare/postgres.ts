@@ -1,4 +1,4 @@
-import { deriveMetrics, qualityDetailsFromRaw } from '../metrics/rules.ts';
+import { normalizeMetricSnapshot, qualityDetailsFromRaw, METRICS_RULE_VERSION } from '../metrics/rules.ts';
 import { Pool } from 'pg';
 import { compareContents, type ComparisonResult } from './rules.ts';
 
@@ -58,13 +58,10 @@ type SnapshotInput = {
 
 const METRIC_NAMES = ['views', 'awt_seconds', 'wfv_pct', 'engagement_rate'];
 
-function jsonObject(value: unknown): Record<string, unknown> {
-  return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
-}
+// Snapshot IDs and stored comparison conclusions stay historical; metric rows name current derivation explicitly.
 
 function metricValue(snapshot: SnapshotInput, name: string): number | null {
-  const derived = deriveMetrics(snapshot.rawMetrics, snapshot.qualityByMetric);
-  const entry = name === 'engagement_rate' ? derived[name] : snapshot.rawMetrics[name];
+  const entry = name === 'engagement_rate' ? snapshot.derivedMetrics[name] : snapshot.rawMetrics[name];
   if (typeof entry === 'number') return Number.isFinite(entry) ? entry : null;
   if (entry && typeof entry === 'object' && 'value' in entry) {
     const value = entry.value;
@@ -75,26 +72,19 @@ function metricValue(snapshot: SnapshotInput, name: string): number | null {
 
 function metricQuality(snapshot: SnapshotInput, name: string) {
   const detail = snapshot.qualityByMetric[name];
-  const rawEntry = snapshot.rawMetrics[name];
-  const rawDetail = rawEntry && typeof rawEntry === 'object' ? rawEntry as { quality?: string; reason?: string | null } : null;
   if (detail?.state) return { state: detail.state, reason: detail.reason ?? null };
-  if (rawDetail?.quality) return { state: rawDetail.quality, reason: rawDetail.reason ?? null };
-  if (snapshot.quality !== 'VALID') return { state: snapshot.quality, reason: 'SNAPSHOT_QUALITY' };
-  return { state: metricValue(snapshot, name) == null ? 'UNAVAILABLE' : 'VALID', reason: metricValue(snapshot, name) == null ? 'NOT_PROVIDED' : null };
+  return { state: 'UNAVAILABLE', reason: 'NOT_PROVIDED' };
 }
 function snapshotInput(row: DbSnapshot): SnapshotInput {
-  const qualityJson = jsonObject(row.quality_json);
-  const rawMetrics = qualityDetailsFromRaw(row.raw_metrics, qualityJson);
-  const qualityByMetric = Object.fromEntries(Object.entries(rawMetrics).map(([name, entry]) => [name, { state: entry.quality, reason: entry.reason }]));
-  return {
+  return normalizeMetricSnapshot({
     id: row.id,
+    contentId: row.content_id,
     distribution: row.distribution,
-    quality: row.quality,
-    qualityByMetric,
-    rawMetrics: Object.fromEntries(Object.entries(rawMetrics).map(([name, entry]) => [name, entry.value])),
-    derivedMetrics: deriveMetrics(Object.fromEntries(Object.entries(rawMetrics).map(([name, entry]) => [name, entry.value])), qualityByMetric),
+    source: row.source,
+    capturedAt: row.captured_at,
     contentAgeHours: row.content_age_hours,
-  };
+    rawMetrics: qualityDetailsFromRaw(row.raw_metrics, row.quality_json),
+  });
 }
 
 
@@ -149,7 +139,7 @@ export function createComparisonRepository(config: ComparisonRepositoryConfig) {
         if (item.metricSnapshotId) await client.query(`INSERT INTO comparison_snapshot (workspace_id, comparison_id, content_id, metric_snapshot_id) VALUES ($1, $2, $3, $4)`, [config.workspaceId, comparisonId, item.contentId, item.metricSnapshotId]);
       }
       await client.query('COMMIT');
-      return { id: comparisonId, ...result };
+      return { id: comparisonId, ...result, metricDerivationVersion: METRICS_RULE_VERSION, metricBasis: 'CURRENT_RULES_FROM_FROZEN_SNAPSHOTS' };
     } catch (error) {
       await client.query('ROLLBACK');
       throw error;
@@ -169,6 +159,8 @@ export function createComparisonRepository(config: ComparisonRepositoryConfig) {
     return {
       id: comparison.id,
       ruleVersion: comparison.rule_version,
+      metricDerivationVersion: METRICS_RULE_VERSION,
+      metricBasis: 'CURRENT_RULES_FROM_FROZEN_SNAPSHOTS',
       mode: comparison.mode,
       scope: comparison.scope,
       distribution: comparison.distribution,
