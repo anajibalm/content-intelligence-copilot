@@ -3,7 +3,7 @@ import fixture from './fixtures/workspace.json';
 
 const batchA = fixture.batches[0].id;
 const batchB = fixture.batches[1].id;
-const contentA = fixture.contentsByBatch[batchA][0];
+const contentA = fixture.contentsByBatch[batchA as keyof typeof fixture.contentsByBatch][0];
 const job = { id: 'job-a', contentId: contentA.id, sourceUrl: 'https://www.tiktok.com/@synthetic/video/123456789', status: 'PENDING', attemptCount: 0, error: null };
 
 async function workspace(page: Page, completed: () => boolean = () => false) {
@@ -40,7 +40,7 @@ test('empty queue restarts after submit and retry, transient errors recover, ter
   status = 'RUNNING';
   await expect(panel).toContainText('RUNNING', { timeout: 7000 });
   fail = true;
-  await expect(page.getByRole('alert')).toContainText('Batch job status unavailable', { timeout: 7000 });
+  await expect(page.getByRole('alert').filter({ hasText: 'Batch job status unavailable' })).toBeVisible({ timeout: 7000 });
   status = 'COMPLETED';
   await expect(panel).toContainText('COMPLETED', { timeout: 10000 });
   await expect(page.getByRole('heading', { name: 'Worker result available', exact: true })).toBeVisible();

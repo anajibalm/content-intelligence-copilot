@@ -94,6 +94,7 @@ export default function WorkspaceClient() {
   const [selectionVersion, setSelectionVersion] = useState(0);
   const requestKeyRef = useRef("");
   function setSelection(nextBatchId: string | null, nextContentId: string | null, replace = false) {
+    requestNumber.current++;
     const query = new URLSearchParams();
     if (nextBatchId) query.set("batchId", nextBatchId);
     if (nextContentId) query.set("contentId", nextContentId);
@@ -145,7 +146,7 @@ export default function WorkspaceClient() {
         return body;
       })
       .then((body) => {
-        if (currentRequest !== requestNumber.current) return;
+        if (controller.signal.aborted || currentRequest !== requestNumber.current) return;
         setData(body);
         if (body.selectedBatch && body.selectedBatch.id !== batchId) setSelection(body.selectedBatch.id, body.selectedContent?.id ?? null, true);
         else if (body.selectedContent && body.selectedContent.id !== contentId) setSelection(batchId, body.selectedContent.id, true);
@@ -181,7 +182,7 @@ export default function WorkspaceClient() {
     <main className="workspace">
       <header className="topbar"><div><p className="eyebrow">CONTENT INTELLIGENCE COPILOT</p><h1>Batch workspace</h1></div><span className="status">Canonical Postgres data</span></header>
       <section className="workspace-context" aria-labelledby="workspace-heading"><div><p className="eyebrow">S6 / BATCH WORKSPACE</p><h2 id="workspace-heading">{data.selectedBatch.name}</h2><p className="muted">{data.selectedBatch.brandName} · {data.selectedBatch.contentCount} explicit members · {new Date(data.selectedBatch.createdAt).toLocaleDateString()}</p></div><label className="batch-picker">Batch<select aria-label="Select batch" value={data.selectedBatch.id} onChange={(event) => setSelection(event.target.value, null)}>{data.batches.map((batch) => <option value={batch.id} key={batch.id}>{batch.name} · {batch.contentCount} contents</option>)}</select></label></section>
-      <ProcessingForm batchId={data.selectedBatch.id} onAccepted={(acceptedContentId) => setSelection(data.selectedBatch!.id, acceptedContentId)} />
+      <ProcessingForm key={batchId ?? data.selectedBatch.id} batchId={batchId ?? data.selectedBatch.id} onAccepted={(acceptedContentId) => setSelection(batchId ?? data.selectedBatch!.id, acceptedContentId)} onSettled={refreshDetail} />
       {data.analysis?.synthetic && <p className="notice">Synthetic demo data · fixture approval is not real brand approval.</p>}
       {loading && <p className="notice" role="status">Loading selected workspace state…</p>}
       <section className="workspace-summary" aria-labelledby="summary-heading">

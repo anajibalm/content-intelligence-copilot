@@ -8,32 +8,63 @@ function terminal(status: string) {
   return status === "COMPLETED" || status === "FAILED";
 }
 
-export default function ProcessingForm({ batchId, onAccepted }: { batchId: string; onAccepted: (contentId: string) => void }) {
+export default function ProcessingForm({ batchId, onAccepted, onSettled }: { batchId: string; onAccepted: (contentId: string) => void; onSettled: () => void }) {
   const [url, setUrl] = useState("");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const [jobs, setJobs] = useState<ProcessingJob[]>([]);
-  const generation = useRef(0);
+  const [statusError, setStatusError] = useState<string | null>(null);
+  const [statusLoaded, setStatusLoaded] = useState(false);
+  const [refreshVersion, setRefreshVersion] = useState(0);
+  const jobsRef = useRef<ProcessingJob[]>([]);
+  const currentBatch = useRef(batchId);
+  currentBatch.current = batchId;
+  const callbacks = useRef({ onAccepted, onSettled });
+  callbacks.current = { onAccepted, onSettled };
+  const submitController = useRef<AbortController | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
-    let active = true;
-    let timer: number | undefined;
-    const generationId = ++generation.current;
-    const refresh = async () => {
-      const response = await fetch(`/api/processing?batchId=${encodeURIComponent(batchId)}`, { signal: controller.signal });
-      if (!response.ok) throw new Error("Batch job status unavailable");
-      const body = await response.json() as { items: ProcessingJob[] };
-      if (!active || generation.current !== generationId) return;
-      setJobs(body.items);
-      if (!body.items.every((job) => terminal(job.status))) timer = window.setTimeout(() => void refresh().catch(() => {}), 2000);
-    };
-    void refresh().catch(() => {});
-    return () => { active = false; controller.abort(); if (timer !== undefined) window.clearTimeout(timer); };
+    submitController.current = controller;
+    return () => controller.abort();
   }, [batchId]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    let timer: number | undefined;
+    let failures = 0;
+    const active = () => !controller.signal.aborted && currentBatch.current === batchId;
+    const refresh = async () => {
+      try {
+        const response = await fetch(`/api/processing?batchId=${encodeURIComponent(batchId)}`, { signal: controller.signal });
+        if (!response.ok) throw new Error(`Batch job status unavailable (HTTP ${response.status})`);
+        const body = await response.json() as { items: ProcessingJob[] };
+        if (!active()) return;
+        const settled = body.items.some((job) => terminal(job.status) && jobsRef.current.some((previous) => previous.id === job.id && !terminal(previous.status)));
+        jobsRef.current = body.items;
+        setJobs(body.items);
+        setStatusLoaded(true);
+        setStatusError(null);
+        failures = 0;
+        if (settled) callbacks.current.onSettled();
+        if (body.items.some((job) => !terminal(job.status))) timer = window.setTimeout(() => void refresh(), 2000);
+      } catch (error) {
+        if (!active()) return;
+        failures++;
+        setStatusError(`${String((error as Error).message)} · attempt ${failures}/3`);
+        if (failures < 3) timer = window.setTimeout(() => void refresh(), 2000);
+      }
+    };
+    void refresh();
+    return () => { controller.abort(); if (timer !== undefined) window.clearTimeout(timer); };
+  }, [batchId, refreshVersion]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (busy) return;
+    const controller = submitController.current;
+    if (!controller || controller.signal.aborted) return;
+    const active = () => !controller.signal.aborted && currentBatch.current === batchId && new URLSearchParams(window.location.search).get('batchId') === batchId;
     setBusy(true);
     setMessage("Submitting to durable queue…");
     try {
@@ -41,16 +72,21 @@ export default function ProcessingForm({ batchId, onAccepted }: { batchId: strin
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ url, batchId }),
+        signal: controller.signal,
       });
       const body = await response.json() as ProcessingJob & { error?: string };
+      if (!active()) return;
       if (!response.ok) throw new Error(body.error ?? "Processing submission failed");
+      jobsRef.current = [body, ...jobsRef.current.filter((job) => job.id !== body.id)];
+      setJobs(jobsRef.current);
       setMessage(`Accepted · ${body.status}`);
       setUrl("");
-      onAccepted(body.contentId);
+      setRefreshVersion((version) => version + 1);
+      callbacks.current.onAccepted(body.contentId);
     } catch (error) {
-      setMessage(String((error as Error).message));
+      if (active()) setMessage(String((error as Error).message));
     } finally {
-      setBusy(false);
+      if (active()) setBusy(false);
     }
   }
 
@@ -62,7 +98,8 @@ export default function ProcessingForm({ batchId, onAccepted }: { batchId: strin
         <button type="submit" disabled={busy}>{busy ? "Processing…" : "Process video"}</button>
       </div>
       <p className="form-message" aria-live="polite">{message}</p>
-      <div className="batch-processing" aria-label="Batch processing status"><h2>Processing status</h2>{jobs.length === 0 ? <p>No processing jobs for this batch.</p> : jobs.map((job) => <article key={job.id}><a href={`/?batchId=${encodeURIComponent(batchId)}&contentId=${encodeURIComponent(job.contentId)}`}>{job.sourceUrl}</a> · {job.status}{terminal(job.status) ? "" : " · queued or processing"}{job.error ? ` · ${job.error}` : ""}</article>)}</div>
+      {statusError && <div role="alert"><p>{statusError}</p><button type="button" onClick={() => setRefreshVersion((version) => version + 1)}>Retry status</button></div>}
+      <div className="batch-processing" aria-label="Batch processing status"><h2>Processing status</h2>{jobs.length === 0 ? <p>{statusLoaded ? "No processing jobs for this batch." : "Loading processing status…"}</p> : jobs.map((job) => <article key={job.id}><a href={`/?batchId=${encodeURIComponent(batchId)}&contentId=${encodeURIComponent(job.contentId)}`}>{job.sourceUrl}</a> · {job.status}{terminal(job.status) ? "" : " · queued or processing"}{job.error ? ` · ${job.error}` : ""}</article>)}</div>
     </form>
   );
 }

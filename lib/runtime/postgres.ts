@@ -42,7 +42,7 @@ export interface PostgresRuntimeOptions {
 export interface DurableRuntime {
   enqueue(rawUrl: string, batchId?: string): Promise<DurableJob>;
   list(batchId?: string): Promise<DurableJob[]>;
-  get(id: string, batchId?: string): Promise<DurableJob | null>;
+  get(id: string, batchId?: string | null): Promise<DurableJob | null>;
   addAnchor(input: { contentId: string; frameId: string; note?: string }): Promise<boolean>;
   claim(workerId: string, leaseMs: number): Promise<DurableJob | null>;
   runOne(workerId: string): Promise<DurableJob | null>;

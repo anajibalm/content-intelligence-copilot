@@ -11,7 +11,7 @@
     "typecheck": "tsc --noEmit",
     "test": "node --test tests/**/*.test.mjs",
     "validate:fixtures": "node scripts/validate-fixtures.mjs",
-    "test:e2e": "playwright test tests/e2e/s8-lifecycle.spec.ts tests/e2e/s9-review.spec.ts tests/e2e/s10-notes-next-test.spec.ts",
+    "test:e2e": "playwright test tests/e2e/s8-lifecycle.spec.ts tests/e2e/s9-review.spec.ts tests/e2e/s10-notes-next-test.spec.ts tests/e2e/processing-lifecycle.spec.ts",
     "test:e2e:s9": "playwright test tests/e2e/s9-review.spec.ts",
     "test:e2e:s10": "playwright test tests/e2e/s10-notes-next-test.spec.ts",
     "test:e2e:ui": "playwright test --ui tests/e2e/s8-lifecycle.spec.ts",
