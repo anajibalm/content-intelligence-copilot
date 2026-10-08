@@ -50,12 +50,18 @@ export async function POST(request: Request) {
 }
 
 export async function GET(request: Request) {
-  const hypothesisId = new URL(request.url).searchParams.get('hypothesisId');
-  if (!validUuid(hypothesisId)) return NextResponse.json({ error: 'valid hypothesisId is required' }, { status: 400 });
+  const params = new URL(request.url).searchParams;
+  const hypothesisId = params.get('hypothesisId');
+  const batchId = params.get('batchId');
+  if (batchId && !validUuid(batchId)) return NextResponse.json({ error: 'valid batchId is required' }, { status: 400 });
+  if (hypothesisId ? !validUuid(hypothesisId) : !validUuid(batchId)) return NextResponse.json({ error: 'valid hypothesisId or batchId is required' }, { status: 400 });
   let repository: HypothesisRepository | null = null;
   try {
     repository = createHypothesisRepository(hypothesisConfigFromEnv());
-    return NextResponse.json(await repository.get(hypothesisId));
+    if (!hypothesisId) return NextResponse.json({ items: await repository.list(batchId!) });
+    const hypothesis = await repository.get(hypothesisId);
+    if (batchId && hypothesis.batchId !== batchId) throw new HypothesisNotFoundError('hypothesis not found in selected batch');
+    return NextResponse.json(hypothesis);
   } catch (error) {
     return NextResponse.json({ error: messageFor(error) }, { status: statusFor(error) });
   } finally {

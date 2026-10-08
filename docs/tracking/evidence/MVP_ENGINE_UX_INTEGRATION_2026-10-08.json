@@ -1,0 +1,122 @@
+{
+  "evidence_date": "2026-10-08",
+  "branch": "feat/mvp-engine-ux-integration",
+  "source_commit": "f4ac678e4e1527dfabe15c2a8cd08bb45486b84f",
+  "reviewed_baseline": "5788d466fa854849fda14897763d0cb4347f29b9",
+  "pull_request": "https://github.com/anajibalm/content-intelligence-copilot/pull/34",
+  "provenance": "Executor: OMP; findings: owner PR34 review prompt; owner merge approval: pending",
+  "ux_completion": {
+    "tested_source": "f4ac678e4e1527dfabe15c2a8cd08bb45486b84f",
+    "ci_selector_delta": { "tested_source": "1cdcaf5e7eb33ef9636c6b7eb0aceecb4ce635ef", "failed_run": "37817539416", "cause": "S8 global getByText matched generation result plus hidden persisted queue rows; strict mode violation, not product failure", "fix": "Scope success/stale assertions to .hypothesis-result, preserve exact text/count assertions", "verification": "CI=1 npm run test:e2e -- --reporter=json PASS 18/18, 0 flaky/skipped; lint/typecheck/unit 101/fixtures/build/diff PASS; production source unchanged from f4ac678 and integrated proof remains applicable" },
+    "scope": "PR34 UX only; no migration, new tooling, delegation, v0.2 freeze, PR33/golden packet/S13/S11/S12 changes",
+    "findings": [
+      { "finding": "1. Page responsibilities", "status": "PASS", "proof": "Batch input/status/KPI; Library content/media/fingerprint; Compare selection/generation summary/Buka review; Review persisted hypothesis queue/detail only. tests/e2e/s8-lifecycle.spec.ts and pr34-ux.spec.ts." },
+      { "finding": "2. Persisted scoped queue and navigation", "status": "PASS", "proof": "GET hypotheses?batchId validates workspace/batch and deterministically orders hypothesis + latest review. Pending means no review row, not LOW. EDIT removes item from pending while detail stays; Semua/deep link/reload/Back/Forward/draft isolation/exact source navigation tested. Integrated foreign workspace/batch HTTP 404 and invalid batch HTTP 400." },
+      { "finding": "3. Indonesian labels and readable artifacts", "status": "PASS", "proof": "labels-id.ts maps canonical metrics, fields, distribution, states, review reasons and confidence caps including INSUFFICIENT_SAMPLE/ONE_COMPARISON/LEGACY_ONLY. KeyValueView handles JSON strings/object/array/null/boolean/text without HTML injection. Historical incomplete evidence retained in labelled disclosure. AI/analyst content and stored identifiers untouched." },
+      { "finding": "4. Metrics and fingerprint", "status": "PASS", "proof": "Library short Indonesian metric labels, fractional WFV 0.725 shown 72.5%, canonical ER 0.2 shown 20.0%, unavailable not zero, Organik/Iklan separate. Desktop Field/AI asli/Hasil review/Status; mobile paired labelled values. CTA correction, reason and original visible. Canonical derivation/formula/history unchanged." },
+      { "finding": "5. History and action hierarchy", "status": "PASS", "proof": "Only adjacent CONFIRM records collapsed visually; all events retain stored order/metadata, no claim of common transaction. Corrections/rejections highlighted. Primary/secondary/destructive and disabled explanations; comparison requires two, hypothesis/regeneration requires valid comparison; existing server validation preserved. s9-review and processing lifecycle regressions PASS." },
+      { "finding": "6. Notes and Next Test disclosure/persistence", "status": "PASS", "proof": "Buat uji berikutnya initially closed; create/edit opens nine fields, draft/error remains. Stored Notes/Next Test visible; AI suggestion not experiment record. UI create/status COMPLETED, API/DB readback and browser reload pass in isolated PostgreSQL smoke." },
+      { "finding": "7. Synthetic provenance", "status": "PASS", "proof": "Workspace-scoped source synthetic_pr34/synthetic_s5_demo or provider synthetic-pr34 detects synthetic without batch-name matching. Four-view banner with mixed-data warning. Empty batch named Synthetic PR34 returns synthetic false; non-fixture browser context has no banner." },
+      { "finding": "Mobile and FAILED retry", "status": "PASS", "proof": "1440x900 and 375x812 four views, full-page and lower-panel screenshots inspected; no horizontal page overflow. Mobile fixture work area <=400px, actual DB Review top 398.5625px. FAILED Coba lagi posts original job URL/selected batch through existing enqueue and restarts polling; DB smoke completes attempt 2. Membership and processing ledger counts explicitly separate." }
+    ],
+    "regressions": { "unit": "101/101 PASS; queue scope RED repository.list is not a function, then GREEN", "browser": "18/18 PASS, 0 skipped/flaky; test:e2e explicitly includes pr34-ux.spec.ts; all fixture API requests intercepted", "integrated": "1/1 PASS on 3134, real PostgreSQL/API/UI/durable dispatcher, injected synthetic providers and reused derivatives" },
+    "integrated_ids": { "workspace": "34000000-0000-4000-8000-000000000001", "env_batch_a": "34000000-0000-4000-8000-000000000004", "selected_batch_b": "34000000-0000-4000-8000-000000000005", "job": "764a778e-3ff5-4ba7-b664-d9b74ab9687b", "content": "77f88bf9-8da2-4b7e-988e-465f61c09192", "comparison": "eb0904b2-b0df-4b2a-9ace-7248223bdc13", "hypothesis": "9fec3955-f506-425e-bed2-72f79c6ebeb7" },
+    "owner_reported": "Owner reported Notes, hypothesis edits and Next Test survived reload before this task. Manual synthetic report only; separate from new executor tests and not brand approval.",
+    "visual_evidence": ["/tmp/cic-pr34-ux-{batch,library,compare,review}-{1440,375}.png", "/tmp/cic-pr34-ux-fingerprint-history-{1440,375}.png", "/tmp/cic-pr34-ux-notes-next-test-{1440,375}.png", "/tmp/cic-pr34-actual-{batch,library,compare,review}-{1440,375}.png", "/tmp/cic-pr34-staging-review-{1440,375}.png"],
+    "limits": "Local screenshot files, not committed media. Reference rendered and actual surface inspected, not pixel-identical claim. No live provider, new actual acquisition, real-brand approval, production deployment or independent delegated review. Navigation can abort audio preload; no application page exception observed. Owner review still required."
+  },
+  "findings": {
+    "metric_adapters": {
+      "status": "PASS",
+      "regression": "tests/unit/metric-adapters.test.mjs (6 tests, real repository adapters with SQL/fetch mocks)",
+      "proof": [
+        "Workspace, metrics analysis, compare create/get, and new hypothesis evidence use canonical normalization.",
+        "Unexplained persisted zero is SUSPECT/UNEXPLAINED_ZERO; explicit VALID zero remains valid.",
+        "Persisted WFV 72.5 is rejected under fractional [0,1] contract; no unit guessing/conversion.",
+        "Stale ER 0.9/metrics-v1 and empty derived_metrics produce canonical new ER 0.2/metrics-v2 from VALID source inputs.",
+        "New evidence basis records snapshot ID, source, capturedAt, distribution, raw observations, quality/reasons, source metric names, and formula version.",
+        "Historical hypothesis/evidence readback is unchanged; comparison stored conclusions retain rule version while current metric rows explicitly expose metricDerivationVersion and metricBasis."
+      ],
+      "red": "Initial adapter run: 1 passed, 4 failed for zero, invalid WFV, stale ER, missing DERIVED evidence.",
+      "green": "6 adapter tests PASS; full unit suite 100/100 PASS"
+    },
+    "processing_lifecycle": {
+      "status": "PASS",
+      "regression": "tests/e2e/processing-lifecycle.spec.ts (3 fixture browser tests)",
+      "proof": [
+        "Empty queue and terminal queue restart polling on new submit/retry; accepted job appears immediately.",
+        "PENDING/RUNNING/FAILED/COMPLETED transitions refresh detail when results become available.",
+        "Visible GET errors have at most three automatic attempts; Retry status starts a new cycle.",
+        "Delayed POST after batch switch cannot restore old selection; GET/POST abort and timers stop on unmount.",
+        "Anchor route and worker return lookup use explicit workspace-only job lookup, not default env batch; tenant/content/frame checks remain enforced."
+      ]
+    },
+    "shell_and_evidence": {
+      "status": "PASS",
+      "reference": "/home/anajibalm/Downloads/content-intelligence-mvp-v02.html",
+      "regression": "tests/e2e/workspace-shell.spec.ts (1440x900 and 375x812)",
+      "proof": [
+        "Four functional URL-backed views: Batch Workspace, Content Library, Compare, Insights Review.",
+        "Existing compare/review/S10 components reused; batch/content/hypothesis and source anchors preserved.",
+        "Hook frames visible; remaining frames and full timestamped transcript use native details/summary. Exact hashes open hidden target and survive reload.",
+        "Frame inventory, transcript roles, feature/metric references and vertical object-fit:contain retained.",
+        "Mobile persisted long-ID heading overflow reproduced and fixed via reflow; no horizontal overflow in staging review at 375x812."
+      ],
+      "visual_limit": "Reference shell/layout patterns and colors applied; no pixel-identical prototype claim. Mockup fake metrics/actions and out-of-scope modules not copied."
+    },
+    "integrated_runtime": {
+      "status": "PASS",
+      "regression": "tests/e2e/pr34-integrated.spec.ts; npm run test:e2e:pr34:integrated (opt-in)",
+      "origin": "http://127.0.0.1:3134",
+      "application_worktree": "/home/anajibalm/projects/content-intelligence-copilot-engine-ux",
+      "database": "Existing cic-postgres-r1 restored from stopped state; no reset/migration needed",
+      "config_source": "Existing task-14 .env.local loaded without displaying secrets; workspace/default batch overridden for isolated synthetic fixture",
+      "workspace_id": "34000000-0000-4000-8000-000000000001",
+      "foreign_workspace_id": "34000000-0000-4000-8000-000000000002",
+      "env_batch_a": "34000000-0000-4000-8000-000000000004",
+      "selected_batch_b": "34000000-0000-4000-8000-000000000005",
+      "job_id": "b55b24a5-2058-40b4-83a7-568840f9fad8",
+      "content_id": "b7b31584-4295-438f-b10a-8a8a8e0146ec",
+      "recovery_job_id": "52be7909-9b1d-4d26-8aa1-96c7956f4fb6",
+      "recovery_content_id": "c94f8863-5094-4ed7-b034-284d5ac4bfe0",
+      "comparison_id": "7478f839-f220-4ea2-a05c-99bb7b16fed1",
+      "hypothesis_id": "b462ab4f-f909-4a25-b2c9-75b3fb7ae446",
+      "proof": [
+        "Browser enqueue HTTP 202 on selected batch B while server/worker default batch A; controlled transcription failure then retry completed at attempt 2.",
+        "Same URL same batch replays same job ID; cross-batch URL HTTP 409; foreign workspace lookup/enqueue/frame anchor rejected.",
+        "Existing lease recovery returns 0 for active lease and 1 after fixture lease expiry; recovered job completed with new claim.",
+        "Terminal result refreshes persisted transcript/frame/fingerprint UI; authorized stored frame/audio derivatives reused.",
+        "DB persisted stale ER remains 0.9, while workspace/compare create/get/new provider input/evidence report canonical 0.2 with metrics-v2.",
+        "Feature correction preserves ai_value and appends history; hypothesis edit preserves original statement; analyst note and Next Test COMPLETED persist through API, DB and browser reload.",
+        "Screenshots capture actual CIC origin 3134 and task-owned Next process; fixture records remain labelled synthetic for readback."
+      ],
+      "evidence_class": "Real PostgreSQL/API/UI persistence and durable runtime with injected synthetic acquisition/transcription/extraction/hypothesis provider; reused existing media derivatives, NOT actual acquisition or live-provider acceptance"
+    }
+  },
+  "verification": {
+    "npm_run_typecheck": "PASS",
+    "npm_test": "PASS 101/101 on f4ac678e4e1527dfabe15c2a8cd08bb45486b84f",
+    "npm_run_lint": "PASS with 4 warnings: three no-img-element and one exhaustive-deps",
+    "npm_run_validate_fixtures": "PASS",
+    "npm_run_build": "PASS",
+    "git_diff_check": "PASS",
+    "npm_run_test_e2e": "PASS 18/18 synthetic Chromium; 0 skipped/flaky; includes S8/S9/S10, processing, shell and PR34 UX",
+    "integrated_pr34": "PASS 1/1 on http://127.0.0.1:3134 with existing PostgreSQL and storage",
+    "github_actions": "Initial delivery run 37817539416 failed ambiguous S8 selector. Fixed source 1cdcaf5e7eb33ef9636c6b7eb0aceecb4ce635ef; final exact-head CI readback is recorded on PR before handoff."
+  },
+  "screenshots": [
+    "/tmp/cic-pr34-batch-1440.png",
+    "/tmp/cic-pr34-batch-375.png",
+    "/tmp/cic-pr34-library-1440.png",
+    "/tmp/cic-pr34-library-375.png",
+    "/tmp/cic-pr34-staging-library-1440.png",
+    "/tmp/cic-pr34-staging-review-1440.png",
+    "/tmp/cic-pr34-staging-review-375.png"
+  ],
+  "open_limits": [
+    "Actual-media acquisition/transcription and live S13 providers were not rerun; opt-in acceptance remains separate.",
+    "Synthetic media reuse/extraction/provider responses do not establish real-brand approval, extraction quality, or production durability.",
+    "PR33/golden packet, v0.2 freeze, S11/S12, and automatic merge untouched.",
+    "No production deployment or managed durability claim."
+  ]
+}

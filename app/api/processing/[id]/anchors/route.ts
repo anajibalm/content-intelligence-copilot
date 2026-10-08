@@ -10,9 +10,9 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   }
   const runtime = createPostgresRuntimeFromEnv(createDefaultAcquirer());
   try {
-    const job = await runtime.get(id);
+    const job = await runtime.get(id, null);
     if (!job) return NextResponse.json({ error: 'job not found' }, { status: 404 });
-    await runtime.addAnchor({ contentId: job.contentId, frameId: body.frameId, note: 'Analyst-confirmed product entry' });
+    if (!(await runtime.addAnchor({ contentId: job.contentId, frameId: body.frameId, note: 'Analyst-confirmed product entry' }))) return NextResponse.json({ error: 'frame not found in workspace content' }, { status: 404 });
     return NextResponse.json({ ok: true });
   } catch (error) {
     return NextResponse.json({ error: String((error as Error).message ?? error) }, { status: 502 });

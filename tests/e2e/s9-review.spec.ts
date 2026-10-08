@@ -57,10 +57,14 @@ async function installReviewApi(page: Page) {
   const hypothesisReviews: Body[] = [];
   let hypothesisGenerations = 0;
 
+  await page.route('**/api/**', (route) => route.fulfill({ status: 500, json: { error: 'Unmapped fixture API' } }));
   await page.route('**/api/workspace**', async (route) => {
     const url = new URL(route.request().url());
     if (url.pathname.includes('/api/workspace/contents/')) return route.fallback();
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(workspaceResponse(url.searchParams.get('contentId') ?? contents[0].id, reviewed)) });
+  });
+  await page.route('**/api/processing?batchId=*', async (route: Route) => {
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ items: [] }) });
   });
   await page.route('**/api/hypotheses/*/s10', async (route: Route) => {
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ hypothesisId: new URL(route.request().url()).pathname.split('/')[3], notes: [], nextTests: [] }) });
@@ -117,14 +121,15 @@ async function installReviewApi(page: Page) {
   });
   await page.route('**/api/hypotheses**', async (route) => {
     const url = new URL(route.request().url());
-    if (url.pathname.endsWith('/review')) return route.fallback();
+    if (url.pathname.endsWith('/review') || url.pathname.endsWith('/s10')) return route.fallback();
+    if (route.request().method() === 'GET' && !url.searchParams.has('hypothesisId')) return route.fulfill({ json: { items: [] } });
     if (route.request().method() === 'GET') {
-      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ id: hypothesisId, statement: 'Synthetic S9 hypothesis', confidence: 'LOW', confidenceCaps: [], suggestedNextTest: { action: 'Repeat synthetic test' }, evidence: [] }) });
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ id: hypothesisId, batchId, statement: 'Synthetic S9 hypothesis', confidence: 'LOW', confidenceCaps: [], suggestedNextTest: { action: 'Repeat synthetic test' }, evidence: [] }) });
       return;
     }
     if (route.request().method() !== 'POST') return route.continue();
     hypothesisGenerations += 1;
-    await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: hypothesisId, statement: 'Synthetic S9 hypothesis', confidence: 'LOW', confidenceCaps: [], suggestedNextTest: { action: 'Repeat synthetic test' }, evidence: [] }) });
+    await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: hypothesisId, batchId, statement: 'Synthetic S9 hypothesis', confidence: 'LOW', confidenceCaps: [], suggestedNextTest: { action: 'Repeat synthetic test' }, evidence: [] }) });
   });
   return { histories, hypothesisReviews, get hypothesisGenerations() { return hypothesisGenerations; } };
 }
@@ -137,26 +142,30 @@ test.beforeEach(async ({ page }) => {
 test('Confirm All, Correct fields twice, Reject All persist append-only review history', async ({ page }) => {
   const api = await installReviewApi(page);
   const contentId = contents[0].id;
-  await page.goto(`/?batchId=${batchId}&contentId=${contentId}`);
+  await page.goto(`/?batchId=${batchId}&contentId=${contentId}&view=library`);
   await page.getByLabel('Reviewer').fill('analyst_confirm');
-  await page.getByRole('button', { name: 'Confirm All' }).click();
-  await expect(page.getByText('Review history (append-only)')).toBeVisible();
-  await expect(page.getByText('CONFIRMED').first()).toBeVisible();
+  await page.getByRole('button', { name: 'Konfirmasi semua' }).click();
+  await expect(page.getByText('Riwayat review (append-only)')).toBeVisible();
+  await expect(page.getByText('Dikonfirmasi', { exact: true }).first()).toBeVisible();
   await page.reload();
   await page.getByLabel('Reviewer').fill('analyst_correct_a');
-  await expect(page.getByRole('button', { name: 'Correct fields' })).toBeEnabled();
-  await page.getByRole('button', { name: 'Correct fields' }).click();
+  await expect(page.getByRole('button', { name: 'Koreksi field' })).toBeEnabled();
+  await page.getByRole('button', { name: 'Koreksi field' }).click();
   await page.locator(`#content-feature-s9-${contentId}-topic .review-correction input`).fill('topic-corrected-A');
-  await page.getByLabel('Mark as golden label (analyst ground truth)').check();
-  await page.getByRole('button', { name: 'Save corrections' }).click();
-  await expect(page.getByText('AI original: topic-ai · Reviewed: topic-corrected-A · State: CORRECTED')).toBeVisible();
+  await page.locator(`#content-feature-s9-${contentId}-topic`).getByLabel('Alasan koreksi').selectOption('WRONG_CLASSIFICATION');
+  await page.getByLabel('Tandai golden label (ground truth analyst)').check();
+  await page.getByRole('button', { name: 'Simpan koreksi' }).click();
+  await expect(page.locator(`#content-feature-s9-${contentId}-topic`)).toContainText('topic-ai');
+  await expect(page.locator(`#content-feature-s9-${contentId}-topic`)).toContainText('topic-corrected-A');
   await page.getByLabel('Reviewer').fill('analyst_correct_b');
-  await page.getByRole('button', { name: 'Correct fields' }).click();
+  await page.getByRole('button', { name: 'Koreksi field' }).click();
   await page.locator(`#content-feature-s9-${contentId}-topic .review-correction input`).fill('topic-corrected-B');
-  await page.getByRole('button', { name: 'Save corrections' }).click();
-  await expect(page.getByText('AI original: topic-ai · Reviewed: topic-corrected-B · State: CORRECTED')).toBeVisible();
+  await page.locator(`#content-feature-s9-${contentId}-topic`).getByLabel('Alasan koreksi').selectOption('WRONG_CLASSIFICATION');
+  await page.getByRole('button', { name: 'Simpan koreksi' }).click();
+  await expect(page.locator(`#content-feature-s9-${contentId}-topic`)).toContainText('topic-corrected-B');
   await page.reload();
-  await expect(page.getByText('AI original: topic-ai · Reviewed: topic-corrected-B · State: CORRECTED')).toBeVisible();
+  await expect(page.locator(`#content-feature-s9-${contentId}-topic`)).toContainText('topic-ai');
+  await expect(page.locator(`#content-feature-s9-${contentId}-topic`)).toContainText('topic-corrected-B');
   expect(api.histories.get(contentId)?.reviews.map((row) => row.decision)).toEqual(['CONFIRM', 'CONFIRM', 'CORRECT', 'CORRECT']);
   expect(api.histories.get(contentId)?.corrections.map((row) => row.correctedValue)).toEqual(['topic-corrected-A', 'topic-corrected-B']);
   expect(api.histories.get(contentId)?.corrections.every((row) => row.originalAiValue === 'topic-ai')).toBe(true);
@@ -166,38 +175,38 @@ test('Confirm All, Correct fields twice, Reject All persist append-only review h
 test('Reject All keeps explicit reason on separate same-content fixture', async ({ page }) => {
   const api = await installReviewApi(page);
   const contentId = contents[2].id;
-  await page.goto(`/?batchId=${batchId}&contentId=${contentId}`);
+  await page.goto(`/?batchId=${batchId}&contentId=${contentId}&view=library`);
   await page.getByLabel('Reviewer').fill('analyst_reject');
-  await page.getByLabel('Reject reason (required for Reject All)').selectOption('WRONG_CLASSIFICATION');
-  await page.getByRole('button', { name: 'Reject All' }).click();
-  await expect(page.getByText('REJECTED').first()).toBeVisible();
+  await page.getByLabel('Alasan penolakan (wajib untuk Tolak semua)').selectOption('WRONG_CLASSIFICATION');
+  await page.getByRole('button', { name: 'Tolak semua' }).click();
+  await expect(page.getByText('Ditolak', { exact: true }).first()).toBeVisible();
   expect(api.histories.get(contentId)?.reviews.every((review) => review.reasonCode === 'WRONG_CLASSIFICATION')).toBe(true);
 });
 
 test('Approve, Edit, Reject hypothesis controls persist reviewed statement after reload', async ({ page }) => {
   const api = await installReviewApi(page);
-  await page.goto(`/?batchId=${batchId}&contentId=${contents[0].id}`);
-  await page.getByRole('button', { name: 'Select all batch' }).click();
-  await page.getByRole('button', { name: 'Generate comparison' }).click();
-  await page.getByRole('button', { name: 'Generate hypothesis' }).click();
+  await page.goto(`/?batchId=${batchId}&contentId=${contents[0].id}&view=compare`);
+  await page.getByRole('button', { name: 'Pilih semua anggota batch' }).click();
+  await page.getByRole('button', { name: 'Buat perbandingan' }).click();
+  await page.getByRole('button', { name: 'Buat hipotesis', exact: true }).click();
   await expect(page.getByText('Synthetic S9 hypothesis')).toBeVisible();
-  const persistedUrl = `/?batchId=${batchId}&hypothesisId=${hypothesisId}`;
-  const panel = page.locator('.hypothesis-panel .review-panel');
+  await page.getByRole('link', { name: 'Buka review' }).click();
+  const persistedUrl = `/?batchId=${batchId}&hypothesisId=${hypothesisId}&view=review`;
+  const panel = page.locator('.hypothesis-detail .review-panel');
   await panel.getByLabel('Reviewer').fill('hypothesis_editor');
-  await panel.getByRole('button', { name: 'Edit' }).click();
-  await panel.getByLabel('Edited statement').fill('Reviewed hypothesis B');
-  await panel.getByRole('button', { name: 'Save edit' }).click();
-  await expect(panel.getByText('edited: Reviewed hypothesis B')).toBeVisible();
-  await panel.getByRole('button', { name: 'Approve' }).click();
-  await expect(panel.getByText('Current reviewed statement: Reviewed hypothesis B')).toBeVisible();
-  await panel.getByLabel('Reject reason (required for Reject)').selectOption('OVERCLAIM');
-  await panel.getByRole('button', { name: 'Reject' }).click();
-  await expect(panel.getByText('REJECT', { exact: true })).toBeVisible();
+  await panel.getByRole('button', { name: 'Edit', exact: true }).click();
+  await panel.getByLabel('Pernyataan hasil edit').fill('Reviewed hypothesis B');
+  await panel.getByRole('button', { name: 'Simpan edit' }).click();
+  await expect(panel.getByText('Hasil review terbaru: Reviewed hypothesis B')).toBeVisible();
+  await panel.getByRole('button', { name: 'Setujui' }).click();
+  await expect(panel.getByText('Hasil review terbaru: Reviewed hypothesis B')).toBeVisible();
+  await panel.getByLabel('Alasan penolakan (wajib untuk Tolak)').selectOption('OVERCLAIM');
+  await panel.getByRole('button', { name: 'Tolak', exact: true }).click();
+  await expect(panel.getByText('Ditolak', { exact: true })).toBeVisible();
   await page.goto(persistedUrl);
-  await expect(page.getByText(`Artifact ${hypothesisId} · confidence LOW`)).toBeVisible();
-  await expect(page.getByText('AI original statement: Synthetic S9 hypothesis')).toBeVisible();
-  await expect(page.getByText('Current reviewed statement: Reviewed hypothesis B')).toBeVisible();
-  await expect(page.locator('.hypothesis-panel .review-history li')).toHaveCount(3);
+  await expect(page.getByText('Synthetic S9 hypothesis', { exact: true })).toBeVisible();
+  await expect(page.getByText('Hasil review terbaru: Reviewed hypothesis B')).toBeVisible();
+  await expect(page.locator('.hypothesis-detail .review-history li')).toHaveCount(3);
   expect(api.hypothesisGenerations).toBe(1);
   expect(api.hypothesisReviews.map((review) => review.decision)).toEqual(['EDIT', 'APPROVE', 'REJECT']);
   expect(api.hypothesisReviews[0].editedStatement).toBe('Reviewed hypothesis B');

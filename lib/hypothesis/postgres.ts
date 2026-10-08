@@ -1,4 +1,5 @@
 import { Pool } from 'pg';
+import { normalizeMetricSnapshot, qualityDetailsFromRaw, METRICS_RULE_VERSION } from '../metrics/rules.ts';
 import {
   HYPOTHESIS_PROMPT_VERSION,
   HYPOTHESIS_RULE_VERSION,
@@ -22,6 +23,7 @@ export interface HypothesisRepositoryConfig {
 export interface HypothesisRepository {
   create(input: { batchId: string; comparisonId: string; regenerate?: boolean; operationId?: string }): Promise<Record<string, unknown>>;
   get(hypothesisId: string): Promise<Record<string, unknown>>;
+  list(batchId: string): Promise<Record<string, unknown>[]>;
   close(): Promise<void>;
 }
 
@@ -58,7 +60,7 @@ type ComparisonRow = {
   uncontrolled_variables: Record<string, unknown>;
 };
 type ItemRow = { content_id: string; position: number; metric_snapshot_id: string | null };
-type SnapshotRow = { id: string; content_id: string; quality: string; captured_at: string | null; raw_metrics: Record<string, unknown>; derived_metrics: Record<string, unknown>; quality_json: Record<string, unknown> };
+type SnapshotRow = { id: string; content_id: string; distribution: 'ORGANIC' | 'PAID'; source: string | null; quality: string; captured_at: string | null; raw_metrics: Record<string, unknown>; derived_metrics: Record<string, unknown>; quality_json: Record<string, unknown> };
 type SourceRow = { id: string; content_id: string; source_type: 'TRANSCRIPT_SEGMENT' | 'VIDEO_FRAME' | 'CONTENT_FEATURE'; statement: string; review_state?: string; quality_state?: string; ai_value?: string; reviewed_value?: string | null; timestamp_ms?: number; start_ms?: number; end_ms?: number; link: string };
 type HypothesisRow = { id: string; batch_id: string; statement: string; state: string; confidence: string; confidence_caps: Array<{ rule: string; reason: string }>; provider: string | null; model: string | null; prompt_version: string | null; schema_version: string | null; rule_version: string | null; input_hash: string | null; raw_output: Record<string, unknown>; suggested_next_test: Record<string, unknown> | null; created_at: string; updated_at: string };
 
@@ -66,17 +68,15 @@ function jsonObject(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
 }
 
-function metricQuality(row: SnapshotRow): string {
-  const details = Object.values(jsonObject(row.quality_json));
-  const states = details.map((detail) => String(jsonObject(detail).state ?? 'UNAVAILABLE'));
-  if (states.includes('SUSPECT')) return 'SUSPECT';
-  if (states.length === 0 || states.some((state) => state === 'MISSING' || state === 'UNAVAILABLE')) return 'UNAVAILABLE';
-  return 'VALID';
+function normalizedSnapshot(row: SnapshotRow) {
+  return normalizeMetricSnapshot({ id: row.id, contentId: row.content_id, distribution: row.distribution, source: row.source, capturedAt: row.captured_at, rawMetrics: qualityDetailsFromRaw(row.raw_metrics, row.quality_json) });
 }
 
-function metricStatement(snapshot: SnapshotRow, layer: 'OBSERVED' | 'DERIVED'): string {
-  const values = layer === 'DERIVED' ? snapshot.derived_metrics : snapshot.raw_metrics;
-  return `${layer} metrics from frozen snapshot ${snapshot.id}: ${JSON.stringify(values)}`;
+function metricQuality(row: SnapshotRow): string {
+  const snapshot = normalizedSnapshot(row);
+  const states = Object.values(snapshot.qualityByMetric).map((detail) => detail.state);
+  if (states.includes('SUSPECT')) return 'SUSPECT';
+  return states.length && states.every((state) => state === 'VALID') ? 'VALID' : 'UNAVAILABLE';
 }
 
 function sourceLink(batchId: string, contentId: string, sourceType?: string, sourceId?: string): string {
@@ -110,9 +110,12 @@ function catalogEvidence(workspaceId: string, batchId: string, comparisonId: str
   for (const item of items) {
     const snapshot = item.metric_snapshot_id ? snapshots.get(item.metric_snapshot_id) : null;
     if (snapshot && snapshot.content_id === item.content_id) {
-      for (const layer of ['OBSERVED', ...(Object.keys(snapshot.derived_metrics).length ? ['DERIVED'] : [])] as Array<'OBSERVED' | 'DERIVED'>) {
-        const basis = { statement: metricStatement(snapshot, layer), quality: snapshot.quality, qualityJson: snapshot.quality_json };
-        result.push({ id: evidenceCatalogId(workspaceId, comparisonId, 'METRIC_SNAPSHOT', snapshot.id, layer, basis), sourceType: 'METRIC_SNAPSHOT', sourceId: snapshot.id, workspaceId, batchId, contentId: item.content_id, comparisonId, layer, statement: basis.statement, link: sourceLink(batchId, item.content_id, 'METRIC_SNAPSHOT', snapshot.id), qualityState: snapshot.quality, basis });
+      const normalized = normalizedSnapshot(snapshot);
+      for (const layer of ['OBSERVED', 'DERIVED'] as const) {
+        const values = layer === 'DERIVED' ? normalized.derivedMetrics : normalized.rawMetrics;
+        const quality = layer === 'DERIVED' ? normalized.qualityByMetric.engagement_rate.state : normalized.quality;
+        const basis = { statement: `${layer} metrics from frozen snapshot ${snapshot.id} using ${METRICS_RULE_VERSION}: ${JSON.stringify(values)}`, quality, qualityJson: normalized.qualityByMetric, sourceSnapshotId: snapshot.id, source: snapshot.source, capturedAt: snapshot.captured_at, distribution: snapshot.distribution, rawObservations: snapshot.raw_metrics, sourceMetricNames: normalized.derivedMetrics.engagement_rate.sourceMetricNames, formulaVersion: METRICS_RULE_VERSION };
+        result.push({ id: evidenceCatalogId(workspaceId, comparisonId, 'METRIC_SNAPSHOT', snapshot.id, layer, basis), sourceType: 'METRIC_SNAPSHOT', sourceId: snapshot.id, workspaceId, batchId, contentId: item.content_id, comparisonId, layer, statement: basis.statement, link: sourceLink(batchId, item.content_id, 'METRIC_SNAPSHOT', snapshot.id), qualityState: quality, basis });
       }
     }
   }
@@ -142,7 +145,7 @@ export function createHypothesisRepository(config: HypothesisRepositoryConfig): 
     const itemCount = Number((await pool.query<{ count: string }>(`SELECT count(*)::text AS count FROM comparison_item WHERE workspace_id = $1 AND comparison_id = $2`, [config.workspaceId, comparisonId])).rows[0]?.count ?? 0);
     if (itemCount !== items.length) throw new HypothesisValidationError('comparison contains content outside selected batch');
     const snapshotIds = items.map((item) => item.metric_snapshot_id).filter((id): id is string => Boolean(id));
-    const snapshots = snapshotIds.length === 0 ? [] : (await pool.query<SnapshotRow>(`SELECT id, content_id, quality, captured_at, raw_metrics, derived_metrics, quality_json FROM metric_snapshot WHERE workspace_id = $1 AND id = ANY($2::uuid[])`, [config.workspaceId, snapshotIds])).rows;
+    const snapshots = snapshotIds.length === 0 ? [] : (await pool.query<SnapshotRow>(`SELECT id, content_id, distribution, source, quality, captured_at, raw_metrics, derived_metrics, quality_json FROM metric_snapshot WHERE workspace_id = $1 AND id = ANY($2::uuid[])`, [config.workspaceId, snapshotIds])).rows;
     if (snapshots.some((snapshot) => !items.some((item) => item.content_id === snapshot.content_id && item.metric_snapshot_id === snapshot.id))) throw new HypothesisValidationError('comparison snapshot is outside selected content');
     const contentIds = items.map((item) => item.content_id);
     const sources = contentIds.length === 0 ? [] : (await pool.query<SourceRow>(`WITH latest_transcript AS (SELECT DISTINCT ON (t.content_id) t.id, t.content_id FROM transcript t WHERE t.workspace_id = $1 AND t.content_id = ANY($2::uuid[]) ORDER BY t.content_id, t.created_at DESC, t.id DESC), latest_feature AS (SELECT DISTINCT ON (cf.content_id, cf.field_name) cf.id, cf.content_id, cf.field_name, cf.reviewed_value, cf.ai_value, cf.review_state FROM content_feature cf JOIN extraction_run er ON er.id = cf.extraction_run_id AND er.workspace_id = $1 AND er.status = 'SUCCEEDED' WHERE cf.workspace_id = $1 AND cf.content_id = ANY($2::uuid[]) AND cf.review_state <> 'REJECTED' ORDER BY cf.content_id, cf.field_name, er.created_at DESC, cf.updated_at DESC) SELECT ts.id, t.content_id, 'TRANSCRIPT_SEGMENT' AS source_type, ts.text AS statement, NULL::text AS review_state, NULL::text AS quality_state, NULL::text AS ai_value, NULL::text AS reviewed_value, NULL::numeric AS timestamp_ms, ts.start_ms, ts.end_ms, NULL::text AS link FROM transcript_segment ts JOIN latest_transcript t ON t.id = ts.transcript_id WHERE ts.workspace_id = $1 UNION ALL SELECT vf.id, vf.content_id, 'VIDEO_FRAME', 'VIDEO_FRAME at ' || vf.timestamp_ms || 'ms', NULL::text, NULL::text, NULL::text, NULL::text, vf.timestamp_ms, NULL::numeric, NULL::numeric, NULL::text FROM video_frame vf JOIN content c ON c.id = vf.content_id AND c.batch_id = $3 WHERE vf.workspace_id = $1 AND vf.content_id = ANY($2::uuid[]) UNION ALL SELECT cf.id, cf.content_id, 'CONTENT_FEATURE', 'EXTRACTED ' || cf.field_name || ': ' || COALESCE(cf.reviewed_value, cf.ai_value) || ' [' || cf.review_state || ']', cf.review_state::text, NULL::text, cf.ai_value, cf.reviewed_value, NULL::numeric, NULL::numeric, NULL::numeric, NULL::text FROM latest_feature cf`, [config.workspaceId, contentIds, comparison.batch_id])).rows;
@@ -214,6 +217,19 @@ export function createHypothesisRepository(config: HypothesisRepositoryConfig): 
     }
   }
 
+  async function list(batchId: string) {
+    const batch = await pool.query('SELECT id FROM batch WHERE workspace_id = $1 AND id = $2', [config.workspaceId, batchId]);
+    if (!batch.rows[0]) throw new HypothesisNotFoundError('batch not found in workspace');
+    const result = await pool.query(`SELECT h.id, h.batch_id AS "batchId", h.statement, h.confidence, h.created_at AS "createdAt", latest.decision AS "reviewDecision", latest.reviewed_statement AS "reviewedStatement", latest.created_at AS "reviewedAt"
+      FROM hypothesis h LEFT JOIN LATERAL (
+        SELECT r.decision, r.reviewed_statement, r.created_at FROM review r
+        WHERE r.workspace_id = h.workspace_id AND r.hypothesis_id = h.id
+        ORDER BY r.created_at DESC, r.id DESC LIMIT 1
+      ) latest ON true WHERE h.workspace_id = $1 AND h.batch_id = $2
+      ORDER BY h.created_at DESC, h.id DESC`, [config.workspaceId, batchId]);
+    return result.rows;
+  }
+
   async function get(hypothesisId: string) {
     const hypothesis = (await pool.query<HypothesisRow>(`SELECT id, batch_id, statement, state, confidence, confidence_caps, provider, model, prompt_version, schema_version, rule_version, input_hash, raw_output, suggested_next_test, created_at, updated_at FROM hypothesis WHERE workspace_id = $1 AND id = $2`, [config.workspaceId, hypothesisId])).rows[0];
     if (!hypothesis) throw new HypothesisNotFoundError('hypothesis not found in workspace');
@@ -223,5 +239,5 @@ export function createHypothesisRepository(config: HypothesisRepositoryConfig): 
     return { id: hypothesis.id, batchId: hypothesis.batch_id, statement: hypothesis.statement, state: hypothesis.state, confidence: hypothesis.confidence, confidenceCaps: hypothesis.confidence_caps, provider: hypothesis.provider, model: hypothesis.model, promptVersion: hypothesis.prompt_version, schemaVersion: hypothesis.schema_version, ruleVersion: hypothesis.rule_version, inputHash: hypothesis.input_hash, rawOutput: hypothesis.raw_output, suggestedNextTest: hypothesis.suggested_next_test, comparisons: comparison, evidence };
   }
 
-  return { create, get, close: () => pool.end() };
+  return { create, get, list, close: () => pool.end() };
 }

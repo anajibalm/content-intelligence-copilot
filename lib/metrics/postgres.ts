@@ -2,12 +2,12 @@ import { Pool, type PoolClient } from 'pg';
 import {
   assessKpi,
   normalizeMetricSnapshot,
+  qualityDetailsFromRaw,
   rankBatch,
   KPI_RULE_VERSION,
   METRICS_RULE_VERSION,
   RANKING_RULE_VERSION,
 } from './rules.ts';
-
 export interface MetricsRepositoryConfig {
   connectionString: string;
   workspaceId: string;
@@ -137,12 +137,7 @@ export async function analyze(clientOrPool: Pool | PoolClient, workspaceId: stri
     const key = `${row.content_id}:${row.distribution}`;
     if (seen.has(key)) return [];
     seen.add(key);
-    const qualityJson = jsonObject(row.quality_json);
-    const rawMetrics = Object.fromEntries(Object.entries(row.raw_metrics ?? {}).map(([name, rawEntry]) => {
-      const rawObject = jsonObject(rawEntry);
-      const detail = jsonObject(qualityJson[name]);
-      return [name, { value: rawObject.value ?? null, quality: rawObject.quality ?? detail.state ?? (rawObject.value == null ? 'UNAVAILABLE' : 'VALID'), reason: rawObject.reason ?? detail.reason, qualityNote: detail.reason }];
-    }));
+    const rawMetrics = qualityDetailsFromRaw(row.raw_metrics, row.quality_json);
     return [normalizeMetricSnapshot({
       id: row.id,
       contentId: row.content_id,

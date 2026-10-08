@@ -5,7 +5,9 @@ import {
   deriveMetrics,
   normalizeMetricSnapshot,
   rankBatch,
+  qualityDetailsFromRaw,
 } from '../../lib/metrics/rules.ts';
+import { compareContents } from '../../lib/compare/rules.ts';
 
 const snapshot = (id, distribution, views, overrides = {}) => normalizeMetricSnapshot({
   id,
@@ -25,12 +27,19 @@ const snapshot = (id, distribution, views, overrides = {}) => normalizeMetricSna
   },
 });
 
+test('treats persisted zero without quality provenance as suspect', () => {
+  const rawMetrics = qualityDetailsFromRaw({ views: { value: 0 } }, {});
+  const result = normalizeMetricSnapshot({ id: 'zero', contentId: 'zero', distribution: 'ORGANIC', rawMetrics });
+  assert.equal(result.qualityByMetric.views.state, 'SUSPECT');
+  assert.equal(result.qualityByMetric.views.reason, 'UNEXPLAINED_ZERO');
+});
+
 test('normalizes raw observations and derives ER without copying derived values into raw metrics', () => {
   const result = snapshot('one', 'ORGANIC', 100, { likes: 10, comments: 2, shares: 3, saves: 5 });
   assert.equal(result.rawMetrics.engagement_rate, undefined);
   assert.deepEqual(result.derivedMetrics.engagement_rate, {
     value: 0.2,
-    formulaVersion: 'metrics-v1',
+    formulaVersion: 'metrics-v2',
     sourceMetricNames: ['likes', 'comments', 'shares', 'saves', 'views'],
   });
   assert.equal(result.qualityByMetric.awt_seconds.state, 'UNAVAILABLE');
@@ -107,6 +116,49 @@ test('returns explicit unconfigured result and stable ties without invented Best
   assert.deepEqual(configured.ranked.map((item) => item.contentId), ['content-a', 'content-b']);
   assert.equal(configured.ranked[0].basis.label, 'Best by Views');
   assert.equal(configured.ranked[0].basis.score, undefined);
+});
+test('treats unexplained zero as suspect while preserving explicitly valid observed zero and WFV', () => {
+  const result = normalizeMetricSnapshot({
+    id: 'zero', contentId: 'content-zero', distribution: 'ORGANIC',
+    rawMetrics: {
+      views: 0,
+      wfv_pct: { value: 0, quality: 'VALID' },
+      awt_seconds: { value: 0, quality: 'VALID' },
+    },
+  });
+  assert.equal(result.rawMetrics.wfv_pct, 0);
+  assert.equal(result.qualityByMetric.wfv_pct.state, 'VALID');
+  assert.equal(result.qualityByMetric.views.state, 'SUSPECT');
+  assert.equal(result.qualityByMetric.views.reason, 'UNEXPLAINED_ZERO');
+  assert.equal(result.qualityByMetric.awt_seconds.state, 'VALID');
+});
+
+test('normalizes WFV percentage fraction and rejects fractional values outside [0, 1]', () => {
+  const result = normalizeMetricSnapshot({
+    id: 'wfv', contentId: 'content-wfv', distribution: 'ORGANIC',
+    rawMetrics: { wfv_pct: { value: 0.725, quality: 'VALID' } },
+  });
+  assert.equal(result.rawMetrics.wfv_pct, 0.725);
+  assert.throws(() => normalizeMetricSnapshot({
+    id: 'invalid-wfv', contentId: 'content-invalid-wfv', distribution: 'ORGANIC',
+    rawMetrics: { wfv_pct: { value: 1.1, quality: 'VALID' } },
+  }), /WFV.*between 0 and 1/i);
+});
+
+test('uses one ER derivation for workspace snapshots and compare, including empty persisted derived metrics', () => {
+  const normalized = snapshot('er-consistency', 'ORGANIC', 100, { likes: 10, comments: 2, shares: 3, saves: 5 });
+  const comparison = compareContents({
+    mode: 'MANUAL', scope: 'PAIR', distribution: 'ORGANIC', contentIds: ['content-a', 'content-b'],
+    contents: ['a', 'b'].map((id) => ({
+      id: `content-${id}`, snapshots: [{
+        id: normalized.id, distribution: 'ORGANIC', rawMetrics: normalized.rawMetrics,
+        qualityByMetric: normalized.qualityByMetric, derivedMetrics: {},
+      }],
+    })),
+  });
+  const er = comparison.metricRows[0].metrics.find((metric) => metric.name === 'engagement_rate');
+  assert.equal(er.value, normalized.derivedMetrics.engagement_rate.value);
+  assert.equal(er.state, 'VALID');
 });
 
 test('rejects derived metric keys in raw observations', () => {
