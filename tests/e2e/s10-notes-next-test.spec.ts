@@ -13,6 +13,9 @@ async function installApi(page: Page) {
   const state = { notes: [] as RecordValue[], nextTests: [] as RecordValue[] };
   const batches = fixture.batches;
   await page.route('**/api/workspace**', async (route: Route) => await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ batches: fixture.batches, selectedBatch: fixture.batches[0], contents: [content], selectedContent: { ...content, frames: [], audio: { url: null, available: false }, transcript: [], anchors: [], extraction: [] }, analysis: { synthetic: true, ranking: { status: 'READY', reason: null, rankedGroups: [], excluded: [] }, kpis: [], snapshots: [] } }) }));
+  await page.route('**/api/processing?batchId=*', async (route: Route) => {
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ items: [] }) });
+  });
   await page.route('**/api/hypotheses?hypothesisId=*', async (route: Route) => await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ id: hypothesisId, batchId, statement: 'Synthetic insight', confidence: 'LOW', confidenceCaps: [], suggestedNextTest: null, evidence: [] }) }));
   await page.route(`**/api/hypotheses/${hypothesisId}/s10`, async (route: Route) => {
     if (route.request().method() === 'GET') return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ hypothesisId, batches, notes: state.notes, nextTests: state.nextTests }) });

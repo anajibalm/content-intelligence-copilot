@@ -1,6 +1,6 @@
 import { Pool, type PoolClient } from 'pg';
 import { relative, resolve as pathResolve } from 'node:path';
-import { normalizeMetricSnapshot } from '../metrics/rules.ts';
+import { normalizeMetricSnapshot, qualityDetailsFromRaw } from '../metrics/rules.ts';
 import { resolveAuthorizedArtifact } from '../runtime/artifacts.ts';
 
 export interface WorkspaceRepositoryConfig {
@@ -44,6 +44,7 @@ interface DbSnapshot {
   captured_at: string | null;
   content_age_hours: number | null;
   raw_metrics: Record<string, unknown>;
+  derived_metrics: Record<string, unknown>;
   quality_json: Record<string, unknown>;
 }
 
@@ -68,12 +69,6 @@ async function authorizedArtifactUrl(config: WorkspaceRepositoryConfig, contentI
 }
 
 function adaptSnapshot(row: DbSnapshot) {
-  const qualityJson = jsonObject(row.quality_json);
-  const rawMetrics = Object.fromEntries(Object.entries(row.raw_metrics ?? {}).map(([name, rawEntry]) => {
-    const rawObject = jsonObject(rawEntry);
-    const detail = jsonObject(qualityJson[name]);
-    return [name, { value: rawObject.value ?? null, quality: rawObject.quality ?? detail.state ?? (rawObject.value == null ? 'UNAVAILABLE' : 'VALID'), reason: rawObject.reason ?? detail.reason, qualityNote: detail.reason }];
-  }));
   return normalizeMetricSnapshot({
     id: row.id,
     contentId: row.content_id,
@@ -81,7 +76,7 @@ function adaptSnapshot(row: DbSnapshot) {
     source: row.source,
     capturedAt: row.captured_at,
     contentAgeHours: row.content_age_hours,
-    rawMetrics,
+    rawMetrics: qualityDetailsFromRaw(row.raw_metrics, row.quality_json),
   });
 }
 
@@ -172,7 +167,7 @@ export function createWorkspaceRepository(config: WorkspaceRepositoryConfig) {
     const snapshots = await pool.query<DbSnapshot>(
       `SELECT DISTINCT ON (ms.content_id, ms.distribution)
               ms.id, ms.content_id, ms.distribution, ms.source, ms.captured_at, ms.content_age_hours,
-              ms.raw_metrics, ms.quality_json
+              ms.raw_metrics, ms.derived_metrics, ms.quality_json
        FROM metric_snapshot ms
        JOIN content c ON c.id = ms.content_id
        WHERE ms.workspace_id = $1 AND c.batch_id = $2
@@ -231,12 +226,13 @@ async function contentDetail(client: Pool | PoolClient, config: WorkspaceReposit
     client.query(`SELECT id, frame_type, timestamp_ms, storage_path FROM video_frame WHERE workspace_id = $1 AND content_id = $2 ORDER BY timestamp_ms, id`, [config.workspaceId, contentId]),
     client.query(`SELECT ts.id, ts.start_ms, ts.end_ms, ts.text, ts.role FROM transcript_segment ts JOIN transcript t ON t.id = ts.transcript_id WHERE t.workspace_id = $1 AND t.content_id = $2 ORDER BY ts.start_ms, ts.seq`, [config.workspaceId, contentId]),
     client.query(`SELECT a.id, a.anchor_type, a.timestamp_ms, a.review_state, a.note, a.video_frame_id, a.transcript_segment_id FROM temporal_evidence_anchor a WHERE a.workspace_id = $1 AND a.content_id = $2 ORDER BY a.timestamp_ms, a.id`, [config.workspaceId, contentId]),
-    client.query<DbSnapshot>(`SELECT DISTINCT ON (ms.distribution) ms.id, ms.content_id, ms.distribution, ms.source, ms.captured_at, ms.content_age_hours, ms.raw_metrics, ms.quality_json FROM metric_snapshot ms WHERE ms.workspace_id = $1 AND ms.content_id = $2 ORDER BY ms.distribution, ms.captured_at DESC NULLS LAST, ms.created_at DESC`, [config.workspaceId, contentId]),
+    client.query<DbSnapshot>(`SELECT DISTINCT ON (ms.distribution) ms.id, ms.content_id, ms.distribution, ms.source, ms.captured_at, ms.content_age_hours, ms.raw_metrics, ms.derived_metrics, ms.quality_json FROM metric_snapshot ms WHERE ms.workspace_id = $1 AND ms.content_id = $2 ORDER BY ms.distribution, ms.captured_at DESC NULLS LAST, ms.created_at DESC`, [config.workspaceId, contentId]),
     client.query(`SELECT result FROM runtime_processing_job WHERE workspace_id = $1 AND content_id = $2`, [config.workspaceId, contentId]),
     client.query(`SELECT er.id AS extraction_run_id, er.provider, er.model, er.prompt_version, er.schema_version, er.input_hash, cf.id, cf.field_name, cf.ai_value, cf.reviewed_value, cf.review_state FROM extraction_run er JOIN content_feature cf ON cf.extraction_run_id = er.id WHERE er.workspace_id = $1 AND er.content_id = $2 ORDER BY er.created_at DESC, cf.field_name`, [config.workspaceId, contentId]),
   ]);
   const output = jsonObject(job.rows[0]?.result);
-  const audioPath = jsonObject(output.audio).storagePath;
+  const audio = jsonObject(output.audio);
+  const audioPath = typeof audio.storagePath === 'string' ? audio.storagePath : null;
   const frameReferences = await Promise.all(frames.rows.map(async (frame) => ({
     id: frame.id,
     type: frame.frame_type,

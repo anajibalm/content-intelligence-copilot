@@ -1,12 +1,25 @@
 // @ts-nocheck
-const DERIVED_RAW_KEYS = new Set(['er', 'engagement_rate', 'watch_percentage', 'wfv_pct']);
+const DERIVED_RAW_KEYS = new Set(['er', 'engagement_rate', 'watch_percentage']);
 const QUALITY_STATES = new Set(['VALID', 'MISSING', 'SUSPECT', 'UNAVAILABLE']);
 const QUALITY_REASONS = new Set(['NOT_ACCESSIBLE', 'NOT_PROVIDED', 'SOURCE_ERROR', 'UNEXPLAINED_ZERO', 'INVALID_VALUE']);
 
 /** Versioned deterministic metric rules. No ranking score or cross-distribution baseline exists here. */
-export const METRICS_RULE_VERSION = 'metrics-v1';
+export const METRICS_RULE_VERSION = 'metrics-v2';
 export const RANKING_RULE_VERSION = 'ranking-v1';
 export const KPI_RULE_VERSION = 'kpi-v1';
+
+export function qualityDetailsFromRaw(rawMetrics, qualityJson) {
+  return Object.fromEntries(Object.entries(rawMetrics ?? {}).map(([name, rawEntry]) => {
+    const rawObject = rawEntry && typeof rawEntry === 'object' && !Array.isArray(rawEntry) ? rawEntry : {};
+    const detail = qualityJson?.[name] && typeof qualityJson[name] === 'object' ? qualityJson[name] : {};
+    return [name, {
+      value: rawObject.value ?? null,
+      quality: rawObject.quality ?? detail.state ?? (rawObject.value == null ? 'UNAVAILABLE' : rawObject.value === 0 ? undefined : 'VALID'),
+      reason: rawObject.reason ?? detail.reason,
+      qualityNote: detail.reason,
+    }];
+  }));
+}
 
 function assertDistribution(distribution) {
   if (distribution !== 'ORGANIC' && distribution !== 'PAID') throw new Error(`invalid distribution: ${distribution}`);
@@ -28,16 +41,22 @@ function normalizeReason(value, quality, qualityNote, explicitReason) {
   return QUALITY_REASONS.has(String(quality).toUpperCase()) ? String(quality).toUpperCase() : 'INVALID_VALUE';
 }
 
-function metricEntry(entry) {
+function metricEntry(entry, name) {
   const objectEntry = entry && typeof entry === 'object' && !Array.isArray(entry) ? entry : {};
   const value = Object.keys(objectEntry).length > 0 ? objectEntry.value : entry;
-  const quality = qualityState(value, Object.keys(objectEntry).length > 0 ? objectEntry.quality ?? objectEntry.state : undefined);
+  let quality = qualityState(value, Object.keys(objectEntry).length > 0 ? objectEntry.quality ?? objectEntry.state : undefined);
   if (value != null && (typeof value !== 'number' || !Number.isFinite(value) || value < 0)) {
     throw new Error('metric value must be a finite non-negative number or null');
   }
+  if (QUALITY_STATES.has(String(objectEntry.quality ?? objectEntry.state).toUpperCase()) && (objectEntry.quality ?? objectEntry.state).toUpperCase() === 'VALID') quality = 'VALID';
+  else if (value === 0 && quality === 'VALID' && objectEntry.quality === undefined && objectEntry.state === undefined) quality = 'SUSPECT';
   if (quality === 'VALID' && value == null) throw new Error('VALID metric requires a value');
   if (quality !== 'VALID' && value != null && quality === 'UNAVAILABLE') throw new Error('UNAVAILABLE metric cannot contain a value');
-  return { value: value ?? null, quality, reason: normalizeReason(value, quality, objectEntry.qualityNote, objectEntry.reason) };
+  const reason = quality === 'SUSPECT' && value === 0 && objectEntry.quality === undefined && objectEntry.state === undefined
+    ? 'UNEXPLAINED_ZERO'
+    : normalizeReason(value, quality, objectEntry.qualityNote, objectEntry.reason);
+  if (name === 'wfv_pct' && value != null && value > 1) throw new Error('WFV percentage must be between 0 and 1');
+  return { value: value ?? null, quality, reason };
 }
 
 function usable(snapshot, name) {
@@ -60,13 +79,14 @@ export function deriveMetrics(rawMetrics, qualityByMetric) {
   };
 }
 
+
 export function normalizeMetricSnapshot(input) {
   assertDistribution(input.distribution);
   const rawMetrics = {};
   const qualityByMetric = {};
   for (const [name, entry] of Object.entries(input.rawMetrics ?? {})) {
     if (DERIVED_RAW_KEYS.has(name)) throw new Error(`raw metrics cannot contain derived metric: ${name}`);
-    const normalized = metricEntry(entry);
+    const normalized = metricEntry(entry, name);
     rawMetrics[name] = normalized.value;
     qualityByMetric[name] = { state: normalized.quality, reason: normalized.reason };
   }

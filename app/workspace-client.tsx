@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import ProcessingForm from "./processing-form";
 import { rankingExtremes, selectionRequestKey } from "../lib/workspace/presentation.ts";
 import ComparePanel from "./compare-panel";
 import HypothesisPanel from "./hypothesis-panel";
@@ -37,9 +38,10 @@ type Detail = Content & {
 };
 type RankingItem = { contentId: string; value: number; snapshotId?: string; basis: { label: string; metric: string; fallbackUsed?: boolean } };
 type RankingGroup = { basis: string; direction: string; items: RankingItem[] };
+type Batch = { id: string; name: string; brandName: string; brandId: string; createdAt: string; contentCount: number; contractedVideoCount: number | null };
 type WorkspaceData = {
-  batches: Array<{ id: string; name: string; brandName: string; createdAt: string; contentCount: number; contractedVideoCount: number | null }>;
-  selectedBatch: { id: string; name: string; brandName: string; createdAt: string; contentCount: number; contractedVideoCount: number | null } | null;
+  batches: Batch[];
+  selectedBatch: Batch | null;
   contents: Content[];
   selectedContent: Detail | null;
   analysis: {
@@ -179,6 +181,7 @@ export default function WorkspaceClient() {
     <main className="workspace">
       <header className="topbar"><div><p className="eyebrow">CONTENT INTELLIGENCE COPILOT</p><h1>Batch workspace</h1></div><span className="status">Canonical Postgres data</span></header>
       <section className="workspace-context" aria-labelledby="workspace-heading"><div><p className="eyebrow">S6 / BATCH WORKSPACE</p><h2 id="workspace-heading">{data.selectedBatch.name}</h2><p className="muted">{data.selectedBatch.brandName} · {data.selectedBatch.contentCount} explicit members · {new Date(data.selectedBatch.createdAt).toLocaleDateString()}</p></div><label className="batch-picker">Batch<select aria-label="Select batch" value={data.selectedBatch.id} onChange={(event) => setSelection(event.target.value, null)}>{data.batches.map((batch) => <option value={batch.id} key={batch.id}>{batch.name} · {batch.contentCount} contents</option>)}</select></label></section>
+      <ProcessingForm batchId={data.selectedBatch.id} onAccepted={(acceptedContentId) => setSelection(data.selectedBatch!.id, acceptedContentId)} />
       {data.analysis?.synthetic && <p className="notice">Synthetic demo data · fixture approval is not real brand approval.</p>}
       {loading && <p className="notice" role="status">Loading selected workspace state…</p>}
       <section className="workspace-summary" aria-labelledby="summary-heading">

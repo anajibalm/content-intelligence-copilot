@@ -62,6 +62,9 @@ async function installReviewApi(page: Page) {
     if (url.pathname.includes('/api/workspace/contents/')) return route.fallback();
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(workspaceResponse(url.searchParams.get('contentId') ?? contents[0].id, reviewed)) });
   });
+  await page.route('**/api/processing?batchId=*', async (route: Route) => {
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ items: [] }) });
+  });
   await page.route('**/api/hypotheses/*/s10', async (route: Route) => {
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ hypothesisId: new URL(route.request().url()).pathname.split('/')[3], notes: [], nextTests: [] }) });
   });

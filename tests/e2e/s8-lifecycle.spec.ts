@@ -43,6 +43,9 @@ async function installFixtureApi(page: Page, options: { hypothesisDelay?: () => 
     if (contentId) body.selectedContent = detail(fixtureContents(batchId).find((content) => content.id === contentId) ?? body.contents[0]);
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) });
   });
+  await page.route('**/api/processing?batchId=*', async (route: Route) => {
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ items: [] }) });
+  });
   await page.route('**/api/hypotheses/*/s10', async (route: Route) => {
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ hypothesisId: new URL(route.request().url()).pathname.split('/')[3], notes: [], nextTests: [] }) });
   });

@@ -1,3 +1,4 @@
+import { deriveMetrics, qualityDetailsFromRaw } from '../metrics/rules.ts';
 import { Pool } from 'pg';
 import { compareContents, type ComparisonResult } from './rules.ts';
 
@@ -62,7 +63,8 @@ function jsonObject(value: unknown): Record<string, unknown> {
 }
 
 function metricValue(snapshot: SnapshotInput, name: string): number | null {
-  const entry = name === 'engagement_rate' ? snapshot.derivedMetrics[name] : snapshot.rawMetrics[name];
+  const derived = deriveMetrics(snapshot.rawMetrics, snapshot.qualityByMetric);
+  const entry = name === 'engagement_rate' ? derived[name] : snapshot.rawMetrics[name];
   if (typeof entry === 'number') return Number.isFinite(entry) ? entry : null;
   if (entry && typeof entry === 'object' && 'value' in entry) {
     const value = entry.value;
@@ -80,24 +82,21 @@ function metricQuality(snapshot: SnapshotInput, name: string) {
   if (snapshot.quality !== 'VALID') return { state: snapshot.quality, reason: 'SNAPSHOT_QUALITY' };
   return { state: metricValue(snapshot, name) == null ? 'UNAVAILABLE' : 'VALID', reason: metricValue(snapshot, name) == null ? 'NOT_PROVIDED' : null };
 }
-
 function snapshotInput(row: DbSnapshot): SnapshotInput {
   const qualityJson = jsonObject(row.quality_json);
-  const rawMetrics = Object.fromEntries(Object.entries(row.raw_metrics ?? {}).map(([name, rawEntry]) => {
-    const rawObject = jsonObject(rawEntry);
-    const detail = jsonObject(qualityJson[name]);
-    return [name, { value: rawObject.value ?? null, quality: rawObject.quality ?? detail.state ?? (rawObject.value == null ? 'UNAVAILABLE' : 'VALID'), reason: rawObject.reason ?? detail.reason }];
-  }));
+  const rawMetrics = qualityDetailsFromRaw(row.raw_metrics, qualityJson);
+  const qualityByMetric = Object.fromEntries(Object.entries(rawMetrics).map(([name, entry]) => [name, { state: entry.quality, reason: entry.reason }]));
   return {
     id: row.id,
     distribution: row.distribution,
     quality: row.quality,
-    qualityByMetric: Object.fromEntries(Object.entries(qualityJson).map(([name, detail]) => [name, jsonObject(detail)])),
-    rawMetrics,
-    derivedMetrics: row.derived_metrics ?? {},
+    qualityByMetric,
+    rawMetrics: Object.fromEntries(Object.entries(rawMetrics).map(([name, entry]) => [name, entry.value])),
+    derivedMetrics: deriveMetrics(Object.fromEntries(Object.entries(rawMetrics).map(([name, entry]) => [name, entry.value])), qualityByMetric),
     contentAgeHours: row.content_age_hours,
   };
 }
+
 
 function metricRows(items: Array<{ contentId: string; metricSnapshotId: string | null; position: number }>, snapshots: Map<string, SnapshotInput>) {
   return items.map((item) => {
