@@ -1,39 +1,102 @@
 {
   "evidence_date": "2026-10-08",
   "branch": "feat/mvp-engine-ux-integration",
-  "source_commit": "fb49007",
+  "source_commit": "4989f9b",
+  "reviewed_baseline": "6e2e1907bf2e625f3f6b8901741c016f0ad4e325",
   "pull_request": "https://github.com/anajibalm/content-intelligence-copilot/pull/34",
-  "provenance": "Executor: OMP (local repo agent); owner merge approval: pending",
-  "behavior": {
-    "ingestion": [
-      "Selected batch is required by ProcessingForm and API POST.",
-      "Runtime validates selected batch inside workspace before enqueue.",
-      "GET status is limited to the selected workspace batch and returns HTTP 404 for an absent batch.",
-      "Same URL in same batch remains idempotent; cross-batch canonical duplicate returns HTTP 409.",
-      "Polling stops when every visible job is terminal or component context unmounts."
-    ],
-    "metrics": [
-      "Observed wfv_pct remains a raw metric; derived metric keys remain excluded from raw metrics.",
-      "A zero without explicit quality/provenance becomes SUSPECT with UNEXPLAINED_ZERO; explicit VALID zero remains valid.",
-      "Workspace and compare recompute ER from identical valid raw inputs under metrics-v2, including persisted snapshots with empty derived_metrics."
-    ],
-    "workspace": [
-      "Batch workspace exposes processing state, authorized frame/audio URLs, transcript, anchors, feature review, hypothesis review, Notes, and structured Next Test."
-    ]
+  "provenance": "Executor: OMP; findings: owner PR34 review prompt; owner merge approval: pending",
+  "findings": {
+    "metric_adapters": {
+      "status": "PASS",
+      "regression": "tests/unit/metric-adapters.test.mjs (6 tests, real repository adapters with SQL/fetch mocks)",
+      "proof": [
+        "Workspace, metrics analysis, compare create/get, and new hypothesis evidence use canonical normalization.",
+        "Unexplained persisted zero is SUSPECT/UNEXPLAINED_ZERO; explicit VALID zero remains valid.",
+        "Persisted WFV 72.5 is rejected under fractional [0,1] contract; no unit guessing/conversion.",
+        "Stale ER 0.9/metrics-v1 and empty derived_metrics produce canonical new ER 0.2/metrics-v2 from VALID source inputs.",
+        "New evidence basis records snapshot ID, source, capturedAt, distribution, raw observations, quality/reasons, source metric names, and formula version.",
+        "Historical hypothesis/evidence readback is unchanged; comparison stored conclusions retain rule version while current metric rows explicitly expose metricDerivationVersion and metricBasis."
+      ],
+      "red": "Initial adapter run: 1 passed, 4 failed for zero, invalid WFV, stale ER, missing DERIVED evidence.",
+      "green": "6 adapter tests PASS; full unit suite 100/100 PASS"
+    },
+    "processing_lifecycle": {
+      "status": "PASS",
+      "regression": "tests/e2e/processing-lifecycle.spec.ts (3 fixture browser tests)",
+      "proof": [
+        "Empty queue and terminal queue restart polling on new submit/retry; accepted job appears immediately.",
+        "PENDING/RUNNING/FAILED/COMPLETED transitions refresh detail when results become available.",
+        "Visible GET errors have at most three automatic attempts; Retry status starts a new cycle.",
+        "Delayed POST after batch switch cannot restore old selection; GET/POST abort and timers stop on unmount.",
+        "Anchor route and worker return lookup use explicit workspace-only job lookup, not default env batch; tenant/content/frame checks remain enforced."
+      ]
+    },
+    "shell_and_evidence": {
+      "status": "PASS",
+      "reference": "/home/anajibalm/Downloads/content-intelligence-mvp-v02.html",
+      "regression": "tests/e2e/workspace-shell.spec.ts (1440x900 and 375x812)",
+      "proof": [
+        "Four functional URL-backed views: Batch Workspace, Content Library, Compare, Insights Review.",
+        "Existing compare/review/S10 components reused; batch/content/hypothesis and source anchors preserved.",
+        "Hook frames visible; remaining frames and full timestamped transcript use native details/summary. Exact hashes open hidden target and survive reload.",
+        "Frame inventory, transcript roles, feature/metric references and vertical object-fit:contain retained.",
+        "Mobile persisted long-ID heading overflow reproduced and fixed via reflow; no horizontal overflow in staging review at 375x812."
+      ],
+      "visual_limit": "Reference shell/layout patterns and colors applied; no pixel-identical prototype claim. Mockup fake metrics/actions and out-of-scope modules not copied."
+    },
+    "integrated_runtime": {
+      "status": "PASS",
+      "regression": "tests/e2e/pr34-integrated.spec.ts; npm run test:e2e:pr34:integrated (opt-in)",
+      "origin": "http://127.0.0.1:3134",
+      "application_worktree": "/home/anajibalm/projects/content-intelligence-copilot-engine-ux",
+      "database": "Existing cic-postgres-r1 restored from stopped state; no reset/migration needed",
+      "config_source": "Existing task-14 .env.local loaded without displaying secrets; workspace/default batch overridden for isolated synthetic fixture",
+      "workspace_id": "34000000-0000-4000-8000-000000000001",
+      "foreign_workspace_id": "34000000-0000-4000-8000-000000000002",
+      "env_batch_a": "34000000-0000-4000-8000-000000000004",
+      "selected_batch_b": "34000000-0000-4000-8000-000000000005",
+      "job_id": "b55b24a5-2058-40b4-83a7-568840f9fad8",
+      "content_id": "b7b31584-4295-438f-b10a-8a8a8e0146ec",
+      "recovery_job_id": "52be7909-9b1d-4d26-8aa1-96c7956f4fb6",
+      "recovery_content_id": "c94f8863-5094-4ed7-b034-284d5ac4bfe0",
+      "comparison_id": "7478f839-f220-4ea2-a05c-99bb7b16fed1",
+      "hypothesis_id": "b462ab4f-f909-4a25-b2c9-75b3fb7ae446",
+      "proof": [
+        "Browser enqueue HTTP 202 on selected batch B while server/worker default batch A; controlled transcription failure then retry completed at attempt 2.",
+        "Same URL same batch replays same job ID; cross-batch URL HTTP 409; foreign workspace lookup/enqueue/frame anchor rejected.",
+        "Existing lease recovery returns 0 for active lease and 1 after fixture lease expiry; recovered job completed with new claim.",
+        "Terminal result refreshes persisted transcript/frame/fingerprint UI; authorized stored frame/audio derivatives reused.",
+        "DB persisted stale ER remains 0.9, while workspace/compare create/get/new provider input/evidence report canonical 0.2 with metrics-v2.",
+        "Feature correction preserves ai_value and appends history; hypothesis edit preserves original statement; analyst note and Next Test COMPLETED persist through API, DB and browser reload.",
+        "Screenshots capture actual CIC origin 3134 and task-owned Next process; fixture records remain labelled synthetic for readback."
+      ],
+      "evidence_class": "Real PostgreSQL/API/UI persistence and durable runtime with injected synthetic acquisition/transcription/extraction/hypothesis provider; reused existing media derivatives, NOT actual acquisition or live-provider acceptance"
+    }
   },
   "verification": {
     "npm_run_typecheck": "PASS",
-    "npm_test": "PASS 94/94",
-    "npm_run_lint": "PASS with 3 existing warnings: two no-img-element, one exhaustive-deps",
+    "npm_test": "PASS 100/100",
+    "npm_run_lint": "PASS with 4 warnings: three no-img-element and one exhaustive-deps",
     "npm_run_validate_fixtures": "PASS",
     "npm_run_build": "PASS",
     "git_diff_check": "PASS",
-    "npm_run_test_e2e": "PASS 10/10 synthetic Chromium",
-    "github_actions": "Build & Test PASS, PR #34 head fb49007"
+    "npm_run_test_e2e": "PASS 15/15 synthetic Chromium; includes existing S8/S9/S10 plus processing and shell regressions",
+    "integrated_pr34": "PASS 1/1 on http://127.0.0.1:3134 with existing PostgreSQL and storage",
+    "github_actions": "Build & Test PASS on tested source 4989f9b, run 37769192651; latest receipt delivery HEAD verified in PR checks"
   },
-  "limits": [
-    "CIC_DATABASE_URL, CIC_WORKSPACE_ID, CIC_BRAND_ID, CIC_BATCH_ID, and CIC_STORAGE_ROOT were unavailable in this worktree; database persistence, actual-media, and staging browser proof were not run.",
-    "Synthetic E2E fixtures prove browser transitions and reload only; they are not real-brand approval.",
-    "No production deployment, production data, real-provider acceptance, or managed durability claim."
+  "screenshots": [
+    "/tmp/cic-pr34-batch-1440.png",
+    "/tmp/cic-pr34-batch-375.png",
+    "/tmp/cic-pr34-library-1440.png",
+    "/tmp/cic-pr34-library-375.png",
+    "/tmp/cic-pr34-staging-library-1440.png",
+    "/tmp/cic-pr34-staging-review-1440.png",
+    "/tmp/cic-pr34-staging-review-375.png"
+  ],
+  "open_limits": [
+    "Actual-media acquisition/transcription and live S13 providers were not rerun; opt-in acceptance remains separate.",
+    "Synthetic media reuse/extraction/provider responses do not establish real-brand approval, extraction quality, or production durability.",
+    "PR33/golden packet, v0.2 freeze, S11/S12, and automatic merge untouched.",
+    "No production deployment or managed durability claim."
   ]
 }
