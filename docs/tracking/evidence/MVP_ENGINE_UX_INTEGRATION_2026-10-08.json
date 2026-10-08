@@ -7,6 +7,7 @@
   "provenance": "Executor: OMP; findings: owner PR34 review prompt; owner merge approval: pending",
   "ux_completion": {
     "tested_source": "f4ac678e4e1527dfabe15c2a8cd08bb45486b84f",
+    "ci_selector_delta": { "tested_source": "1cdcaf5e7eb33ef9636c6b7eb0aceecb4ce635ef", "failed_run": "37817539416", "cause": "S8 global getByText matched generation result plus hidden persisted queue rows; strict mode violation, not product failure", "fix": "Scope success/stale assertions to .hypothesis-result, preserve exact text/count assertions", "verification": "CI=1 npm run test:e2e -- --reporter=json PASS 18/18, 0 flaky/skipped; lint/typecheck/unit 101/fixtures/build/diff PASS; production source unchanged from f4ac678 and integrated proof remains applicable" },
     "scope": "PR34 UX only; no migration, new tooling, delegation, v0.2 freeze, PR33/golden packet/S13/S11/S12 changes",
     "findings": [
       { "finding": "1. Page responsibilities", "status": "PASS", "proof": "Batch input/status/KPI; Library content/media/fingerprint; Compare selection/generation summary/Buka review; Review persisted hypothesis queue/detail only. tests/e2e/s8-lifecycle.spec.ts and pr34-ux.spec.ts." },
@@ -101,7 +102,7 @@
     "git_diff_check": "PASS",
     "npm_run_test_e2e": "PASS 18/18 synthetic Chromium; 0 skipped/flaky; includes S8/S9/S10, processing, shell and PR34 UX",
     "integrated_pr34": "PASS 1/1 on http://127.0.0.1:3134 with existing PostgreSQL and storage",
-    "github_actions": "Source run 37817324787 queued at receipt write; final delivery CI verified separately in PR checks before handoff"
+    "github_actions": "Initial delivery run 37817539416 failed ambiguous S8 selector. Fixed source 1cdcaf5e7eb33ef9636c6b7eb0aceecb4ce635ef; final exact-head CI readback is recorded on PR before handoff."
   },
   "screenshots": [
     "/tmp/cic-pr34-batch-1440.png",
