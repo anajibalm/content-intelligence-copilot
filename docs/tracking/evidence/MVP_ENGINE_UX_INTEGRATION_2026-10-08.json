@@ -1,10 +1,29 @@
 {
   "evidence_date": "2026-10-08",
   "branch": "feat/mvp-engine-ux-integration",
-  "source_commit": "4989f9b",
-  "reviewed_baseline": "6e2e1907bf2e625f3f6b8901741c016f0ad4e325",
+  "source_commit": "f4ac678e4e1527dfabe15c2a8cd08bb45486b84f",
+  "reviewed_baseline": "5788d466fa854849fda14897763d0cb4347f29b9",
   "pull_request": "https://github.com/anajibalm/content-intelligence-copilot/pull/34",
   "provenance": "Executor: OMP; findings: owner PR34 review prompt; owner merge approval: pending",
+  "ux_completion": {
+    "tested_source": "f4ac678e4e1527dfabe15c2a8cd08bb45486b84f",
+    "scope": "PR34 UX only; no migration, new tooling, delegation, v0.2 freeze, PR33/golden packet/S13/S11/S12 changes",
+    "findings": [
+      { "finding": "1. Page responsibilities", "status": "PASS", "proof": "Batch input/status/KPI; Library content/media/fingerprint; Compare selection/generation summary/Buka review; Review persisted hypothesis queue/detail only. tests/e2e/s8-lifecycle.spec.ts and pr34-ux.spec.ts." },
+      { "finding": "2. Persisted scoped queue and navigation", "status": "PASS", "proof": "GET hypotheses?batchId validates workspace/batch and deterministically orders hypothesis + latest review. Pending means no review row, not LOW. EDIT removes item from pending while detail stays; Semua/deep link/reload/Back/Forward/draft isolation/exact source navigation tested. Integrated foreign workspace/batch HTTP 404 and invalid batch HTTP 400." },
+      { "finding": "3. Indonesian labels and readable artifacts", "status": "PASS", "proof": "labels-id.ts maps canonical metrics, fields, distribution, states, review reasons and confidence caps including INSUFFICIENT_SAMPLE/ONE_COMPARISON/LEGACY_ONLY. KeyValueView handles JSON strings/object/array/null/boolean/text without HTML injection. Historical incomplete evidence retained in labelled disclosure. AI/analyst content and stored identifiers untouched." },
+      { "finding": "4. Metrics and fingerprint", "status": "PASS", "proof": "Library short Indonesian metric labels, fractional WFV 0.725 shown 72.5%, canonical ER 0.2 shown 20.0%, unavailable not zero, Organik/Iklan separate. Desktop Field/AI asli/Hasil review/Status; mobile paired labelled values. CTA correction, reason and original visible. Canonical derivation/formula/history unchanged." },
+      { "finding": "5. History and action hierarchy", "status": "PASS", "proof": "Only adjacent CONFIRM records collapsed visually; all events retain stored order/metadata, no claim of common transaction. Corrections/rejections highlighted. Primary/secondary/destructive and disabled explanations; comparison requires two, hypothesis/regeneration requires valid comparison; existing server validation preserved. s9-review and processing lifecycle regressions PASS." },
+      { "finding": "6. Notes and Next Test disclosure/persistence", "status": "PASS", "proof": "Buat uji berikutnya initially closed; create/edit opens nine fields, draft/error remains. Stored Notes/Next Test visible; AI suggestion not experiment record. UI create/status COMPLETED, API/DB readback and browser reload pass in isolated PostgreSQL smoke." },
+      { "finding": "7. Synthetic provenance", "status": "PASS", "proof": "Workspace-scoped source synthetic_pr34/synthetic_s5_demo or provider synthetic-pr34 detects synthetic without batch-name matching. Four-view banner with mixed-data warning. Empty batch named Synthetic PR34 returns synthetic false; non-fixture browser context has no banner." },
+      { "finding": "Mobile and FAILED retry", "status": "PASS", "proof": "1440x900 and 375x812 four views, full-page and lower-panel screenshots inspected; no horizontal page overflow. Mobile fixture work area <=400px, actual DB Review top 398.5625px. FAILED Coba lagi posts original job URL/selected batch through existing enqueue and restarts polling; DB smoke completes attempt 2. Membership and processing ledger counts explicitly separate." }
+    ],
+    "regressions": { "unit": "101/101 PASS; queue scope RED repository.list is not a function, then GREEN", "browser": "18/18 PASS, 0 skipped/flaky; test:e2e explicitly includes pr34-ux.spec.ts; all fixture API requests intercepted", "integrated": "1/1 PASS on 3134, real PostgreSQL/API/UI/durable dispatcher, injected synthetic providers and reused derivatives" },
+    "integrated_ids": { "workspace": "34000000-0000-4000-8000-000000000001", "env_batch_a": "34000000-0000-4000-8000-000000000004", "selected_batch_b": "34000000-0000-4000-8000-000000000005", "job": "764a778e-3ff5-4ba7-b664-d9b74ab9687b", "content": "77f88bf9-8da2-4b7e-988e-465f61c09192", "comparison": "eb0904b2-b0df-4b2a-9ace-7248223bdc13", "hypothesis": "9fec3955-f506-425e-bed2-72f79c6ebeb7" },
+    "owner_reported": "Owner reported Notes, hypothesis edits and Next Test survived reload before this task. Manual synthetic report only; separate from new executor tests and not brand approval.",
+    "visual_evidence": ["/tmp/cic-pr34-ux-{batch,library,compare,review}-{1440,375}.png", "/tmp/cic-pr34-ux-fingerprint-history-{1440,375}.png", "/tmp/cic-pr34-ux-notes-next-test-{1440,375}.png", "/tmp/cic-pr34-actual-{batch,library,compare,review}-{1440,375}.png", "/tmp/cic-pr34-staging-review-{1440,375}.png"],
+    "limits": "Local screenshot files, not committed media. Reference rendered and actual surface inspected, not pixel-identical claim. No live provider, new actual acquisition, real-brand approval, production deployment or independent delegated review. Navigation can abort audio preload; no application page exception observed. Owner review still required."
+  },
   "findings": {
     "metric_adapters": {
       "status": "PASS",
@@ -75,14 +94,14 @@
   },
   "verification": {
     "npm_run_typecheck": "PASS",
-    "npm_test": "PASS 100/100",
+    "npm_test": "PASS 101/101 on f4ac678e4e1527dfabe15c2a8cd08bb45486b84f",
     "npm_run_lint": "PASS with 4 warnings: three no-img-element and one exhaustive-deps",
     "npm_run_validate_fixtures": "PASS",
     "npm_run_build": "PASS",
     "git_diff_check": "PASS",
-    "npm_run_test_e2e": "PASS 15/15 synthetic Chromium; includes existing S8/S9/S10 plus processing and shell regressions",
+    "npm_run_test_e2e": "PASS 18/18 synthetic Chromium; 0 skipped/flaky; includes S8/S9/S10, processing, shell and PR34 UX",
     "integrated_pr34": "PASS 1/1 on http://127.0.0.1:3134 with existing PostgreSQL and storage",
-    "github_actions": "Build & Test PASS on tested source 4989f9b, run 37769192651; latest receipt delivery HEAD verified in PR checks"
+    "github_actions": "Source run 37817324787 queued at receipt write; final delivery CI verified separately in PR checks before handoff"
   },
   "screenshots": [
     "/tmp/cic-pr34-batch-1440.png",
