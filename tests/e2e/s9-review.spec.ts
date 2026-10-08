@@ -140,7 +140,7 @@ test.beforeEach(async ({ page }) => {
 test('Confirm All, Correct fields twice, Reject All persist append-only review history', async ({ page }) => {
   const api = await installReviewApi(page);
   const contentId = contents[0].id;
-  await page.goto(`/?batchId=${batchId}&contentId=${contentId}`);
+  await page.goto(`/?batchId=${batchId}&contentId=${contentId}&view=review`);
   await page.getByLabel('Reviewer').fill('analyst_confirm');
   await page.getByRole('button', { name: 'Confirm All' }).click();
   await expect(page.getByText('Review history (append-only)')).toBeVisible();
@@ -169,7 +169,7 @@ test('Confirm All, Correct fields twice, Reject All persist append-only review h
 test('Reject All keeps explicit reason on separate same-content fixture', async ({ page }) => {
   const api = await installReviewApi(page);
   const contentId = contents[2].id;
-  await page.goto(`/?batchId=${batchId}&contentId=${contentId}`);
+  await page.goto(`/?batchId=${batchId}&contentId=${contentId}&view=review`);
   await page.getByLabel('Reviewer').fill('analyst_reject');
   await page.getByLabel('Reject reason (required for Reject All)').selectOption('WRONG_CLASSIFICATION');
   await page.getByRole('button', { name: 'Reject All' }).click();
@@ -179,7 +179,7 @@ test('Reject All keeps explicit reason on separate same-content fixture', async 
 
 test('Approve, Edit, Reject hypothesis controls persist reviewed statement after reload', async ({ page }) => {
   const api = await installReviewApi(page);
-  await page.goto(`/?batchId=${batchId}&contentId=${contents[0].id}`);
+  await page.goto(`/?batchId=${batchId}&contentId=${contents[0].id}&view=compare`);
   await page.getByRole('button', { name: 'Select all batch' }).click();
   await page.getByRole('button', { name: 'Generate comparison' }).click();
   await page.getByRole('button', { name: 'Generate hypothesis' }).click();

@@ -84,6 +84,7 @@ async function installFixtureApi(page: Page, options: { hypothesisDelay?: () => 
   return { seen, hypothesisCalls: () => hypothesisCalls, hypothesisSettled: () => hypothesisSettled };
 }
 async function selectTwo(page: Page, distribution = 'ORGANIC') {
+  await page.getByRole('navigation', { name: 'Analyst workspace' }).getByRole('link', { name: 'Compare', exact: true }).click();
   if (distribution !== 'ORGANIC') await page.getByRole('combobox', { name: 'Distribution', exact: true }).selectOption(distribution);
   const selection = page.getByRole('list', { name: 'Comparison content selection' });
   await selection.getByRole('button').nth(0).click();

@@ -43,7 +43,9 @@ test('empty queue restarts after submit and retry, transient errors recover, ter
   await expect(page.getByRole('alert').filter({ hasText: 'Batch job status unavailable' })).toBeVisible({ timeout: 7000 });
   status = 'COMPLETED';
   await expect(panel).toContainText('COMPLETED', { timeout: 10000 });
+  await page.getByRole('link', { name: 'Content Library', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Worker result available', exact: true })).toBeVisible();
+  await page.getByRole('link', { name: 'Batch Workspace', exact: true }).click();
   const settled = gets;
   await page.waitForTimeout(2500);
   expect(gets).toBe(settled);
