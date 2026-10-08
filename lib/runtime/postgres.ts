@@ -364,10 +364,10 @@ export function createPostgresRuntime(options: PostgresRuntimeOptions): DurableR
       if (!(await renewClaim(job, 15 * 60 * 1000))) throw new Error('worker claim expired after processing');
       await complete(job, processing.output);
       completed = true;
-      return await get(job.id);
+      return await get(job.id, null);
     } catch (error) {
       await fail(job, error);
-      return await get(job.id);
+      return await get(job.id, null);
     } finally {
       if (!completed && temporaryMedia) await cleanupTemporaryMedia([temporaryMedia]);
     }

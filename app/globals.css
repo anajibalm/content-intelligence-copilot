@@ -211,6 +211,8 @@ summary { min-height: 44px; cursor: pointer; font-weight: 700; display: list-ite
   .app-sidebar p { display: none; }
   .app-shell .workspace { padding: 20px 18px 40px; }
   .app-shell .topbar, .app-shell .workspace-context { display: grid; gap: 12px; }
+  .app-shell .section-heading { flex-direction: column; }
+  .app-shell .section-heading > div { min-width: 0; overflow-wrap: anywhere; }
   .app-shell .status { white-space: normal; margin-top: 0; }
   .app-shell .batch-picker select { width: 100%; max-width: none; }
   .app-shell .form-row { flex-direction: column; }

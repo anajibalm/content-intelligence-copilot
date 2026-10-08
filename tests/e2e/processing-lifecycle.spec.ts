@@ -69,7 +69,8 @@ test('delayed POST cannot restore old batch and unmount stops polling', async ({
   await page.route('**/api/processing**', async (route) => {
     if (route.request().method() === 'POST') { started(); await pending; return route.fulfill({ status: 202, json: job }).catch(() => {}); }
     gets++;
-    return route.fulfill({ json: { items: [] } });
+    const batchId = new URL(route.request().url()).searchParams.get('batchId');
+    return route.fulfill({ json: { items: batchId === batchB ? [{ ...job, status: 'RUNNING' }] : [] } });
   });
   await page.goto(`/?batchId=${batchA}`);
   await submit(page);

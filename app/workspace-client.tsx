@@ -148,7 +148,7 @@ export default function WorkspaceClient() {
     const onPopState = () => {
       const params = new URLSearchParams(window.location.search);
       requestNumber.current++;
-      setView(params.get('view') ?? (window.location.hash ? 'library' : 'batch'));
+      setView(params.get('view') ?? (window.location.hash ? 'library' : params.has('hypothesisId') ? 'review' : 'batch'));
       setEvidenceAnchor(window.location.hash);
       setBatchId(params.get("batchId"));
       setContentId(params.get("contentId"));

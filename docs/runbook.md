@@ -70,6 +70,14 @@ Synthetic UI tests use sanitized `page.route()` fixtures. Integrated staging smo
 
 Runtime: Node.js `22.18.0` from `.node-version`. CI uses same version and does not call paid providers or production DB.
 
+### PR34 isolated integrated regression
+
+`npm run test:e2e` includes queue lifecycle and shell/deep-link regressions, without DB/provider access. `npm run test:e2e:pr34:integrated` is opt-in and requires existing PostgreSQL schema, `CIC_DATABASE_URL`, `CIC_STORAGE_ROOT`, and `CIC_E2E_STAGING_URL` in the test process. Run the application with workspace `34000000-0000-4000-8000-000000000001` and default batch A `34000000-0000-4000-8000-000000000004`; the test selects batch B `34000000-0000-4000-8000-000000000005` to exercise env/selection mismatch.
+
+The integrated test seeds labelled synthetic workspace/brand/batches additively, leaves its records for readback, and uses production durable dispatcher/lease/recovery with injected synthetic acquisition/transcription/extraction. It copies existing frame/audio derivatives from content `aa3c553e-681d-4cb5-bfab-a185e4f6cb9b`, job `08df9c0e-fc84-41ac-9537-b7d633ae2d12`, under `CIC_STORAGE_ROOT`; those artifacts must exist. Hypothesis provider is synthetic. No live provider or actual acquisition acceptance follows from this test. Interrupted synthetic jobs are resumed only inside the isolated PR34 workspace; existing data is never reset.
+
+Views use `?view=batch|library|compare|review`; batch/content/hypothesis context remains in the URL. Exact evidence hashes open the library and the containing disclosure. Observed `wfv_pct` is a fraction in `[0,1]`; invalid persisted values are rejected rather than guessed or converted. Comparison conclusions retain their stored rule version; metric rows explicitly report current `metrics-v2` derivation from frozen snapshot inputs. Historical hypothesis/evidence readback stays immutable.
+
 ## Security
 
 - Jangan commit secrets/provider raw payloads/transient CDN URLs/media.

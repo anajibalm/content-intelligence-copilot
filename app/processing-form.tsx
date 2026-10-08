@@ -18,10 +18,13 @@ export default function ProcessingForm({ batchId, onAccepted, onSettled }: { bat
   const [refreshVersion, setRefreshVersion] = useState(0);
   const jobsRef = useRef<ProcessingJob[]>([]);
   const currentBatch = useRef(batchId);
-  currentBatch.current = batchId;
   const callbacks = useRef({ onAccepted, onSettled });
-  callbacks.current = { onAccepted, onSettled };
   const submitController = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    currentBatch.current = batchId;
+    callbacks.current = { onAccepted, onSettled };
+  }, [batchId, onAccepted, onSettled]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -99,7 +102,7 @@ export default function ProcessingForm({ batchId, onAccepted, onSettled }: { bat
       </div>
       <p className="form-message" aria-live="polite">{message}</p>
       {statusError && <div role="alert"><p>{statusError}</p><button type="button" onClick={() => setRefreshVersion((version) => version + 1)}>Retry status</button></div>}
-      <div className="batch-processing" aria-label="Batch processing status"><h2>Processing status</h2>{jobs.length === 0 ? <p>{statusLoaded ? "No processing jobs for this batch." : "Loading processing status…"}</p> : jobs.map((job) => <article key={job.id}><a href={`/?batchId=${encodeURIComponent(batchId)}&contentId=${encodeURIComponent(job.contentId)}`}>{job.sourceUrl}</a> · {job.status}{terminal(job.status) ? "" : " · queued or processing"}{job.error ? ` · ${job.error}` : ""}</article>)}</div>
+      <div className="batch-processing" aria-label="Batch processing status"><h2>Processing status</h2>{jobs.length === 0 ? <p>{statusLoaded ? "No processing jobs for this batch." : "Loading processing status…"}</p> : jobs.map((job) => <article key={job.id}><a href={`/?batchId=${encodeURIComponent(batchId)}&contentId=${encodeURIComponent(job.contentId)}&view=library`}>{job.sourceUrl}</a> · {job.status}{terminal(job.status) ? "" : " · queued or processing"}{job.error ? ` · ${job.error}` : ""}</article>)}</div>
     </form>
   );
 }

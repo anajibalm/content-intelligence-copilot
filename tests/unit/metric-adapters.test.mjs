@@ -75,3 +75,20 @@ for (const stored of [{ engagement_rate: { value: 0.9, formulaVersion: 'metrics-
     assert.deepEqual(snapshot.derived_metrics, stored, 'historical input remains unchanged');
   });
 }
+
+test('new evidence retains suspect zero and rejects invalid WFV before provider call', async (t) => {
+  const row = { ...base, raw_metrics: { views: { value: 0 } } };
+  sqlFixture(t, row);
+  let evidence;
+  t.mock.method(globalThis, 'fetch', async (_url, request) => {
+    evidence = JSON.parse(JSON.parse(request.body).messages[1].content.split('\n').at(-1)).evidence;
+    throw new Error('synthetic capture only');
+  });
+  const repo = createHypothesisRepository({ connectionString: 'postgres://unused', workspaceId: 'workspace-a', providerEndpoint: 'https://synthetic.invalid', providerApiKey: 'synthetic', providerModel: 'synthetic', providerName: 'synthetic' });
+  await assert.rejects(repo.create({ batchId, comparisonId }), /provider request failed/);
+  assert.equal(evidence.find((item) => item.layer === 'OBSERVED').qualityState, 'SUSPECT');
+  assert.equal(evidence.find((item) => item.layer === 'OBSERVED').basis.qualityJson.views.reason, 'UNEXPLAINED_ZERO');
+  assert.notEqual(evidence.find((item) => item.layer === 'DERIVED').qualityState, 'VALID');
+  row.raw_metrics = { wfv_pct: { value: 72.5, quality: 'VALID' } };
+  await assert.rejects(repo.create({ batchId, comparisonId }), /WFV percentage must be between 0 and 1/);
+});

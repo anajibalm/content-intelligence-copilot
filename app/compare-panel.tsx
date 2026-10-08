@@ -18,6 +18,8 @@ type MetricRow = {
 type CompareResult = {
   id: string;
   ruleVersion: string;
+  metricDerivationVersion?: string;
+  metricBasis?: string;
   mode: string;
   scope: string;
   distribution: string;
@@ -136,6 +138,7 @@ export default function ComparePanel({ batchId, contents, onCreated, onInvalidat
     {result && <div className="compare-result" aria-live="polite">
       <div className="compare-result-heading"><h3>{result.mode === "PERFORMANCE_CONTRAST" ? "Exploratory performance contrast" : result.mode === "MANUAL" ? "Manual comparison" : "Controlled comparison"}</h3><span className="state">Quality {result.quality}</span></div>
       <p className="muted">Artifact {result.id} · {result.distribution} · {result.scope} · rule {result.ruleVersion} · snapshots frozen {result.snapshotIds.length}/{result.items.length}</p>
+      {result.metricDerivationVersion && <p className="muted">Metric rows: {result.metricDerivationVersion} · current derivation from frozen snapshot inputs. Stored artifact conclusion remains rule {result.ruleVersion}.</p>}
       <div className="compare-cards">{result.metricRows.map((row) => <article className="compare-card" key={row.contentId}><p className="eyebrow">Position {result.items.find((item) => item.contentId === row.contentId)?.position}</p><h4>{contentLabel(contents.find((content) => content.id === row.contentId) ?? { id: row.contentId, title: null, externalId: row.contentId, snapshots: [] })}</h4><p className="muted">Frozen snapshot {row.metricSnapshotId ?? "unavailable"}</p><dl className="compare-metrics">{row.metrics.map((metric) => <div key={metric.name}><dt>{METRIC_LABELS[metric.name] ?? metric.name}</dt><dd>{metricValue(metric.value, metric.name)}</dd><small>{metric.state}{metric.reason ? ` · ${metric.reason}` : ""}</small></div>)}</dl></article>)}</div>
       <div className="compare-variables"><div><strong>Controlled variables</strong><pre>{JSON.stringify(result.controlledVariables, null, 2)}</pre></div><div><strong>Uncontrolled variables</strong><pre>{JSON.stringify(result.uncontrolledVariables, null, 2)}</pre></div></div>
       {result.qualityReasons.length > 0 && <p className="notice">{result.qualityReasons.join(" · ")}</p>}
