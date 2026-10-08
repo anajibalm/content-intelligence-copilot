@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { REVIEW_REASONS, type ReviewReason } from "../lib/domain/types.ts";
+import { labelId, reasonId } from '../lib/workspace/labels-id.ts';
 
 type Feature = { id: string; extractionRunId: string; fieldName: string; aiValue: string; reviewedValue: string | null; reviewState: string };
 type FeatureReviewRecord = { id: string; contentFeatureId: string; extractionRunId: string; fieldName: string; decision: string; reasonCode: ReviewReason | null; reviewedValue: string | null; goldenLabel: boolean; reviewer: string; note: string | null; createdAt: string };
@@ -17,14 +18,14 @@ function ReviewMeta({ reviewer, setReviewer, note, setNote, goldenLabel, setGold
   setGoldenLabel: (value: boolean) => void;
 }) {
   return <div className="review-meta">
-    <label>Reviewer<input value={reviewer} onChange={(event) => setReviewer(event.target.value)} placeholder="Analyst identity" /></label>
-    <label>Note<textarea value={note} onChange={(event) => setNote(event.target.value)} rows={2} placeholder="Optional note, preserved with the decision" /></label>
-    <label className="review-golden"><input type="checkbox" checked={goldenLabel} onChange={(event) => setGoldenLabel(event.target.checked)} />Mark as golden label (analyst ground truth)</label>
+    <label>Reviewer<input value={reviewer} onChange={(event) => setReviewer(event.target.value)} placeholder="Identitas analyst" /></label>
+    <label>Catatan keputusan<textarea value={note} onChange={(event) => setNote(event.target.value)} rows={2} placeholder="Opsional, disimpan bersama keputusan" /></label>
+    <label className="review-golden"><input type="checkbox" checked={goldenLabel} onChange={(event) => setGoldenLabel(event.target.checked)} />Tandai golden label (ground truth analyst)</label>
   </div>;
 }
 
 function ReasonSelect({ label, value, onChange }: { label: string; value: ReviewReason | ""; onChange: (value: ReviewReason | "") => void }) {
-  return <label>{label}<select value={value} onChange={(event) => onChange(event.target.value as ReviewReason | "")}><option value="">Select reason…</option>{REVIEW_REASONS.map((reason) => <option value={reason} key={reason}>{reason}</option>)}</select></label>;
+  return <label>{label}<select value={value} onChange={(event) => onChange(event.target.value as ReviewReason | "")}><option value="">Pilih alasan…</option>{REVIEW_REASONS.map((reason) => <option value={reason} key={reason}>{reasonId(reason)}</option>)}</select></label>;
 }
 
 /**
@@ -118,34 +119,36 @@ export function FeatureReviewPanel({ contentId, features, onReviewed }: { conten
     }
 
   }
+  const historyGroups: FeatureReviewRecord[][] = [];
+  for (const review of history?.reviews ?? []) {
+    const last = historyGroups.at(-1);
+    if (review.decision === 'CONFIRM' && last?.[0].decision === 'CONFIRM') last.push(review);
+    else historyGroups.push([review]);
+  }
   return <>
-    <p className="muted">AI originals remain separate from reviewed values. Unreviewed extraction caps confidence at LOW.</p>
-    <dl>{features.map((feature) => <div id={`content-feature-${feature.id}`} key={feature.id}>
-      <dt>{feature.fieldName}</dt>
-      <dd>AI original: {feature.aiValue} · Reviewed: {feature.reviewedValue ?? "unreviewed"} · State: {feature.reviewState}</dd>
-      {mode === "CORRECT" && <dd className="review-correction">
-        <label>Corrected value<input value={corrections[feature.id] ?? ""} onChange={(event) => setCorrections((current) => ({ ...current, [feature.id]: event.target.value }))} placeholder="Leave empty to keep current reviewed value" /></label>
-        <ReasonSelect label="Correction reason" value={correctionReasons[feature.id] ?? ""} onChange={(value) => setCorrectionReasons((current) => ({ ...current, [feature.id]: value }))} />
-      </dd>}
-    </div>)}</dl>
+    <p className="muted">AI asli tidak berubah. Ekstraksi belum direview membatasi confidence ke Rendah.</p>
+    <table className="fingerprint-table"><thead><tr><th>Field</th><th>AI asli</th><th>Hasil review</th><th>Status</th></tr></thead><tbody>{features.map((feature) => <tr id={`content-feature-${feature.id}`} key={feature.id} className={feature.reviewState === 'CORRECTED' || feature.reviewState === 'REJECTED' ? 'review-changed' : ''}>
+      <th scope="row" title={feature.fieldName}>{labelId(feature.fieldName)}<small>{feature.fieldName}</small></th>
+      <td data-label="AI asli">{feature.aiValue}</td>
+      <td data-label="Hasil review">{feature.reviewedValue ?? 'Belum direview'}{mode === 'CORRECT' && <div className="review-correction"><label>Nilai koreksi<input value={corrections[feature.id] ?? ''} onChange={(event) => setCorrections((current) => ({ ...current, [feature.id]: event.target.value }))} placeholder="Kosong berarti tidak diubah" /></label><ReasonSelect label="Alasan koreksi" value={correctionReasons[feature.id] ?? ''} onChange={(value) => setCorrectionReasons((current) => ({ ...current, [feature.id]: value }))} /></div>}</td>
+      <td data-label="Status">{labelId(feature.reviewState)}</td>
+    </tr>)}</tbody></table>
     <div className="review-panel">
-      <div className="section-heading"><div><p className="eyebrow">S9 / ANALYST REVIEW</p><h3>Feature review</h3></div><span className="status">{unreviewed.length} unreviewed · {features.length} extracted</span></div>
+      <div className="section-heading"><h3>Review fingerprint</h3><span className="status">{unreviewed.length} menunggu review · {features.length} field</span></div>
       <ReviewMeta reviewer={reviewer} setReviewer={setReviewer} note={note} setNote={setNote} goldenLabel={goldenLabel} setGoldenLabel={setGoldenLabel} />
-      <ReasonSelect label="Reject reason (required for Reject All)" value={reasonCode} onChange={setReasonCode} />
+      <ReasonSelect label="Alasan penolakan (wajib untuk Tolak semua)" value={reasonCode} onChange={setReasonCode} />
       <div className="review-actions">
-        <button type="button" onClick={() => submit("CONFIRM")} disabled={confirmBlocked}>{pending ? "Saving…" : "Confirm All"}</button>
-        <button type="button" onClick={() => setMode(mode === "CORRECT" ? "IDLE" : "CORRECT")} disabled={blocked}>{mode === "CORRECT" ? "Cancel corrections" : "Correct fields"}</button>
-        {mode === "CORRECT" && <button type="button" onClick={() => submit("CORRECT")} disabled={blocked || correctionEntries.length === 0}>{pending ? "Saving…" : "Save corrections"}</button>}
-        <button type="button" onClick={() => submit("REJECT")} disabled={blocked || reasonCode === ""}>{pending ? "Saving…" : "Reject All"}</button>
+        <button type="button" onClick={() => submit('CONFIRM')} disabled={confirmBlocked}>{pending ? 'Menyimpan…' : 'Konfirmasi semua'}</button>
+        <button className="secondary" type="button" onClick={() => setMode(mode === 'CORRECT' ? 'IDLE' : 'CORRECT')} disabled={pending}>{mode === 'CORRECT' ? 'Tutup koreksi' : 'Koreksi field'}</button>
+        {mode === 'CORRECT' && <button type="button" onClick={() => submit('CORRECT')} disabled={blocked || correctionEntries.length === 0 || correctionEntries.some(([id]) => !correctionReasons[id])}>{pending ? 'Menyimpan…' : 'Simpan koreksi'}</button>}
+        <button className="destructive" type="button" onClick={() => submit('REJECT')} disabled={blocked || reasonCode === ''}>{pending ? 'Menyimpan…' : 'Tolak semua'}</button>
       </div>
-      <p className="muted">Rejection never becomes a golden label. Corrections keep the AI original and append review history.</p>
+      <p className="muted">{pending ? 'Sedang menyimpan.' : !reviewer.trim() ? 'Isi reviewer untuk menyimpan keputusan.' : !unreviewed.length ? 'Tidak ada field belum direview untuk Konfirmasi semua.' : 'Konfirmasi semua hanya untuk field belum direview.'} {mode === 'CORRECT' && 'Setiap koreksi memerlukan nilai dan alasan.'} {!reasonCode && 'Alasan wajib sebelum penolakan.'}</p>
       {error && <p className="error-state" role="alert">{error}</p>}
       {history && (history.reviews.length > 0 || history.corrections.length > 0) && <div className="review-history" aria-live="polite">
-        <h3>Review history (append-only)</h3>
-        <ul>
-          {history.reviews.map((review) => <li key={review.id}><span className="status">{review.decision}{review.goldenLabel ? " · GOLDEN" : ""}</span> {review.fieldName} · reason {review.reasonCode ?? "—"} · reviewer {review.reviewer} · {new Date(review.createdAt).toLocaleString()}{review.note ? ` · ${review.note}` : ""}</li>)}
-          {history.corrections.map((correction) => <li key={correction.id}><span className="status">CORRECTION</span> {correction.fieldName}: AI original {correction.originalAiValue} → corrected {correction.correctedValue} · reason {correction.reasonCode} · reviewer {correction.reviewer}</li>)}
-        </ul>
+        <h3>Riwayat review (append-only)</h3>
+        {historyGroups.map((group) => group[0].decision === 'CONFIRM' ? <details key={group[0].id}><summary>Konfirmasi {group.length} field</summary><p className="muted">Event terpisah dalam urutan tersimpan, bukan klaim satu aksi bersama.</p><ul>{group.map((review) => <li key={review.id}>{labelId(review.fieldName)} · {review.reviewer} · {new Date(review.createdAt).toLocaleString()}{review.note ? ` · ${review.note}` : ''}<details><summary>Metadata event</summary><pre>{JSON.stringify(review, null, 2)}</pre></details></li>)}</ul></details> : <ul key={group[0].id}>{group.map((review) => <li className="review-changed" key={review.id}><strong>{labelId(review.decision)} · {labelId(review.fieldName)}</strong> · {review.reasonCode ? reasonId(review.reasonCode) : 'Tanpa alasan'} · {review.reviewer} · {new Date(review.createdAt).toLocaleString()}{review.note ? ` · ${review.note}` : ''}<details><summary>Metadata event</summary><pre>{JSON.stringify(review, null, 2)}</pre></details></li>)}</ul>)}
+        <h4>Koreksi tersimpan</h4><ul>{history.corrections.map((correction) => <li className="review-changed" key={correction.id}><strong>{labelId(correction.fieldName)}</strong>: AI asli {correction.originalAiValue} · Hasil review {correction.correctedValue} · {reasonId(correction.reasonCode)} · {correction.reviewer}<details><summary>Metadata koreksi</summary><pre>{JSON.stringify(correction, null, 2)}</pre></details></li>)}</ul>
       </div>}
     </div>
   </>;
@@ -156,7 +159,7 @@ export function FeatureReviewPanel({ contentId, features, onReviewed }: { conten
  * The hypothesis row and its evidence links are immutable, so an edit is stored on the
  * append-only review record and the existing evidence links stay untouched.
  */
-export function HypothesisReviewControls({ hypothesisId }: { hypothesisId: string }) {
+export function HypothesisReviewControls({ hypothesisId, onReviewed }: { hypothesisId: string; onReviewed?: () => void }) {
   const [mode, setMode] = useState<"IDLE" | "EDIT">("IDLE");
   const [reviewer, setReviewer] = useState("");
   const [note, setNote] = useState("");
@@ -221,6 +224,7 @@ export function HypothesisReviewControls({ hypothesisId }: { hypothesisId: strin
       setEditedStatement("");
       setGoldenLabel(false);
       setReviews((current) => [...current, body]);
+      onReviewed?.();
     } catch (reason) {
       if (nextController.signal.aborted || currentRequest !== requestId.current) return;
       setError(reason instanceof Error ? reason.message : "Hypothesis review request failed");
@@ -234,23 +238,23 @@ export function HypothesisReviewControls({ hypothesisId }: { hypothesisId: strin
 
   const latestReviewedStatement = reviews.reduce<string | null>((value, review) => review.reviewedStatement || review.editedStatement || value, null);
   return <div className="review-panel">
-    <div className="section-heading"><div><p className="eyebrow">S9 / HYPOTHESIS REVIEW</p><h3>Review hypothesis</h3></div><span className="status">{reviews.length} review record{reviews.length === 1 ? "" : "s"}</span></div>
-    {latestReviewedStatement && <p className="notice">Current reviewed statement: {latestReviewedStatement}</p>}
+    <div className="section-heading"><h3>Review hipotesis</h3><span className="status">{reviews.length} keputusan tersimpan · {reviews.length ? labelId(reviews[reviews.length - 1].decision) : 'Menunggu review'}</span></div>
+    {latestReviewedStatement && <p className="notice">Hasil review terbaru: {latestReviewedStatement}</p>}
     <ReviewMeta reviewer={reviewer} setReviewer={setReviewer} note={note} setNote={setNote} goldenLabel={goldenLabel} setGoldenLabel={setGoldenLabel} />
-    <ReasonSelect label="Reject reason (required for Reject)" value={reasonCode} onChange={setReasonCode} />
-    {mode === "EDIT" && <label>Edited statement<textarea value={editedStatement} onChange={(event) => setEditedStatement(event.target.value)} rows={3} placeholder="Rewritten working insight; evidence links stay untouched" /></label>}
+    <ReasonSelect label="Alasan penolakan (wajib untuk Tolak)" value={reasonCode} onChange={setReasonCode} />
+    {mode === 'EDIT' && <label>Pernyataan hasil edit<textarea value={editedStatement} onChange={(event) => setEditedStatement(event.target.value)} rows={3} placeholder="Bukti dan AI asli tetap tidak berubah" /></label>}
     <div className="review-actions">
-      <button type="button" onClick={() => submit("APPROVE")} disabled={blocked}>{pending ? "Saving…" : "Approve"}</button>
-      <button type="button" onClick={() => setMode(mode === "EDIT" ? "IDLE" : "EDIT")} disabled={blocked}>{mode === "EDIT" ? "Cancel edit" : "Edit"}</button>
-      {mode === "EDIT" && <button type="button" onClick={() => submit("EDIT")} disabled={blocked || editedStatement.trim().length === 0}>{pending ? "Saving…" : "Save edit"}</button>}
-      <button type="button" onClick={() => submit("REJECT")} disabled={blocked || reasonCode === ""}>{pending ? "Saving…" : "Reject"}</button>
+      <button type="button" onClick={() => submit('APPROVE')} disabled={blocked}>{pending ? 'Menyimpan…' : 'Setujui'}</button>
+      <button className="secondary" type="button" onClick={() => setMode(mode === 'EDIT' ? 'IDLE' : 'EDIT')} disabled={pending}>{mode === 'EDIT' ? 'Tutup edit' : 'Edit'}</button>
+      {mode === 'EDIT' && <button type="button" onClick={() => submit('EDIT')} disabled={blocked || !editedStatement.trim()}>{pending ? 'Menyimpan…' : 'Simpan edit'}</button>}
+      <button className="destructive" type="button" onClick={() => submit('REJECT')} disabled={blocked || !reasonCode}>{pending ? 'Menyimpan…' : 'Tolak'}</button>
     </div>
-    <p className="muted">An edit is stored on the review record; the hypothesis and its evidence links stay immutable.</p>
+    <p className="muted">{pending ? 'Sedang menyimpan.' : !reviewer.trim() ? 'Isi reviewer untuk menyimpan keputusan.' : 'Edit disimpan terpisah dari AI asli.'} {!reasonCode && 'Alasan wajib sebelum penolakan.'} {mode === 'EDIT' && !editedStatement.trim() && 'Isi pernyataan hasil edit.'}</p>
     {error && <p className="error-state" role="alert">{error}</p>}
     {reviews.length > 0 && <div className="review-history" aria-live="polite">
-      <h4>Review history (append-only)</h4>
+      <h4>Riwayat review (append-only)</h4>
       <ul>
-        {reviews.map((review) => <li key={review.id}><span className="status">{review.decision}{review.goldenLabel ? " · GOLDEN" : ""}</span> reason {review.reasonCode ?? "—"} · reviewer {review.reviewer} · {new Date(review.createdAt).toLocaleString()}{review.editedStatement ? ` · edited: ${review.editedStatement}` : ""}{review.note ? ` · ${review.note}` : ""}</li>)}
+        {reviews.map((review) => <li className={review.decision !== 'APPROVE' ? 'review-changed' : ''} key={review.id}><span className="status">{labelId(review.decision)}{review.goldenLabel ? ' · GOLDEN' : ''}</span> · {review.reasonCode ? reasonId(review.reasonCode) : 'Tanpa alasan'} · {review.reviewer} · {new Date(review.createdAt).toLocaleString()}{review.editedStatement ? ` · ${review.editedStatement}` : ''}{review.note ? ` · ${review.note}` : ''}<details><summary>Metadata event</summary><pre>{JSON.stringify(review, null, 2)}</pre></details></li>)}
       </ul>
     </div>}
   </div>;

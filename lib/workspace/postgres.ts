@@ -183,11 +183,19 @@ export function createWorkspaceRepository(config: WorkspaceRepositoryConfig) {
     const contentRows = contents.rows.map((row) => contentView(row, snapshotMap.get(row.id) ?? []));
     const selected = contentId ? contentRows.find((row) => row.id === contentId) ?? null : contentRows[0] ?? null;
     const detail = selected ? await contentDetail(pool, config, selected.id) : null;
+    const provenance = await pool.query(`SELECT EXISTS (
+      SELECT 1 FROM metric_snapshot ms JOIN content c ON c.id = ms.content_id AND c.workspace_id = ms.workspace_id
+      WHERE ms.workspace_id = $1 AND c.batch_id = $2 AND ms.source IN ('synthetic_s5_demo', 'synthetic_pr34')
+      UNION ALL SELECT 1 FROM extraction_run er JOIN content c ON c.id = er.content_id AND c.workspace_id = er.workspace_id
+      WHERE er.workspace_id = $1 AND c.batch_id = $2 AND er.provider = 'synthetic-pr34'
+      UNION ALL SELECT 1 FROM hypothesis h WHERE h.workspace_id = $1 AND h.batch_id = $2 AND h.provider = 'synthetic-pr34'
+    ) AS synthetic`, [config.workspaceId, batch.id]);
     return {
       batches: batches.rows.map((row) => ({ id: row.id, name: row.name, brandId: row.brand_id, brandName: row.brand_name, createdAt: row.created_at, contractedVideoCount: row.contracted_video_count, contentCount: row.content_count })),
       selectedBatch: { id: batch.id, name: batch.name, brandId: batch.brand_id, brandName: batch.brand_name, createdAt: batch.created_at, contractedVideoCount: batch.contracted_video_count, contentCount: batch.content_count },
       contents: contentRows,
       selectedContent: detail,
+      synthetic: provenance.rows[0]?.synthetic === true,
     };
   }
 

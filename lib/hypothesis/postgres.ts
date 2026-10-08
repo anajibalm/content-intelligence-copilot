@@ -23,6 +23,7 @@ export interface HypothesisRepositoryConfig {
 export interface HypothesisRepository {
   create(input: { batchId: string; comparisonId: string; regenerate?: boolean; operationId?: string }): Promise<Record<string, unknown>>;
   get(hypothesisId: string): Promise<Record<string, unknown>>;
+  list(batchId: string): Promise<Record<string, unknown>[]>;
   close(): Promise<void>;
 }
 
@@ -216,6 +217,19 @@ export function createHypothesisRepository(config: HypothesisRepositoryConfig): 
     }
   }
 
+  async function list(batchId: string) {
+    const batch = await pool.query('SELECT id FROM batch WHERE workspace_id = $1 AND id = $2', [config.workspaceId, batchId]);
+    if (!batch.rows[0]) throw new HypothesisNotFoundError('batch not found in workspace');
+    const result = await pool.query(`SELECT h.id, h.batch_id AS "batchId", h.statement, h.confidence, h.created_at AS "createdAt", latest.decision AS "reviewDecision", latest.reviewed_statement AS "reviewedStatement", latest.created_at AS "reviewedAt"
+      FROM hypothesis h LEFT JOIN LATERAL (
+        SELECT r.decision, r.reviewed_statement, r.created_at FROM review r
+        WHERE r.workspace_id = h.workspace_id AND r.hypothesis_id = h.id
+        ORDER BY r.created_at DESC, r.id DESC LIMIT 1
+      ) latest ON true WHERE h.workspace_id = $1 AND h.batch_id = $2
+      ORDER BY h.created_at DESC, h.id DESC`, [config.workspaceId, batchId]);
+    return result.rows;
+  }
+
   async function get(hypothesisId: string) {
     const hypothesis = (await pool.query<HypothesisRow>(`SELECT id, batch_id, statement, state, confidence, confidence_caps, provider, model, prompt_version, schema_version, rule_version, input_hash, raw_output, suggested_next_test, created_at, updated_at FROM hypothesis WHERE workspace_id = $1 AND id = $2`, [config.workspaceId, hypothesisId])).rows[0];
     if (!hypothesis) throw new HypothesisNotFoundError('hypothesis not found in workspace');
@@ -225,5 +239,5 @@ export function createHypothesisRepository(config: HypothesisRepositoryConfig): 
     return { id: hypothesis.id, batchId: hypothesis.batch_id, statement: hypothesis.statement, state: hypothesis.state, confidence: hypothesis.confidence, confidenceCaps: hypothesis.confidence_caps, provider: hypothesis.provider, model: hypothesis.model, promptVersion: hypothesis.prompt_version, schemaVersion: hypothesis.schema_version, ruleVersion: hypothesis.rule_version, inputHash: hypothesis.input_hash, rawOutput: hypothesis.raw_output, suggestedNextTest: hypothesis.suggested_next_test, comparisons: comparison, evidence };
   }
 
-  return { create, get, close: () => pool.end() };
+  return { create, get, list, close: () => pool.end() };
 }

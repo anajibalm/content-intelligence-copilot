@@ -7,13 +7,15 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 375, height: 812 
     const batch = fixture.batches[0];
     const contents = fixture.contentsByBatch[batch.id as keyof typeof fixture.contentsByBatch];
     const content = contents[0];
+    await page.route('**/api/**', (route) => route.fulfill({ status: 500, json: { error: 'Unmapped fixture API' } }));
+    await page.route('**/api/hypotheses?**', (route) => route.fulfill({ json: { items: [] } }));
     await page.route('**/api/workspace**', (route) => route.fulfill({ json: { batches: fixture.batches, selectedBatch: batch, contents, selectedContent: { ...content, frames: [{ id: 'opening', type: 'HOOK', timestampMs: 0, available: false, url: null }, { id: 'last-frame', type: 'SCENE', timestampMs: 9000, available: false, url: null }], transcript: [{ id: 'last-segment', startMs: 9000, endMs: 10000, text: 'Exact transcript target', role: 'CTA' }], audio: { available: false, url: null }, anchors: [], extraction: [] }, analysis: null } }));
     await page.route('**/api/processing**', (route) => route.fulfill({ json: { items: [] } }));
     await page.goto(`/?batchId=${batch.id}&contentId=${content.id}`);
-    const nav = page.getByRole('navigation', { name: 'Analyst workspace' });
+    const nav = page.getByRole('navigation', { name: 'Workspace analyst' });
     await expect(nav).toBeVisible();
     await page.screenshot({ path: `/tmp/cic-pr34-batch-${viewport.width}.png`, fullPage: true });
-    for (const name of ['Content Library', 'Compare', 'Insights Review', 'Batch Workspace']) {
+    for (const name of ['Library', 'Compare', 'Review', 'Batch']) {
       await nav.getByRole('link', { name, exact: true }).click();
       await expect(nav.getByRole('link', { name, exact: true })).toHaveAttribute('aria-current', 'page');
     }
