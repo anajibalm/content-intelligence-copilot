@@ -1,0 +1,39 @@
+{
+  "evidence_date": "2026-10-08",
+  "branch": "feat/mvp-engine-ux-integration",
+  "source_commit": "fb49007",
+  "pull_request": "https://github.com/anajibalm/content-intelligence-copilot/pull/34",
+  "provenance": "Executor: OMP (local repo agent); owner merge approval: pending",
+  "behavior": {
+    "ingestion": [
+      "Selected batch is required by ProcessingForm and API POST.",
+      "Runtime validates selected batch inside workspace before enqueue.",
+      "GET status is limited to the selected workspace batch and returns HTTP 404 for an absent batch.",
+      "Same URL in same batch remains idempotent; cross-batch canonical duplicate returns HTTP 409.",
+      "Polling stops when every visible job is terminal or component context unmounts."
+    ],
+    "metrics": [
+      "Observed wfv_pct remains a raw metric; derived metric keys remain excluded from raw metrics.",
+      "A zero without explicit quality/provenance becomes SUSPECT with UNEXPLAINED_ZERO; explicit VALID zero remains valid.",
+      "Workspace and compare recompute ER from identical valid raw inputs under metrics-v2, including persisted snapshots with empty derived_metrics."
+    ],
+    "workspace": [
+      "Batch workspace exposes processing state, authorized frame/audio URLs, transcript, anchors, feature review, hypothesis review, Notes, and structured Next Test."
+    ]
+  },
+  "verification": {
+    "npm_run_typecheck": "PASS",
+    "npm_test": "PASS 94/94",
+    "npm_run_lint": "PASS with 3 existing warnings: two no-img-element, one exhaustive-deps",
+    "npm_run_validate_fixtures": "PASS",
+    "npm_run_build": "PASS",
+    "git_diff_check": "PASS",
+    "npm_run_test_e2e": "PASS 10/10 synthetic Chromium",
+    "github_actions": "Build & Test PASS, PR #34 head fb49007"
+  },
+  "limits": [
+    "CIC_DATABASE_URL, CIC_WORKSPACE_ID, CIC_BRAND_ID, CIC_BATCH_ID, and CIC_STORAGE_ROOT were unavailable in this worktree; database persistence, actual-media, and staging browser proof were not run.",
+    "Synthetic E2E fixtures prove browser transitions and reload only; they are not real-brand approval.",
+    "No production deployment, production data, real-provider acceptance, or managed durability claim."
+  ]
+}
