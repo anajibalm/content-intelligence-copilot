@@ -8,10 +8,10 @@
   "delivery_head": "2103e7e8344267d7c1e7ff4d0a531cad31403532",
   "ci": {
     "workflow": "Build & Test",
-    "run": null,
+    "run": "37923681168",
     "head": "2103e7e8344267d7c1e7ff4d0a531cad31403532",
-    "result": "PENDING_PUSH",
-    "duration": null
+    "result": "PASS",
+    "duration": "2m4s"
   },
   "scope": {
     "included": [
