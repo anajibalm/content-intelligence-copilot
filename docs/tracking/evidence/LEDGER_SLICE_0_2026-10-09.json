@@ -122,6 +122,16 @@
       "from": "Receipt described failed-copy coverage without a rejection probe.",
       "to": "Fixture rejects navigator.clipboard.writeText and asserts failure feedback plus unchanged selection URL.",
       "reason": "Separates source review from executed failure-path evidence."
+    },
+    {
+      "from": "tests/e2e/pr34-ux.spec.ts expected an empty Reviewer to keep Setujui disabled.",
+      "to": "tests/e2e/pr34-ux.spec.ts:51 enables Setujui with an empty Reviewer; click shows inline error, focuses Reviewer, and sends no invalid POST before valid Edit submission.",
+      "reason": "Disabled controls conceal the validation requirement; enabled action provides immediate accessible error and focus while client validation prevents the write."
+    },
+    {
+      "from": "Review effect cleanup aborted controller.current, which can be replaced by a submit request after the effect starts.",
+      "to": "Review effect cleanup aborts its captured nextController; active submit retains its own controller and request-id stale-response guard.",
+      "reason": "Cleanup owns only its GET history request; aborting the mutable shared ref could abort a newer write."
     }
   ],
   "verification": {

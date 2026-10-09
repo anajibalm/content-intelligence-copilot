@@ -62,6 +62,7 @@ for (const width of [1440, 375]) test(`persisted review queue, draft isolation a
   await approve.click();
   await expect(detail.getByText('Isi nama reviewer untuk menyimpan keputusan', { exact: true })).toBeVisible();
   await expect(detail.getByLabel('Reviewer', { exact: true })).toBeFocused();
+  expect(state.reviews).toHaveLength(0);
   await expect(detail.locator('details').filter({ has: page.locator('summary', { hasText: 'Buat uji berikutnya' }) })).not.toHaveAttribute('open');
   await detail.getByLabel('Reviewer', { exact: true }).fill('synthetic analyst');
   await detail.getByRole('button', { name: 'Edit', exact: true }).click();

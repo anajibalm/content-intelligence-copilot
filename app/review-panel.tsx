@@ -26,6 +26,7 @@ function ReasonSelect({ label, value, onChange, error, reasonRef }: { label: str
   return <><label>{label}<select ref={reasonRef} value={value} onChange={(event) => onChange(event.target.value as ReviewReason | "")} aria-invalid={error ? true : undefined} aria-describedby={error ? errorId : undefined}><option value="">Pilih alasan…</option>{REVIEW_REASONS.map((reason) => <option value={reason} key={reason}>{reasonId(reason)}</option>)}</select></label>{error && <p className="inline-validation" id={errorId} role="alert">{error}</p>}</>;
 }
 
+// S9 invariant: AI originals stay immutable; corrections append history and reload from persisted review.
 export function FeatureReviewPanel({ contentId, features, onReviewed }: { contentId: string; features: Feature[]; onReviewed: () => void }) {
   const [mode, setMode] = useState<"IDLE" | "CORRECT">("IDLE");
   const [reviewer, setReviewer] = useState("");
@@ -109,6 +110,7 @@ export function FeatureReviewPanel({ contentId, features, onReviewed }: { conten
   </>;
 }
 
+// S9 invariant: hypothesis evidence links stay immutable; edits append review records only.
 export function HypothesisReviewControls({ hypothesisId, onReviewed }: { hypothesisId: string; onReviewed?: () => void }) {
   const [mode, setMode] = useState<"IDLE" | "EDIT">("IDLE");
   const [reviewer, setReviewer] = useState("");
