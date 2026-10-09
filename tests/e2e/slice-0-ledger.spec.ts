@@ -256,7 +256,9 @@ for (const width of [1440, 375]) test(`decision controls and Compare hint meet f
   await expect(page.locator('.compare-choice').first()).toBeFocused();
   await page.locator('.compare-choice').nth(0).click();
   await page.locator('.compare-choice').nth(1).click();
+  await expect(page.getByText('2 dari minimal 2 dipilih', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Buat perbandingan' }).click();
+  await expect(page.locator('.compare-metrics dt')).toHaveCount(2);
   await expectTextFloor(page, '.compare-metrics dt, .compare-metrics dd', 13);
   await expectTextFloor(page, '.compare-choice span, .compare-metrics small', 12);
   await page.goto(`/?batchId=${batchId}&contentId=${contentId}&view=review&hypothesisId=${hypothesisId}`);
