@@ -5,6 +5,14 @@
   "baseline": "4a929815c9f9089792b6aaff97e118b88f91f523",
   "branch": "task/35",
   "tested_source_sha": "fa117ae135a0e070f3ac26d191562a64c1117205",
+  "delivery_head": "4f9c6b1a466a3deb2c207c86d4ec7e8bc5b32adb",
+  "ci": {
+    "workflow": "Build & Test",
+    "run": "https://github.com/anajibalm/content-intelligence-copilot/actions/runs/37898410727",
+    "head": "4f9c6b1a466a3deb2c207c86d4ec7e8bc5b32adb",
+    "result": "PASS",
+    "duration": "1m59s"
+  },
   "scope": {
     "included": [
       "app/review-panel.tsx",
