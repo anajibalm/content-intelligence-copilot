@@ -1,0 +1,124 @@
+{
+  "task_id": "LB-SLICE-0",
+  "evidence_date": "2026-10-09",
+  "provenance": "Executor: OMP; model: 9router/cx/gpt-5.6-terra; reviewer: ChatGPT pending; owner merge approval: pending",
+  "baseline": "4a929815c9f9089792b6aaff97e118b88f91f523",
+  "branch": "task/35",
+  "tested_source_sha": "d51a633",
+  "delivery_head": "pending receipt commit",
+  "scope": {
+    "included": [
+      "app/review-panel.tsx",
+      "app/compare-panel.tsx",
+      "app/workspace-client.tsx",
+      "app/globals.css",
+      "tests/e2e/slice-0-ledger.spec.ts",
+      "tests/e2e/pr34-ux.spec.ts",
+      "tests/e2e/s8-lifecycle.spec.ts",
+      "tests/e2e/s9-review.spec.ts",
+      "package.json"
+    ],
+    "excluded": [
+      "DTO/API/payload review/backend/routes",
+      "formula/normalisasi/enum/semantics comparison",
+      "domain contract and donor map",
+      "dependency changes",
+      "LB1.1 and LB4",
+      "database migration or reset",
+      "production, live-provider, actual-media, and real-brand acceptance"
+    ]
+  },
+  "acceptance": {
+    "S0-1": {
+      "status": "PASS",
+      "proof": "tests/e2e/slice-0-ledger.spec.ts covers whitespace reviewer, reviewer-first focus when reviewer and reason are absent, reason focus after reviewer is supplied, no invalid POST, one valid confirm POST, and pending guard. Inputs use aria-invalid, aria-describedby, unique inline alerts, and ref focus."
+    },
+    "S0-2": {
+      "status": "PASS",
+      "proof": "Fixture has active run: 11 UNREVIEWED, one CORRECTED, one CONFIRMED; plus 13 historical UNREVIEWED. UI labels Konfirmasi 11 field yang belum direview and POST uses active-run only."
+    },
+    "S0-3": {
+      "status": "PASS",
+      "proof": "Fixture browser checks 0, 1, then 2 selected; minimum hint remains in .compare-actions with button and disappears at two. S8 regression verifies distribution reset counter while preserving existing disabled/payload behavior."
+    },
+    "S0-4": {
+      "status": "PASS",
+      "proof": "Fixture browser check confirms no Penyimpanan Postgres text after four-view navigation."
+    },
+    "S0-5": {
+      "status": "PASS",
+      "proof": "Header chip uses existing data.synthetic || data.analysis?.synthetic condition. Native dialog exposes exact warning, closes, and returns focus to chip. PR34 fixture switches synthetic false batch B and confirms no chip."
+    },
+    "S0-6": {
+      "status": "PASS",
+      "proof": "Fixture title null renders Konten TikTok tanpa judul, external ID displays once in code, clipboard returns complete copy-full-external-id, success feedback appears only after write, and URL selection remains unchanged."
+    },
+    "S0-7": {
+      "status": "PASS",
+      "proof": "Fixture checks visible metadata/decision computed font sizes >=12px and no horizontal document overflow. PR34 UX covers 1440x900 and 375x812 four-view layout and screenshots. Decision label/inline errors are 13px; visible metadata is 12px."
+    },
+    "R01-R03": {
+      "status": "PASS",
+      "proof": "Updated PR34 UX regression passes 1440 and 375 for URL navigation, Back/Forward, exact source anchor, and draft isolation. All fixture API calls are intercepted; unknown calls fail."
+    },
+    "R04": {
+      "status": "BLOCKED",
+      "proof": "Current worktree environment lacks CIC_DATABASE_URL, CIC_STORAGE_ROOT, and CIC_WORKSPACE_ID; .env.local contains only hypothesis provider keys. No server bound on prior staging ports. npm run test:e2e:pr34:integrated requires unavailable runtime variables, so not run and no DB/API/UI persistence claim is made."
+    }
+  },
+  "assertion_changes": [
+    {
+      "from": "PR34 UX expected Setujui disabled and a preexisting error when reviewer was empty.",
+      "to": "Action stays enabled, click produces inline reviewer error and focused input without POST.",
+      "reason": "S0-1 requires local validation, not disabled/no-op reviewer guard."
+    },
+    {
+      "from": "S8 expected 0 terpilih · urutan dipertahankan after distribution reset.",
+      "to": "Expected 0 dari minimal 2 dipilih.",
+      "reason": "S0-3 counter copy changed; selection reset behavior remains tested."
+    },
+    {
+      "from": "S9 selected Konfirmasi semua.",
+      "to": "S9 selects dynamic eligible count label.",
+      "reason": "S0-2 label must state actual active-run UNREVIEWED impact."
+    },
+    {
+      "from": "PR34 UX expected synthetic warning banner text in each view.",
+      "to": "PR34 UX expects synthetic chip in each synthetic view and absent chip in non-synthetic batch.",
+      "reason": "S0-5 replaces persistent banner with accessible disclosure."
+    }
+  ],
+  "verification": {
+    "node": "22.18.0",
+    "npm_run_lint": "PASS: 0 errors, 4 warnings (three existing no-img-element and one existing exhaustive-deps).",
+    "npm_run_typecheck": "PASS",
+    "npm_test": "PASS: 101/101",
+    "npm_run_validate_fixtures": "PASS",
+    "npm_run_build": "PASS",
+    "git_diff_check": "PASS",
+    "targeted_browser": "PASS: 9/9, Slice 0 + S9 + PR34 UX",
+    "npm_run_test_e2e": "PASS: 21/21 synthetic Chromium, retries 0 at command level; repository CI config allows one retry only under CI, none used in passing run.",
+    "integrated_staging": "BLOCKED: runtime prerequisites unavailable; not substituted with mocks."
+  },
+  "screenshots": [
+    "/tmp/cic-pr34-ux-batch-1440.png",
+    "/tmp/cic-pr34-ux-library-1440.png",
+    "/tmp/cic-pr34-ux-compare-1440.png",
+    "/tmp/cic-pr34-ux-review-1440.png",
+    "/tmp/cic-pr34-ux-batch-375.png",
+    "/tmp/cic-pr34-ux-library-375.png",
+    "/tmp/cic-pr34-ux-compare-375.png",
+    "/tmp/cic-pr34-ux-review-375.png"
+  ],
+  "human_track": {
+    "blind_evaluator_10x13": "NEEDS_OWNER/PENDING",
+    "target_date": "NEEDS_OWNER/PENDING",
+    "labeling_threshold": "NEEDS_OWNER/PENDING",
+    "analyst_pilot_before_LB3_2": "NEEDS_OWNER/PENDING"
+  },
+  "limits": [
+    "Synthetic browser fixture evidence proves UI transitions and request boundaries, not DB persistence.",
+    "No item-level synthetic marker was added because current response has no explicit per-item flag or label. Decision #8 remains owner/next-contract work.",
+    "No product ratification, merge, LB1.1, or LB4 work performed."
+  ]
+}
