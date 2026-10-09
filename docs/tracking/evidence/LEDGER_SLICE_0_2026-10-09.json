@@ -1,10 +1,10 @@
 {
   "task_id": "LB-SLICE-0",
   "evidence_date": "2026-10-09",
-  "provenance": "Executor: OMP; model: 9router/cx/gpt-5.6-terra; reviewer: ChatGPT pending; owner merge approval: pending",
+  "provenance": "Executor: OMP; model: 9router/cx/gpt-5.6-terra; reviewer: ChatGPT review fixes applied; owner merge approval: pending",
   "baseline": "4a929815c9f9089792b6aaff97e118b88f91f523",
   "branch": "task/35",
-  "tested_source_sha": "d51a633",
+  "tested_source_sha": "fa117ae135a0e070f3ac26d191562a64c1117205",
   "scope": {
     "included": [
       "app/review-panel.tsx",
@@ -12,10 +12,7 @@
       "app/workspace-client.tsx",
       "app/globals.css",
       "tests/e2e/slice-0-ledger.spec.ts",
-      "tests/e2e/pr34-ux.spec.ts",
-      "tests/e2e/s8-lifecycle.spec.ts",
-      "tests/e2e/s9-review.spec.ts",
-      "package.json"
+      "tests/e2e/pr34-integrated.spec.ts"
     ],
     "excluded": [
       "DTO/API/payload review/backend/routes",
@@ -27,77 +24,99 @@
       "production, live-provider, actual-media, and real-brand acceptance"
     ]
   },
+  "review_findings": {
+    "R36-1": {
+      "status": "PASS",
+      "fix": "Fingerprint table renders every extraction run and preserves content-feature-* anchors. Confirm count, payload, and correction inputs remain scoped to the active run.",
+      "proof": "Stateful browser fixture confirms 11 active eligible fields become 0 after confirmation while historic #content-feature-historic-0 remains readable through reload and Back/Forward."
+    },
+    "R36-2": {
+      "status": "PASS",
+      "fix": "Restored ordered review/correction audit metadata: field, actor, timestamp, reason, note, golden label, and Metadata event/Metadata koreksi payload disclosure. Hypothesis history restores timestamp and event disclosure.",
+      "proof": "Fixture opens correction metadata and verifies immutable original AI payload plus reason/note."
+    },
+    "R36-3": {
+      "status": "PASS",
+      "fix": "Restored non-VALID qualityByMetric state/reason in Library rows without nesting copy control in row selection.",
+      "proof": "Fixture renders ORGANIC views SUSPECT/UNEXPLAINED_ZERO, then confirms copy and selection remain intact."
+    },
+    "R36-4": {
+      "status": "PASS",
+      "fix": "Visible metadata nodes use at least 12px; Compare decision labels/values use 13px.",
+      "proof": "Computed-style probes cover Compare choices, metric state, metric label/value, 1440x900 and 375x812 hint bounding boxes, plus no horizontal overflow."
+    },
+    "R36-5": {
+      "status": "PASS",
+      "fix": "Reused documented task-14 PostgreSQL/storage runtime and isolated synthetic PR34 workspace; no reset or live provider.",
+      "proof": "Integrated API/UI/DB harness passed against revised source and reloaded persisted review, correction, hypothesis review, Notes, and Next Test."
+    }
+  },
   "acceptance": {
     "S0-1": {
       "status": "PASS",
-      "proof": "tests/e2e/slice-0-ledger.spec.ts covers whitespace reviewer, reviewer-first focus when reviewer and reason are absent, reason focus after reviewer is supplied, no invalid POST, one valid confirm POST, and pending guard. Inputs use aria-invalid, aria-describedby, unique inline alerts, and ref focus."
+      "proof": "Slice fixture covers whitespace reviewer, reviewer-first/reason-second focus, no invalid POST, trimmed valid reviewer, and pending guard. Inputs use aria-invalid, aria-describedby, unique alerts, and ref focus."
     },
     "S0-2": {
       "status": "PASS",
-      "proof": "Fixture has active run: 11 UNREVIEWED, one CORRECTED, one CONFIRMED; plus 13 historical UNREVIEWED. UI labels Konfirmasi 11 field yang belum direview and POST uses active-run only."
+      "proof": "Stateful fixture has 11 active UNREVIEWED, one CORRECTED, one CONFIRMED, and 13 historical fields. It proves confirm POST only active-run, historic anchor remains readable, and reload yields 0 eligible."
     },
     "S0-3": {
       "status": "PASS",
-      "proof": "Fixture browser checks 0, 1, then 2 selected; minimum hint remains in .compare-actions with button and disappears at two. S8 regression verifies distribution reset counter while preserving existing disabled/payload behavior."
+      "proof": "Fixture checks 0, 1, 2 selections, hint disappearance at 2, and adjacent hint/action bounds on 1440x900 and 375x812."
     },
     "S0-4": {
       "status": "PASS",
-      "proof": "Fixture browser check confirms no Penyimpanan Postgres text after four-view navigation."
+      "proof": "Fixture confirms no Penyimpanan Postgres text."
     },
     "S0-5": {
       "status": "PASS",
-      "proof": "Header chip uses existing data.synthetic || data.analysis?.synthetic condition. Native dialog exposes exact warning, closes, and returns focus to chip. PR34 fixture switches synthetic false batch B and confirms no chip."
+      "proof": "Condition remains data.synthetic || data.analysis?.synthetic. Native dialog contains exact warning, closes, and returns focus to chip; non-synthetic PR34 batch has no chip."
     },
     "S0-6": {
       "status": "PASS",
-      "proof": "Fixture title null renders Konten TikTok tanpa judul, external ID displays once in code, clipboard returns complete copy-full-external-id, success feedback appears only after write, and URL selection remains unchanged."
+      "proof": "Null title fallback, one external ID, complete clipboard ID, success feedback after write, failed-copy path existing coverage, and unchanged selection URL are covered."
     },
     "S0-7": {
       "status": "PASS",
-      "proof": "Fixture checks visible metadata/decision computed font sizes >=12px and no horizontal document overflow. PR34 UX covers 1440x900 and 375x812 four-view layout and screenshots. Decision label/inline errors are 13px; visible metadata is 12px."
+      "proof": "Computed browser probes prove metadata >=12px and decision text >=13px in visible Compare states; desktop/mobile overflow and focus bounds covered."
     },
     "R01-R03": {
       "status": "PASS",
-      "proof": "Updated PR34 UX regression passes 1440 and 375 for URL navigation, Back/Forward, exact source anchor, and draft isolation. All fixture API calls are intercepted; unknown calls fail."
+      "proof": "PR34 UX regressions cover URL navigation, Back/Forward, exact anchors, draft isolation, and synthetic disclosure. Unknown fixture API calls fail."
     },
     "R04": {
-      "status": "BLOCKED",
-      "proof": "Current worktree environment lacks CIC_DATABASE_URL, CIC_STORAGE_ROOT, and CIC_WORKSPACE_ID; .env.local contains only hypothesis provider keys. No server bound on prior staging ports. npm run test:e2e:pr34:integrated requires unavailable runtime variables, so not run and no DB/API/UI persistence claim is made."
+      "status": "PASS",
+      "proof": "npm run test:e2e:pr34:integrated against http://127.0.0.1:3134 with workspace 34000000-0000-4000-8000-000000000001 passed 1/1. Synthetic artifacts: job 73ab957c-890b-46a9-ab3e-707939d5c8c7; content 58046870-43bf-4e8f-9794-e87a0d3af86e; recovery job 83e3321b-c588-4a35-9984-3737d46a8ec8; comparison b6bac305-4404-450a-9745-a80af4c6d440; hypothesis e80a3b0f-6fb5-4b88-a1c0-46ac58a7362f."
     }
   },
   "assertion_changes": [
     {
-      "from": "PR34 UX expected Setujui disabled and a preexisting error when reviewer was empty.",
-      "to": "Action stays enabled, click produces inline reviewer error and focused input without POST.",
-      "reason": "S0-1 requires local validation, not disabled/no-op reviewer guard."
+      "from": "Active-only table hid historical content-feature anchors.",
+      "to": "All fields render; only active run can receive correction inputs or confirmation payload.",
+      "reason": "Preserves immutable historical evidence and prevents cross-run review writes."
     },
     {
-      "from": "S8 expected 0 terpilih · urutan dipertahankan after distribution reset.",
-      "to": "Expected 0 dari minimal 2 dipilih.",
-      "reason": "S0-3 counter copy changed; selection reset behavior remains tested."
+      "from": "Audit history omitted reason, timestamp, note, and payload disclosure.",
+      "to": "History restores audit fields and Metadata event/Metadata koreksi disclosure.",
+      "reason": "Append-only records remain inspectable."
     },
     {
-      "from": "S9 selected Konfirmasi semua.",
-      "to": "S9 selects dynamic eligible count label.",
-      "reason": "S0-2 label must state actual active-run UNREVIEWED impact."
-    },
-    {
-      "from": "PR34 UX expected synthetic warning banner text in each view.",
-      "to": "PR34 UX expects synthetic chip in each synthetic view and absent chip in non-synthetic batch.",
-      "reason": "S0-5 replaces persistent banner with accessible disclosure."
+      "from": "Integrated PR34 expected synthetic banner.",
+      "to": "It expects visible Data uji synthetic chip.",
+      "reason": "Slice 0 replaces persistent banner with disclosure dialog."
     }
   ],
   "verification": {
     "node": "22.18.0",
-    "npm_run_lint": "PASS: 0 errors, 4 warnings (three existing no-img-element and one existing exhaustive-deps).",
+    "npm_run_lint": "PASS: 0 errors, 4 existing warnings (three no-img-element and one exhaustive-deps).",
     "npm_run_typecheck": "PASS",
     "npm_test": "PASS: 101/101",
     "npm_run_validate_fixtures": "PASS",
     "npm_run_build": "PASS",
     "git_diff_check": "PASS",
-    "targeted_browser": "PASS: 9/9, Slice 0 + S9 + PR34 UX",
-    "npm_run_test_e2e": "PASS: 21/21 synthetic Chromium, retries 0 at command level; repository CI config allows one retry only under CI, none used in passing run.",
-    "integrated_staging": "BLOCKED: runtime prerequisites unavailable; not substituted with mocks."
+    "targeted_browser": "PASS: Slice 0 6/6",
+    "npm_run_test_e2e": "PASS: 24/24 synthetic Chromium",
+    "integrated_staging": "PASS: 1/1 synthetic API/UI/DB persistence harness; no DB reset; provider/acquisition/extraction remain synthetic."
   },
   "screenshots": [
     "/tmp/cic-pr34-ux-batch-1440.png",
@@ -107,7 +126,9 @@
     "/tmp/cic-pr34-ux-batch-375.png",
     "/tmp/cic-pr34-ux-library-375.png",
     "/tmp/cic-pr34-ux-compare-375.png",
-    "/tmp/cic-pr34-ux-review-375.png"
+    "/tmp/cic-pr34-ux-review-375.png",
+    "/tmp/cic-pr34-staging-review-1440.png",
+    "/tmp/cic-pr34-staging-review-375.png"
   ],
   "human_track": {
     "blind_evaluator_10x13": "NEEDS_OWNER/PENDING",
@@ -116,8 +137,8 @@
     "analyst_pilot_before_LB3_2": "NEEDS_OWNER/PENDING"
   },
   "limits": [
-    "Synthetic browser fixture evidence proves UI transitions and request boundaries, not DB persistence.",
-    "No item-level synthetic marker was added because current response has no explicit per-item flag or label. Decision #8 remains owner/next-contract work.",
+    "Integrated proof is isolated synthetic worker/provider/acquisition/extraction evidence, not live provider, actual-media, real-brand, production, or owner approval.",
+    "No item-level synthetic marker was added because response has no explicit per-item flag or label.",
     "No product ratification, merge, LB1.1, or LB4 work performed."
   ]
 }
