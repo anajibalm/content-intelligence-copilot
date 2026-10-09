@@ -1,0 +1,175 @@
+{
+  "task_id": "LB-SLICE-0",
+  "evidence_date": "2026-10-09",
+  "provenance": "Executor: OMP; model: 9router/cx/gpt-5.6-terra; reviewer: ChatGPT review fixes applied; owner merge approval: pending",
+  "baseline": "4a929815c9f9089792b6aaff97e118b88f91f523",
+  "branch": "task/35",
+  "tested_source_sha": "2103e7e8344267d7c1e7ff4d0a531cad31403532",
+  "delivery_head": "deca1c0bb9f8b09375300fe16f4ebdc8677f4c08",
+  "ci": {
+    "workflow": "Build & Test",
+    "run": "37923681168",
+    "head": "2103e7e8344267d7c1e7ff4d0a531cad31403532",
+    "result": "PASS",
+    "duration": "2m4s"
+  },
+  "scope": {
+    "included": [
+      "app/review-panel.tsx",
+      "app/compare-panel.tsx",
+      "app/workspace-client.tsx",
+      "app/globals.css",
+      "tests/e2e/slice-0-ledger.spec.ts",
+      "tests/e2e/pr34-integrated.spec.ts"
+    ],
+    "excluded": [
+      "DTO/API/payload review/backend/routes",
+      "formula/normalisasi/enum/semantics comparison",
+      "domain contract and donor map",
+      "dependency changes",
+      "LB1.1 and LB4",
+      "database migration or reset",
+      "production, live-provider, actual-media, and real-brand acceptance"
+    ]
+  },
+  "review_findings": {
+    "R36-1": {
+      "status": "PASS",
+      "fix": "Fingerprint table renders every extraction run and preserves content-feature-* anchors. Confirm count, payload, and correction inputs remain scoped to the active run.",
+      "proof": "Stateful browser fixture confirms 11 active eligible fields become 0 after confirmation while historic #content-feature-historic-0 remains readable through reload and Back/Forward."
+    },
+    "R36-2": {
+      "status": "PASS",
+      "fix": "Restored ordered review/correction audit metadata: field, actor, timestamp, reason, note, golden label, and Metadata event/Metadata koreksi payload disclosure. Hypothesis history restores timestamp and event disclosure.",
+      "proof": "Fixture opens correction metadata and verifies immutable original AI payload plus reason/note."
+    },
+    "R36-3": {
+      "status": "PASS",
+      "fix": "Restored non-VALID qualityByMetric state/reason in Library rows without nesting copy control in row selection.",
+      "proof": "Fixture renders ORGANIC views SUSPECT/UNEXPLAINED_ZERO, then confirms copy and selection remain intact."
+    },
+    "R36-4": {
+      "status": "PASS",
+      "fix": "Raised only decision labels and inherited controls still at 12px: correction, Compare distribution/mode, and Notes/Next Test labels and controls. Palette and behavior unchanged.",
+      "proof": "Slice 0 Playwright opens correction, Compare controls/results, and Notes/Next Test at 1440x900 and 375x812; computed visible-node probes require decision controls >=13px, metadata >=12px, action/hint overlap, focus, and no horizontal overflow. Screenshots saved outside Git."
+    },
+    "R36-5": {
+      "status": "PASS",
+      "fix": "Reused documented task-14 PostgreSQL/storage runtime and isolated synthetic PR34 workspace; no reset or live provider.",
+      "proof": "Integrated API/UI/DB harness passed against revised source and reloaded persisted review, correction, hypothesis review, Notes, and Next Test."
+    }
+  },
+  "acceptance": {
+    "S0-1": {
+      "status": "PASS",
+      "proof": "Slice fixture covers reviewer whitespace-only and empty validation, reviewer-first/reason-second focus, no invalid POST, trimmed valid reviewer, and a held POST with all review actions disabled and no second POST. Inputs use aria-invalid, aria-describedby, unique alerts, and ref focus."
+    },
+    "S0-2": {
+      "status": "PASS",
+      "proof": "Stateful fixture has 11 active UNREVIEWED, one CORRECTED, one CONFIRMED, and 13 historical fields. It proves confirm POST only active-run, historic anchor remains readable, and reload yields 0 eligible."
+    },
+    "S0-3": {
+      "status": "PASS",
+      "proof": "Fixture checks 0, 1, 2 selections, hint disappearance at 2, and adjacent hint/action bounds on 1440x900 and 375x812."
+    },
+    "S0-4": {
+      "status": "PASS",
+      "proof": "Fixture confirms no Penyimpanan Postgres text."
+    },
+    "S0-5": {
+      "status": "PASS",
+      "proof": "Condition remains data.synthetic || data.analysis?.synthetic. Native dialog contains exact warning, closes, and returns focus to chip; non-synthetic PR34 batch has no chip."
+    },
+    "S0-6": {
+      "status": "PASS",
+      "proof": "Null title fallback, one external ID, complete clipboard ID, success feedback after write, rejected clipboard feedback, and unchanged selection URL are covered."
+    },
+    "S0-7": {
+      "status": "PASS",
+      "proof": "Computed browser probes at 1440x900 and 375x812 require visible metadata >=12px plus correction, Compare mode/distribution, Notes, and Next Test decision controls >=13px; they also check action/hint overlap, focused visible selection, and no horizontal overflow."
+    },
+    "R01-R03": {
+      "status": "PASS",
+      "proof": "PR34 UX regressions cover URL navigation, Back/Forward, exact anchors, draft isolation, and synthetic disclosure. Unknown fixture API calls fail."
+    },
+    "R04": {
+      "status": "PASS",
+      "proof": "npm run test:e2e:pr34:integrated against http://127.0.0.1:3134 with workspace 34000000-0000-4000-8000-000000000001 passed 1/1. Synthetic artifacts: job 73ab957c-890b-46a9-ab3e-707939d5c8c7; content 58046870-43bf-4e8f-9794-e87a0d3af86e; recovery job 83e3321b-c588-4a35-9984-3737d46a8ec8; comparison b6bac305-4404-450a-9745-a80af4c6d440; hypothesis e80a3b0f-6fb5-4b88-a1c0-46ac58a7362f."
+    }
+  },
+  "assertion_changes": [
+    {
+      "from": "Active-only table hid historical content-feature anchors.",
+      "to": "All fields render; only active run can receive correction inputs or confirmation payload.",
+      "reason": "Preserves immutable historical evidence and prevents cross-run review writes."
+    },
+    {
+      "from": "Audit history omitted reason, timestamp, note, and payload disclosure.",
+      "to": "History restores audit fields and Metadata event/Metadata koreksi disclosure.",
+      "reason": "Append-only records remain inspectable."
+    },
+    {
+      "from": "Integrated PR34 expected synthetic banner.",
+      "to": "It expects visible Data uji synthetic chip.",
+      "reason": "Slice 0 replaces persistent banner with disclosure dialog."
+    },
+    {
+      "from": "Whitespace reviewer and pending one-submit were source reviewed only.",
+      "to": "Fixture submits whitespace-only reviewer, then holds a valid POST and proves all review actions disable with one request.",
+      "reason": "Acceptance requires no invalid write and no double submit."
+    },
+    {
+      "from": "Receipt described failed-copy coverage without a rejection probe.",
+      "to": "Fixture rejects navigator.clipboard.writeText and asserts failure feedback plus unchanged selection URL.",
+      "reason": "Separates source review from executed failure-path evidence."
+    },
+    {
+      "from": "tests/e2e/pr34-ux.spec.ts expected an empty Reviewer to keep Setujui disabled.",
+      "to": "tests/e2e/pr34-ux.spec.ts:51 enables Setujui with an empty Reviewer; click shows inline error, focuses Reviewer, and sends no invalid POST before valid Edit submission.",
+      "reason": "Disabled controls conceal the validation requirement; enabled action provides immediate accessible error and focus while client validation prevents the write."
+    },
+    {
+      "from": "Review effect cleanup aborted controller.current, which can be replaced by a submit request after the effect starts.",
+      "to": "Review effect cleanup aborts its captured nextController; active submit retains its own controller and request-id stale-response guard.",
+      "reason": "Cleanup owns only its GET history request; aborting the mutable shared ref could abort a newer write."
+    }
+  ],
+  "verification": {
+    "node": "22.18.0",
+    "npm_run_lint": "PASS: 0 errors, 4 existing warnings (three no-img-element and one exhaustive-deps).",
+    "npm_run_typecheck": "PASS",
+    "npm_test": "PASS: 101/101",
+    "npm_run_validate_fixtures": "PASS",
+    "npm_run_build": "PASS",
+    "git_diff_check": "PASS",
+    "targeted_browser": "PASS: Slice 0 8/8",
+    "npm_run_test_e2e": "PASS: 26/26 synthetic Chromium",
+    "integrated_staging": "Not rerun: CSS/test-only delta; R04 synthetic API/UI/DB proof remains tested source fa117ae135a0e070f3ac26d191562a64c1117205, as permitted by closure instruction."
+  },
+  "screenshots": [
+    "/tmp/cic-pr34-ux-batch-1440.png",
+    "/tmp/cic-pr34-ux-library-1440.png",
+    "/tmp/cic-pr34-ux-compare-1440.png",
+    "/tmp/cic-pr34-ux-review-1440.png",
+    "/tmp/cic-pr34-ux-batch-375.png",
+    "/tmp/cic-pr34-ux-library-375.png",
+    "/tmp/cic-pr34-ux-compare-375.png",
+    "/tmp/cic-pr34-ux-review-375.png",
+    "/tmp/cic-pr34-staging-review-1440.png",
+    "/tmp/cic-pr34-staging-review-375.png",
+    "/tmp/cic-pr36-r36-4-decision-controls-1440.png",
+    "/tmp/cic-pr36-r36-4-decision-controls-375.png"
+  ],
+  "human_track": {
+    "blind_evaluator_10x13": "NEEDS_OWNER/PENDING",
+    "target_date": "NEEDS_OWNER/PENDING",
+    "labeling_threshold": "NEEDS_OWNER/PENDING",
+    "analyst_pilot_before_LB3_2": "NEEDS_OWNER/PENDING"
+  },
+  "limits": [
+    "CI 37923681168 passed on tested source 2103e7e8344267d7c1e7ff4d0a531cad31403532; receipt-only delivery deca1c0bb9f8b09375300fe16f4ebdc8677f4c08 has its own pending Build & Test run.",
+    "Integrated proof remains isolated synthetic worker/provider/acquisition/extraction evidence at fa117ae135a0e070f3ac26d191562a64c1117205, not live provider, actual-media, real-brand, production, or owner approval.",
+    "No item-level synthetic marker was added because response has no explicit per-item flag or label.",
+    "No product ratification, merge, LB1.1, or LB4 work performed."
+  ]
+}

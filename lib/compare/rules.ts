@@ -1,3 +1,4 @@
+import { deriveMetrics } from '../metrics/rules.ts';
 const MODES: Record<string, true> = { CONTROLLED: true, PERFORMANCE_CONTRAST: true, MANUAL: true };
 const SCOPES: Record<string, true> = { PAIR: true, GROUP: true, BATCH: true };
 const DISTRIBUTIONS: Record<string, true> = { ORGANIC: true, PAID: true };
@@ -26,7 +27,8 @@ function sameKnown(values: Array<{ value: string | null; known: boolean }>): boo
 }
 
 function metricValue(snapshot: Snapshot, name: string): number | null {
-  const entry = name === 'engagement_rate' ? snapshot.derivedMetrics?.[name] : snapshot.rawMetrics?.[name];
+  const derived = deriveMetrics(snapshot.rawMetrics ?? {}, snapshot.qualityByMetric ?? {});
+  const entry = name === 'engagement_rate' ? derived[name] : snapshot.rawMetrics?.[name];
   if (typeof entry === 'number') return Number.isFinite(entry) ? entry : null;
   if (entry && typeof entry === 'object' && 'value' in entry) {
     return typeof entry.value === 'number' && Number.isFinite(entry.value) ? entry.value : null;
@@ -41,7 +43,8 @@ function metricQuality(snapshot: Snapshot, name: string): { state: string; reaso
   if (detail?.state) return { state: detail.state, reason: detail.reason ?? null };
   if (rawDetail?.quality) return { state: rawDetail.quality, reason: rawDetail.reason ?? null };
   if (snapshot.quality && snapshot.quality !== 'VALID') return { state: snapshot.quality, reason: 'SNAPSHOT_QUALITY' };
-  return { state: metricValue(snapshot, name) == null ? 'UNAVAILABLE' : 'VALID', reason: metricValue(snapshot, name) == null ? 'NOT_PROVIDED' : null };
+  const value = metricValue(snapshot, name);
+  return { state: value == null ? 'UNAVAILABLE' : 'VALID', reason: value == null ? 'NOT_PROVIDED' : null };
 }
 
 function relevantMetricNames(snapshots: Snapshot[]) {

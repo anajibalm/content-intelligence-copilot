@@ -31,24 +31,21 @@ export interface DurableJob {
 export interface PostgresRuntimeOptions {
   connectionString: string;
   workspaceId: string;
-  brandId: string;
-  batchId: string;
+  batchId: string | null;
+  brandId: string | null;
   storageRoot: string;
   acquirer: VideoAcquirer;
   processingTools?: ProcessingTools;
   fingerprintExtractor?: (input: ExtractionInput) => Promise<ModelOutput>;
   onProcessingComplete?: (job: DurableJob, output: ProcessingOutput) => Promise<void>;
 }
-
 export interface DurableRuntime {
-  enqueue(rawUrl: string): Promise<DurableJob>;
-  list(): Promise<DurableJob[]>;
-  get(id: string): Promise<DurableJob | null>;
+  enqueue(rawUrl: string, batchId?: string): Promise<DurableJob>;
+  list(batchId?: string): Promise<DurableJob[]>;
+  get(id: string, batchId?: string | null): Promise<DurableJob | null>;
+  addAnchor(input: { contentId: string; frameId: string; note?: string }): Promise<boolean>;
   claim(workerId: string, leaseMs: number): Promise<DurableJob | null>;
   runOne(workerId: string): Promise<DurableJob | null>;
-  addAnchor(input: { contentId: string; frameId: string; note?: string }): Promise<void>;
-  // Feature review lives in lib/review/postgres.ts (one rule path for content-level
-  // and single-feature decisions); the runtime owns processing jobs only.
   resolveArtifact(contentId: string, requestedFile: string): Promise<string | null>;
   toPublic(job: DurableJob): DurableJob;
   close(): Promise<void>;
@@ -91,7 +88,24 @@ export function toPublicJob(job: DurableJob, storageRoot: string): DurableJob {
   return { ...job, result };
 }
 
+async function assertSelectedBatch(client: PoolClient, options: PostgresRuntimeOptions & { batchId: string }): Promise<void> {
+  const batch = await client.query<{ id: string; brand_id: string }>(
+    'SELECT id, brand_id FROM batch WHERE id = $1 AND workspace_id = $2 FOR SHARE',
+    [options.batchId, options.workspaceId],
+  );
+  if (!batch.rows[0] || (options.brandId && batch.rows[0].brand_id !== options.brandId)) {
+    throw new Error('selected batch not found in workspace and brand');
+  }
+  options.brandId ??= batch.rows[0].brand_id;
+}
 async function ensureContent(client: PoolClient, options: PostgresRuntimeOptions, identity: CanonicalIdentity): Promise<{ contentId: string; sourceId: string }> {
+  const existing = await client.query<{ id: string; batch_id: string }>(
+    `SELECT id, batch_id FROM content WHERE workspace_id = $1 AND platform = 'TIKTOK' AND external_id = $2 FOR UPDATE`,
+    [options.workspaceId, identity.externalId],
+  );
+  if (existing.rows[0] && existing.rows[0].batch_id !== options.batchId) {
+    throw new Error(`content already belongs to batch ${existing.rows[0].batch_id}`);
+  }
   const content = await client.query<{ id: string }>(
     `INSERT INTO content (workspace_id, brand_id, batch_id, platform, external_id, permalink)
      VALUES ($1, $2, $3, 'TIKTOK', $4, $5)
@@ -122,12 +136,16 @@ export function createPostgresRuntime(options: PostgresRuntimeOptions): DurableR
   const pool = new Pool({ connectionString: options.connectionString, max: 2 });
   const processingStore = createFileJobStore(`${options.storageRoot}/processing-state.json`);
 
-  async function enqueue(rawUrl: string): Promise<DurableJob> {
+  async function enqueue(rawUrl: string, batchId = options.batchId ?? undefined): Promise<DurableJob> {
+    if (!batchId) throw new Error('batchId is required for enqueue');
+    const selected = { ...options, batchId, brandId: null };
     const identity = normalizeTikTokUrl(rawUrl);
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
-      const { contentId } = await ensureContent(client, options, identity);
+      await assertSelectedBatch(client, selected);
+      await client.query('SELECT pg_advisory_xact_lock(hashtext($1))', [`${options.workspaceId}:${identity.externalId}`]);
+      const { contentId } = await ensureContent(client, selected, identity);
       const result = await client.query<Record<string, unknown>>(
         `INSERT INTO runtime_processing_job (workspace_id, content_id, source_url)
          VALUES ($1, $2, $3)
@@ -149,13 +167,15 @@ export function createPostgresRuntime(options: PostgresRuntimeOptions): DurableR
     }
   }
 
-  async function list(): Promise<DurableJob[]> {
-    const result = await pool.query<Record<string, unknown>>('SELECT * FROM runtime_processing_job WHERE workspace_id = $1 ORDER BY updated_at DESC', [options.workspaceId]);
+  async function list(batchId = options.batchId): Promise<DurableJob[]> {
+    if (!batchId) return [];
+    const batch = await pool.query<{ id: string }>('SELECT id FROM batch WHERE id = $1 AND workspace_id = $2', [batchId, options.workspaceId]);
+    if (!batch.rows[0]) throw new Error('selected batch not found in workspace and brand');
+    const result = await pool.query<Record<string, unknown>>(`SELECT job.* FROM runtime_processing_job job JOIN content c ON c.id = job.content_id WHERE job.workspace_id = $1 AND c.batch_id = $2 ORDER BY job.updated_at DESC`, [options.workspaceId, batchId]);
     return result.rows.map(rowJob);
   }
-
-  async function get(id: string): Promise<DurableJob | null> {
-    const result = await pool.query<Record<string, unknown>>('SELECT * FROM runtime_processing_job WHERE workspace_id = $1 AND id = $2', [options.workspaceId, id]);
+  async function get(id: string, batchId = options.batchId): Promise<DurableJob | null> {
+    const result = await pool.query<Record<string, unknown>>('SELECT job.* FROM runtime_processing_job job JOIN content c ON c.id = job.content_id WHERE job.workspace_id = $1 AND ($2::uuid IS NULL OR c.batch_id = $2) AND job.id = $3', [options.workspaceId, batchId, id]);
     return result.rows[0] ? rowJob(result.rows[0]) : null;
   }
   async function claim(workerId: string, leaseMs: number): Promise<DurableJob | null> {
@@ -344,10 +364,10 @@ export function createPostgresRuntime(options: PostgresRuntimeOptions): DurableR
       if (!(await renewClaim(job, 15 * 60 * 1000))) throw new Error('worker claim expired after processing');
       await complete(job, processing.output);
       completed = true;
-      return await get(job.id);
+      return await get(job.id, null);
     } catch (error) {
       await fail(job, error);
-      return await get(job.id);
+      return await get(job.id, null);
     } finally {
       if (!completed && temporaryMedia) await cleanupTemporaryMedia([temporaryMedia]);
     }
@@ -365,13 +385,14 @@ export function createPostgresRuntime(options: PostgresRuntimeOptions): DurableR
     return resolveAuthorizedArtifact(options.storageRoot, contentId, requestedFile, result.rows.map((row) => row.storage_path));
   }
 
-  async function addAnchor(input: { contentId: string; frameId: string; note?: string }): Promise<void> {
-    await pool.query(
+  async function addAnchor(input: { contentId: string; frameId: string; note?: string }): Promise<boolean> {
+    const result = await pool.query(
       `INSERT INTO temporal_evidence_anchor (workspace_id, content_id, video_frame_id, anchor_type, timestamp_ms, review_state, note)
        SELECT $1, vf.content_id, vf.id, 'PRODUCT_ENTRY', vf.timestamp_ms, 'CONFIRMED', $2
-       FROM video_frame vf WHERE vf.id = $3 AND vf.content_id = $4`,
+       FROM video_frame vf WHERE vf.workspace_id = $1 AND vf.id = $3 AND vf.content_id = $4`,
       [options.workspaceId, input.note ?? null, input.frameId, input.contentId],
     );
+    return (result.rowCount ?? 0) === 1;
   }
 
   async function recover(_workerId: string): Promise<number> {
@@ -411,35 +432,29 @@ export function createPostgresRuntime(options: PostgresRuntimeOptions): DurableR
 export interface RuntimeConfig {
   connectionString: string;
   workspaceId: string;
-  brandId: string;
-  batchId: string;
+  brandId: string | null;
+  batchId: string | null;
   storageRoot: string;
 }
 
 export function runtimeConfigFromEnv(): RuntimeConfig {
   const connectionString = process.env.CIC_DATABASE_URL ?? process.env.DATABASE_URL;
   const workspaceId = process.env.CIC_WORKSPACE_ID;
-  const brandId = process.env.CIC_BRAND_ID;
-  const batchId = process.env.CIC_BATCH_ID;
+  const batchId = process.env.CIC_BATCH_ID ?? null;
   const storageRoot = process.env.CIC_STORAGE_ROOT;
-  if (!connectionString || !workspaceId || !brandId || !batchId || !storageRoot) {
-    throw new Error('CIC_DATABASE_URL, CIC_WORKSPACE_ID, CIC_BRAND_ID, CIC_BATCH_ID, and CIC_STORAGE_ROOT are required for durable runtime');
+  if (!connectionString || !workspaceId || !storageRoot) {
+    throw new Error('CIC_DATABASE_URL, CIC_WORKSPACE_ID, and CIC_STORAGE_ROOT are required for durable runtime');
   }
-  return { connectionString, workspaceId, brandId, batchId, storageRoot };
+  return { connectionString, workspaceId, brandId: process.env.CIC_BRAND_ID ?? null, batchId, storageRoot };
 }
 
-export function createPostgresRuntimeFromEnv(acquirer: VideoAcquirer, processingTools?: ProcessingTools): DurableRuntime {
+export function createPostgresRuntimeFromEnv(acquirer: VideoAcquirer, processingTools?: ProcessingTools, batchId?: string): DurableRuntime {
   const config = runtimeConfigFromEnv();
   const endpoint = process.env.CIC_FINGERPRINT_ENDPOINT;
   const apiKey = process.env.CIC_FINGERPRINT_API_KEY;
   const model = process.env.CIC_FINGERPRINT_MODEL;
   const fingerprintExtractor = endpoint && apiKey && model
-    ? createMultimodalFingerprintExtractor({
-        endpoint,
-        apiKey,
-        model,
-        provider: process.env.CIC_FINGERPRINT_PROVIDER,
-      })
+    ? createMultimodalFingerprintExtractor({ endpoint, apiKey, model, provider: process.env.CIC_FINGERPRINT_PROVIDER })
     : undefined;
-  return createPostgresRuntime({ ...config, acquirer, processingTools, fingerprintExtractor });
+  return createPostgresRuntime({ ...config, batchId: batchId ?? config.batchId, acquirer, processingTools, fingerprintExtractor });
 }

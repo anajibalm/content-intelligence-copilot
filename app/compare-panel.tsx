@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { labelId, metricTextId } from '../lib/workspace/labels-id.ts';
+import { KeyValueView } from './key-value-view';
 
 type Content = {
   id: string;
@@ -18,6 +20,8 @@ type MetricRow = {
 type CompareResult = {
   id: string;
   ruleVersion: string;
+  metricDerivationVersion?: string;
+  metricBasis?: string;
   mode: string;
   scope: string;
   distribution: string;
@@ -30,17 +34,13 @@ type CompareResult = {
   metricRows: MetricRow[];
 };
 
-const METRIC_LABELS: Record<string, string> = { views: "Views", awt_seconds: "AWT", wfv_pct: "WFV", engagement_rate: "ER" };
 
 function contentLabel(content: Content) {
   return content.title ?? `TikTok ${content.externalId}`;
 }
 
 function metricValue(value: number | null, name: string) {
-  if (value == null) return "unavailable";
-  if (name === "engagement_rate" || name === "wfv_pct") return `${(value * 100).toFixed(1)}%`;
-  if (name === "awt_seconds") return `${value.toFixed(2)} s`;
-  return `${value}`;
+  return metricTextId(value, name);
 }
 
 export default function ComparePanel({ batchId, contents, onCreated, onInvalidated }: { batchId: string; contents: Content[]; onCreated: (comparisonId: string) => void; onInvalidated: () => void }) {
@@ -122,23 +122,24 @@ export default function ComparePanel({ batchId, contents, onCreated, onInvalidat
 
   return <section className="compare-panel" aria-labelledby="compare-heading">
     <div className="section-heading">
-      <div><p className="eyebrow">S7 / CONTROLLED COMPARE</p><h2 id="compare-heading">Compare selected content</h2></div>
-      <span className="status">{selected.length} selected · order preserved</span>
+      <h2 id="compare-heading">Pilih konten untuk dibandingkan</h2>
+      <span className="status">{selected.length} dari minimal 2 dipilih</span>
     </div>
     <div className="compare-controls">
-      <label>Distribution<select value={distribution} onChange={(event) => changeDistribution(event.target.value as "ORGANIC" | "PAID")}><option>ORGANIC</option><option>PAID</option></select></label>
-      <label>Mode<select value={mode} onChange={(event) => changeMode(event.target.value as typeof mode)}><option value="CONTROLLED">Controlled</option><option value="PERFORMANCE_CONTRAST">Performance contrast</option><option value="MANUAL">Manual</option></select></label>
-      <button type="button" onClick={compare} disabled={pending}>{pending ? "Comparing…" : "Generate comparison"}</button>
+      <label>Distribusi<select value={distribution} onChange={(event) => changeDistribution(event.target.value as 'ORGANIC' | 'PAID')}><option value="ORGANIC">Organik</option><option value="PAID">Iklan</option></select></label>
+      <label>Mode<select value={mode} onChange={(event) => changeMode(event.target.value as typeof mode)}>{['CONTROLLED', 'PERFORMANCE_CONTRAST', 'MANUAL'].map((value) => <option value={value} key={value}>{labelId(value)}</option>)}</select></label>
+      <div className="compare-actions"><button type="button" onClick={compare} disabled={pending || selected.length < 2}>{pending ? 'Membandingkan…' : 'Buat perbandingan'}</button>{pending ? <span className="muted">Perbandingan sedang dibuat.</span> : selected.length < 2 ? <span className="muted">Pilih minimal dua konten</span> : null}</div>
     </div>
-      <button type="button" onClick={() => { invalidate(); setFullBatch(true); setSelected(contents.map((content) => content.id)); }} disabled={pending || contents.length < 2}>Select all batch</button>
-    {available.length ? <div className="compare-selection" role="list" aria-label="Comparison content selection">{available.map((content) => <button className={`compare-choice ${selected.includes(content.id) ? "selected" : ""}`} type="button" key={content.id} onClick={() => toggle(content.id)}><strong>{selected.includes(content.id) ? `${selected.indexOf(content.id) + 1}. ` : ""}{contentLabel(content)}</strong><span>{content.externalId}</span></button>)}</div> : <p className="empty-state">No content has metric snapshot for selected distribution.</p>}
+    <button className="secondary" type="button" onClick={() => { invalidate(); setFullBatch(true); setSelected(contents.map((content) => content.id)); }} disabled={pending || contents.length < 2}>Pilih semua anggota batch</button>
+    {available.length ? <div className="compare-selection" role="list" aria-label="Pilihan konten perbandingan">{available.map((content) => <button className={`compare-choice ${selected.includes(content.id) ? 'selected' : ''}`} aria-pressed={selected.includes(content.id)} type="button" key={content.id} onClick={() => toggle(content.id)}><strong>{selected.includes(content.id) ? `${selected.indexOf(content.id) + 1}. ` : ''}{contentLabel(content)}</strong><span>{content.externalId}</span></button>)}</div> : <p className="empty-state">Belum ada snapshot metrik untuk distribusi terpilih.</p>}
     {status && <p className="error-state" role="alert">{status}</p>}
     {result && <div className="compare-result" aria-live="polite">
-      <div className="compare-result-heading"><h3>{result.mode === "PERFORMANCE_CONTRAST" ? "Exploratory performance contrast" : result.mode === "MANUAL" ? "Manual comparison" : "Controlled comparison"}</h3><span className="state">Quality {result.quality}</span></div>
-      <p className="muted">Artifact {result.id} · {result.distribution} · {result.scope} · rule {result.ruleVersion} · snapshots frozen {result.snapshotIds.length}/{result.items.length}</p>
-      <div className="compare-cards">{result.metricRows.map((row) => <article className="compare-card" key={row.contentId}><p className="eyebrow">Position {result.items.find((item) => item.contentId === row.contentId)?.position}</p><h4>{contentLabel(contents.find((content) => content.id === row.contentId) ?? { id: row.contentId, title: null, externalId: row.contentId, snapshots: [] })}</h4><p className="muted">Frozen snapshot {row.metricSnapshotId ?? "unavailable"}</p><dl className="compare-metrics">{row.metrics.map((metric) => <div key={metric.name}><dt>{METRIC_LABELS[metric.name] ?? metric.name}</dt><dd>{metricValue(metric.value, metric.name)}</dd><small>{metric.state}{metric.reason ? ` · ${metric.reason}` : ""}</small></div>)}</dl></article>)}</div>
-      <div className="compare-variables"><div><strong>Controlled variables</strong><pre>{JSON.stringify(result.controlledVariables, null, 2)}</pre></div><div><strong>Uncontrolled variables</strong><pre>{JSON.stringify(result.uncontrolledVariables, null, 2)}</pre></div></div>
-      {result.qualityReasons.length > 0 && <p className="notice">{result.qualityReasons.join(" · ")}</p>}
+      <div className="compare-result-heading"><h3>{labelId(result.mode)}</h3><span className="state">Kualitas {labelId(result.quality)}</span></div>
+      <details><summary>Detail teknis perbandingan</summary><KeyValueView value={{ id: result.id, distribution: result.distribution, scope: result.scope, ruleVersion: result.ruleVersion, snapshotIds: result.snapshotIds, qualityReasons: result.qualityReasons }} /></details>
+      {result.metricDerivationVersion && <p className="muted">Metrik: {result.metricDerivationVersion}, derivasi saat ini dari input snapshot beku. Kesimpulan historis tetap memakai {result.ruleVersion}.</p>}
+      <div className="compare-cards">{result.metricRows.map((row) => <article className="compare-card" key={row.contentId}><h4>{contentLabel(contents.find((content) => content.id === row.contentId) ?? { id: row.contentId, title: null, externalId: row.contentId, snapshots: [] })}</h4><p className="muted">Snapshot beku: {row.metricSnapshotId ?? 'Belum tersedia'}</p><dl className="compare-metrics">{row.metrics.map((metric) => <div key={metric.name}><dt>{labelId(metric.name)}</dt><dd>{metricValue(metric.value, metric.name)}</dd><small title={`${metric.state}: ${metric.reason ?? ''}`}>{labelId(metric.state)}{metric.reason ? ` · ${labelId(metric.reason)}` : ''}</small></div>)}</dl></article>)}</div>
+      <div className="compare-variables"><div><strong>Variabel terkontrol</strong><KeyValueView value={result.controlledVariables} /></div><div><strong>Variabel tidak terkontrol</strong><KeyValueView value={result.uncontrolledVariables} /></div></div>
+      {result.qualityReasons.length > 0 && <p className="notice">Kualitas perbandingan terbatas. Sampel, kontrol, dan kualitas sumber belum cukup untuk klaim kausal; alasan asli tersedia di detail teknis.</p>}
     </div>}
   </section>;
 }
