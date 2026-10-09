@@ -180,7 +180,7 @@ test('selected batch worker retry, persistence, tenant scope, recovery and canon
     await expect(page.locator(`#content-feature-${feature.id}`)).toContainText('synthetic-pr34');
     await expect(page.locator(`#content-feature-${feature.id}`)).toContainText('synthetic_pr34_corrected');
     await page.getByRole('link', { name: 'Review', exact: true }).click();
-    await expect(page.getByText('Data uji synthetic.', { exact: false })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Data uji synthetic' })).toBeVisible();
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.screenshot({ path: '/tmp/cic-pr34-staging-review-1440.png', fullPage: true });
     await page.setViewportSize({ width: 375, height: 812 });
