@@ -5,7 +5,7 @@
   "baseline": "4a929815c9f9089792b6aaff97e118b88f91f523",
   "branch": "task/35",
   "tested_source_sha": "2103e7e8344267d7c1e7ff4d0a531cad31403532",
-  "delivery_head": "2103e7e8344267d7c1e7ff4d0a531cad31403532",
+  "delivery_head": "deca1c0bb9f8b09375300fe16f4ebdc8677f4c08",
   "ci": {
     "workflow": "Build & Test",
     "run": "37923681168",
@@ -157,7 +157,7 @@
     "analyst_pilot_before_LB3_2": "NEEDS_OWNER/PENDING"
   },
   "limits": [
-    "CI for tested source is pending push; do not claim exact-head CI until GitHub reports Build & Test success.",
+    "CI 37923681168 passed on tested source 2103e7e8344267d7c1e7ff4d0a531cad31403532; receipt-only delivery deca1c0bb9f8b09375300fe16f4ebdc8677f4c08 has its own pending Build & Test run.",
     "Integrated proof remains isolated synthetic worker/provider/acquisition/extraction evidence at fa117ae135a0e070f3ac26d191562a64c1117205, not live provider, actual-media, real-brand, production, or owner approval.",
     "No item-level synthetic marker was added because response has no explicit per-item flag or label.",
     "No product ratification, merge, LB1.1, or LB4 work performed."
