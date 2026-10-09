@@ -5,7 +5,6 @@
   "baseline": "4a929815c9f9089792b6aaff97e118b88f91f523",
   "branch": "task/35",
   "tested_source_sha": "d51a633",
-  "delivery_head": "pending receipt commit",
   "scope": {
     "included": [
       "app/review-panel.tsx",
