@@ -144,7 +144,7 @@ test('Confirm All, Correct fields twice, Reject All persist append-only review h
   const contentId = contents[0].id;
   await page.goto(`/?batchId=${batchId}&contentId=${contentId}&view=library`);
   await page.getByLabel('Reviewer').fill('analyst_confirm');
-  await page.getByRole('button', { name: 'Konfirmasi semua' }).click();
+  await page.getByRole('button', { name: /Konfirmasi \d+ field yang belum direview/ }).click();
   await expect(page.getByText('Riwayat review (append-only)')).toBeVisible();
   await expect(page.getByText('Dikonfirmasi', { exact: true }).first()).toBeVisible();
   await page.reload();

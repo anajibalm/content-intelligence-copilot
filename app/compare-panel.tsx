@@ -123,15 +123,14 @@ export default function ComparePanel({ batchId, contents, onCreated, onInvalidat
   return <section className="compare-panel" aria-labelledby="compare-heading">
     <div className="section-heading">
       <h2 id="compare-heading">Pilih konten untuk dibandingkan</h2>
-      <span className="status">{selected.length} terpilih · urutan dipertahankan</span>
+      <span className="status">{selected.length} dari minimal 2 dipilih</span>
     </div>
     <div className="compare-controls">
       <label>Distribusi<select value={distribution} onChange={(event) => changeDistribution(event.target.value as 'ORGANIC' | 'PAID')}><option value="ORGANIC">Organik</option><option value="PAID">Iklan</option></select></label>
       <label>Mode<select value={mode} onChange={(event) => changeMode(event.target.value as typeof mode)}>{['CONTROLLED', 'PERFORMANCE_CONTRAST', 'MANUAL'].map((value) => <option value={value} key={value}>{labelId(value)}</option>)}</select></label>
-      <button type="button" onClick={compare} disabled={pending || selected.length < 2}>{pending ? 'Membandingkan…' : 'Buat perbandingan'}</button>
+      <div className="compare-actions"><button type="button" onClick={compare} disabled={pending || selected.length < 2}>{pending ? 'Membandingkan…' : 'Buat perbandingan'}</button>{pending ? <span className="muted">Perbandingan sedang dibuat.</span> : selected.length < 2 ? <span className="muted">Pilih minimal dua konten</span> : null}</div>
     </div>
-      {selected.length < 2 && <p className="muted">Pilih minimal dua konten untuk membuat perbandingan.</p>}
-      <button className="secondary" type="button" onClick={() => { invalidate(); setFullBatch(true); setSelected(contents.map((content) => content.id)); }} disabled={pending || contents.length < 2}>Pilih semua anggota batch</button>
+    <button className="secondary" type="button" onClick={() => { invalidate(); setFullBatch(true); setSelected(contents.map((content) => content.id)); }} disabled={pending || contents.length < 2}>Pilih semua anggota batch</button>
     {available.length ? <div className="compare-selection" role="list" aria-label="Pilihan konten perbandingan">{available.map((content) => <button className={`compare-choice ${selected.includes(content.id) ? 'selected' : ''}`} aria-pressed={selected.includes(content.id)} type="button" key={content.id} onClick={() => toggle(content.id)}><strong>{selected.includes(content.id) ? `${selected.indexOf(content.id) + 1}. ` : ''}{contentLabel(content)}</strong><span>{content.externalId}</span></button>)}</div> : <p className="empty-state">Belum ada snapshot metrik untuk distribusi terpilih.</p>}
     {status && <p className="error-state" role="alert">{status}</p>}
     {result && <div className="compare-result" aria-live="polite">

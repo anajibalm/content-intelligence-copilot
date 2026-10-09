@@ -88,6 +88,9 @@ export default function WorkspaceClient() {
   const [contentId, setContentId] = useState<string | null>(() => typeof window === "undefined" ? null : new URLSearchParams(window.location.search).get("contentId"));
   const [view, setView] = useState(() => typeof window === 'undefined' ? 'batch' : new URLSearchParams(window.location.search).get('view') ?? (window.location.hash ? 'library' : new URLSearchParams(window.location.search).has('hypothesisId') ? 'review' : 'batch'));
   const [queueRevision, setQueueRevision] = useState(0);
+  const [copiedContentId, setCopiedContentId] = useState<string | null>(null);
+  const syntheticDialogRef = useRef<HTMLDialogElement>(null);
+  const syntheticChipRef = useRef<HTMLButtonElement>(null);
   const [evidenceAnchor, setEvidenceAnchor] = useState(() => typeof window === 'undefined' ? '' : window.location.hash);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -118,6 +121,15 @@ export default function WorkspaceClient() {
   function refreshDetail() {
     setSelectionVersion((version) => version + 1);
     setLoading(true);
+  }
+  async function copyExternalId(event: React.MouseEvent<HTMLButtonElement>, content: Content) {
+    event.stopPropagation();
+    try {
+      await navigator.clipboard.writeText(content.externalId);
+      setCopiedContentId(content.id);
+    } catch {
+      setCopiedContentId(`error:${content.id}`);
+    }
   }
 
   function navigate(nextView: string) {
@@ -229,9 +241,9 @@ export default function WorkspaceClient() {
     <div className="app-shell">
       <aside className="app-sidebar"><div className="app-brand"><strong>Content Intelligence</strong><span>Analyst Copilot</span></div><nav aria-label="Workspace analyst">{Object.entries(VIEW_LABELS).map(([id, label]) => <a key={id} href={`?batchId=${data.selectedBatch!.id}${contentId ? `&contentId=${contentId}` : ''}&view=${id}${hypothesisId ? `&hypothesisId=${hypothesisId}` : ''}`} aria-current={view === id ? 'page' : undefined} onClick={(event) => { event.preventDefault(); navigate(id); }}>{label}</a>)}</nav><p>AI mengusulkan. Analyst memvalidasi. Bukti dan hipotesis tetap terpisah.</p></aside>
       <main className={`workspace view-${view}`} onClick={openSource}>
-      <header className="topbar"><h1>{VIEW_LABELS[view as keyof typeof VIEW_LABELS] ?? 'Batch'}</h1><span className="status">Penyimpanan Postgres</span></header>
+      <header className="topbar"><h1>{VIEW_LABELS[view as keyof typeof VIEW_LABELS] ?? 'Batch'}</h1>{(data.synthetic || data.analysis?.synthetic) && <button ref={syntheticChipRef} className="synthetic-chip" type="button" onClick={() => syntheticDialogRef.current?.showModal()}>Data uji synthetic</button>}</header>
       <section className="workspace-context" aria-labelledby="workspace-heading"><div><h2 id="workspace-heading">{data.selectedBatch.name}</h2><p className="muted">{data.selectedBatch.brandName} · {data.selectedBatch.contentCount} anggota konten</p></div><label className="batch-picker">Batch<select aria-label="Pilih batch" value={data.selectedBatch.id} onChange={(event) => setSelection(event.target.value, null)}>{data.batches.map((batch) => <option value={batch.id} key={batch.id}>{batch.name} · {batch.contentCount} konten</option>)}</select></label></section>
-      {(data.synthetic || data.analysis?.synthetic) && <p className="notice synthetic-banner" role="note">Data uji synthetic. Persetujuan di sini bukan persetujuan brand nyata. Batch dapat berisi campuran data synthetic dan data lain.</p>}
+      <dialog ref={syntheticDialogRef} aria-labelledby="synthetic-title"><h2 id="synthetic-title">Data uji synthetic</h2><p>Data uji synthetic. Persetujuan di sini bukan persetujuan brand nyata. Batch dapat berisi campuran data synthetic dan data lain.</p><button type="button" onClick={() => { syntheticDialogRef.current?.close(); syntheticChipRef.current?.focus(); }}>Tutup</button></dialog>
       <div hidden={view !== 'batch'}>
       <ProcessingForm key={batchId ?? data.selectedBatch.id} batchId={batchId ?? data.selectedBatch.id} onAccepted={(acceptedContentId) => setSelection(batchId ?? data.selectedBatch!.id, acceptedContentId)} onSettled={refreshDetail} />
       </div>
@@ -248,7 +260,7 @@ export default function WorkspaceClient() {
       </div>
       <div hidden={view !== 'review'}><HypothesisQueue key={batchId ?? data.selectedBatch.id} batchId={batchId ?? data.selectedBatch.id} hypothesisId={hypothesisId} onSelect={openReview} revision={queueRevision} /></div>
       <div className="workspace-columns" hidden={view !== 'library'}>
-        <section className="content-list" aria-labelledby="contents-heading"><div className="section-heading"><h2 id="contents-heading">Daftar konten</h2><span className="status">{data.contents.length} anggota</span></div>{data.contents.length === 0 ? <p className="empty-state">Belum ada konten pada batch ini. Tambahkan URL dari Batch.</p> : <div className="content-rows">{data.contents.map((content) => <button className={`content-row ${content.id === detail?.id ? 'selected' : ''}`} type="button" key={content.id} onClick={() => setSelection(data.selectedBatch!.id, content.id)}><span className="content-name"><strong>{contentLabel(content)}</strong><small>{content.externalId}</small></span><span className="content-status"><span>Organik: {metricText(content, 'ORGANIC')}</span><span>Iklan: {metricText(content, 'PAID')}</span>{content.snapshots.flatMap((snapshot) => Object.entries(snapshot.qualityByMetric).filter(([, quality]) => quality.state !== 'VALID').map(([metric, quality]) => <small key={`${snapshot.id}-${metric}`} title={`${quality.state} ${quality.reason ?? ''}`}>{labelId(snapshot.distribution)} · {labelId(metric)}: {labelId(quality.state)} · {quality.reason ? labelId(quality.reason) : 'Tanpa alasan'}</small>))}<small>Akuisisi {statusLabel(content.acquisitionState)} · Processing {statusLabel(content.processingState)}</small></span></button>)}</div>}</section>
+        <section className="content-list" aria-labelledby="contents-heading"><div className="section-heading"><h2 id="contents-heading">Daftar konten</h2><span className="status">{data.contents.length} anggota</span></div>{data.contents.length === 0 ? <p className="empty-state">Belum ada konten pada batch ini. Tambahkan URL dari Batch.</p> : <div className="content-rows">{data.contents.map((content) => <div className={`content-row ${content.id === detail?.id ? 'selected' : ''}`} key={content.id}><button className="content-row-select" type="button" onClick={() => setSelection(data.selectedBatch!.id, content.id)}><span className="content-name"><strong>{content.title ?? 'Konten TikTok tanpa judul'}</strong></span><span className="content-status"><span>Organik: {metricText(content, 'ORGANIC')}</span><span>Iklan: {metricText(content, 'PAID')}</span><small>Akuisisi {statusLabel(content.acquisitionState)} · Processing {statusLabel(content.processingState)}</small></span></button><span className="content-id"><code>{content.externalId}</code><button type="button" className="copy-id" aria-label={`Salin ID ${content.externalId}`} onClick={(event) => copyExternalId(event, content)}>Salin</button>{copiedContentId === content.id && <small role="status">ID disalin</small>}{copiedContentId === `error:${content.id}` && <small className="error-state" role="status">ID gagal disalin</small>}</span></div>)}</div>}</section>
         <section className="content-detail" aria-labelledby="detail-heading">
           <div className="section-heading"><h2 id="detail-heading">{detail ? contentLabel(detail) : 'Pilih konten'}</h2>{detail && <span className="status">Processing {statusLabel(detail.processingState)}</span>}</div>
           {!detail ? <p className="empty-state">Pilih anggota batch untuk melihat metrik dan bukti.</p> : <>

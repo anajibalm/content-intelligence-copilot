@@ -158,7 +158,7 @@ test('distribution change clears selection and sends paid body', async ({ page }
   await expect(page.getByRole('button', { name: 'Membuat hipotesis…' })).toBeDisabled();
   await expect.poll(api.hypothesisCalls).toBe(1);
   await page.getByRole('combobox', { name: 'Distribusi', exact: true }).selectOption('PAID');
-  await expect(page.getByText('0 terpilih · urutan dipertahankan')).toBeVisible();
+  await expect(page.getByText('0 dari minimal 2 dipilih', { exact: true })).toBeVisible();
   await expect(page.getByText('Perbandingan belum tersedia')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Buat hipotesis', exact: true })).toBeDisabled();
   release();

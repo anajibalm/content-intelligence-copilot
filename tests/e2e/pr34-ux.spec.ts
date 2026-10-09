@@ -57,8 +57,11 @@ for (const width of [1440, 375]) test(`persisted review queue, draft isolation a
   await queue.getByRole('button', { name: /Synthetic original hypothesis/ }).click();
   await expect(page).toHaveURL(new RegExp(`hypothesisId=${hypothesisId}`));
   const detail = page.locator(`[data-hypothesis-id="${hypothesisId}"]`);
-  await expect(detail.getByRole('button', { name: 'Setujui', exact: true })).toBeDisabled();
-  await expect(detail.getByText('Isi reviewer untuk menyimpan keputusan.', { exact: false })).toBeVisible();
+  const approve = detail.getByRole('button', { name: 'Setujui', exact: true });
+  await expect(approve).toBeEnabled();
+  await approve.click();
+  await expect(detail.getByText('Isi nama reviewer untuk menyimpan keputusan', { exact: true })).toBeVisible();
+  await expect(detail.getByLabel('Reviewer', { exact: true })).toBeFocused();
   await expect(detail.locator('details').filter({ has: page.locator('summary', { hasText: 'Buat uji berikutnya' }) })).not.toHaveAttribute('open');
   await detail.getByLabel('Reviewer', { exact: true }).fill('synthetic analyst');
   await detail.getByRole('button', { name: 'Edit', exact: true }).click();
@@ -93,7 +96,7 @@ for (const width of [1440, 375]) test(`persisted review queue, draft isolation a
   await expect(detail.getByRole('textbox', { name: 'Notes', exact: true })).toHaveValue('Draft survives source navigation');
   for (const view of ['Batch', 'Library', 'Compare', 'Review']) {
     await page.getByRole('navigation', { name: 'Workspace analyst' }).getByRole('link', { name: view, exact: true }).click();
-    await expect(page.getByText('Data uji synthetic.', { exact: false })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Data uji synthetic' })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     if (width === 375) {
       const top = await page.locator(view === 'Batch' ? '.ingest-form' : view === 'Library' ? '.workspace-columns' : view === 'Compare' ? '.compare-panel' : '.review-workspace').evaluate((element) => element.getBoundingClientRect().top + scrollY);
@@ -113,9 +116,8 @@ for (const width of [1440, 375]) test(`persisted review queue, draft isolation a
   }
   await page.getByLabel('Pilih batch').selectOption(batchB);
   await expect(queue.getByText('Tidak ada hipotesis menunggu review.', { exact: false })).toBeVisible();
-  await expect(page.getByText('Data uji synthetic.', { exact: false })).toHaveCount(0);
   await expect(page.getByText('Synthetic original hypothesis', { exact: true })).toHaveCount(0);
-  expect(state.reviews.map((item) => item.decision)).toEqual(['EDIT']);
+  await expect(page.getByRole('button', { name: 'Data uji synthetic' })).toHaveCount(0);
   expect(state.leaked).toEqual([]);
 });
 
