@@ -122,7 +122,7 @@ audio { width: 100%; max-width: 320px; }
 .batch-processing a { overflow-wrap: anywhere; }
 .compare-panel { display: grid; gap: 18px; margin-bottom: 24px; padding: 22px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
 .compare-controls { display: flex; flex-wrap: wrap; align-items: end; gap: 12px; }
-.compare-controls label { display: grid; gap: 7px; color: var(--muted); font-size: 12px; font-weight: 700; }
+.compare-controls label { display: grid; gap: 7px; color: var(--muted); font-size: 13px; font-weight: 700; }
 .compare-controls select { min-width: 170px; padding: 11px 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink); font: inherit; }
 .compare-selection { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; }
 .compare-choice { display: grid; gap: 5px; min-height: 72px; padding: 12px; border: 1px solid var(--line); background: var(--paper); color: var(--ink); text-align: left; }
@@ -150,14 +150,13 @@ audio { width: 100%; max-width: 320px; }
 .hypothesis-result ul { display: grid; gap: 8px; margin: 8px 0 0; padding-left: 22px; }
 .review-panel { display: grid; gap: 12px; padding: 18px; background: var(--paper); border: 1px solid var(--line); border-radius: 8px; }
 .s10-panel { display: grid; gap: 14px; margin-top: 14px; padding: 18px; background: var(--paper); border: 1px solid var(--line); border-radius: 8px; }
-.s10-notes, .s10-next-test { display: grid; gap: 8px; }
-.s10-notes label, .s10-next-test label { display: grid; gap: 5px; color: var(--muted); font-size: 12px; font-weight: 700; }
+.s10-notes label, .s10-next-test label { display: grid; gap: 5px; color: var(--muted); font-size: 13px; font-weight: 700; }
 .s10-notes input, .s10-notes textarea, .s10-next-test input, .s10-next-test select { padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink); font: inherit; }
 .s10-notes article, .s10-next-test article { display: grid; gap: 5px; padding: 10px; border: 1px solid var(--line); border-radius: 6px; }
 .s10-notes article p, .s10-next-test article p { margin: 0; }
 .review-panel h3, .review-panel h4 { margin: 0; font-size: 1rem; }
 .review-meta { display: grid; gap: 10px; }
-.review-meta label, .review-panel > label, .review-correction label { display: grid; gap: 6px; color: var(--muted); font-size: 12px; font-weight: 700; }
+.review-meta label, .review-panel > label, .review-correction label { display: grid; gap: 6px; color: var(--muted); font-size: 13px; font-weight: 700; }
 .review-meta input, .review-meta textarea, .review-panel select, .review-panel textarea, .review-correction input { padding: 9px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink); font: inherit; }
 .review-meta .review-golden { display: flex; align-items: center; gap: 8px; font-weight: 400; }
 .review-meta .review-golden input { width: auto; padding: 0; }

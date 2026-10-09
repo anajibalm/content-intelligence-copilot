@@ -32,7 +32,7 @@ function features() {
   })));
 }
 
-async function installApi(page: Page) {
+async function installApi(page: Page, options: { holdReviewPost?: Promise<void>; onReviewPost?: () => void } = {}) {
   const reviewPosts: Body[] = [];
   const hypothesisPosts: Body[] = [];
   const leaked: string[] = [];
@@ -63,6 +63,8 @@ async function installApi(page: Page) {
       if (route.request().method() === 'GET') return route.fulfill({ json: history });
       reviewPosts.push(body(route));
       if (body(route).decision === 'CONFIRM') activeConfirmed = true;
+      options.onReviewPost?.();
+      await options.holdReviewPost;
       return route.fulfill({ status: 201, json: { ok: true } });
     }
     if (url.pathname === '/api/hypotheses/review') {
@@ -93,6 +95,10 @@ test('review validates inline before POST and confirms only active eligible fiel
   await expect(confirm).toBeEnabled();
   await confirm.click();
   await expect(panel.getByText('Isi nama reviewer untuk menyimpan keputusan', { exact: true })).toBeVisible();
+  await expect(panel.getByLabel('Reviewer')).toBeFocused();
+  expect(api.reviewPosts).toEqual([]);
+  await panel.getByLabel('Reviewer').fill('   ');
+  await confirm.click();
   await expect(panel.getByLabel('Reviewer')).toBeFocused();
   expect(api.reviewPosts).toEqual([]);
   await panel.getByLabel('Reviewer').fill('  analyst  ');
@@ -187,16 +193,76 @@ test('hypothesis validation, compare adjacency, synthetic disclosure, and copy p
   expect(api.leaked).toEqual([]);
 });
 
-for (const width of [1440, 375]) test(`compare hint stays adjacent and text floors hold at ${width}px`, async ({ page }) => {
+async function expectTextFloor(page: Page, selector: string, minimum: number) {
+  const sizes = await page.locator(selector).evaluateAll((nodes) => nodes.filter((node) => node.checkVisibility()).map((node) => Number.parseFloat(getComputedStyle(node).fontSize)));
+  expect(sizes.length, `visible ${selector}`).toBeGreaterThan(0);
+  expect(sizes.every((size) => size >= minimum), `${selector}: ${sizes.join(', ')}`).toBe(true);
+}
+
+test('review prevents double confirmation while request is pending', async ({ page }) => {
+  let release!: () => void;
+  let started!: () => void;
+  const holdReviewPost = new Promise<void>((resolve) => { release = resolve; });
+  const reviewStarted = new Promise<void>((resolve) => { started = resolve; });
+  const api = await installApi(page, { holdReviewPost, onReviewPost: started });
+  await page.goto(`/?batchId=${batchId}&contentId=${contentId}&view=library`);
+  const panel = page.locator('.content-detail .review-panel');
+  const confirm = panel.getByRole('button', { name: 'Konfirmasi 11 field yang belum direview' });
+  await panel.getByLabel('Reviewer').fill('analyst');
+  await confirm.click();
+  await reviewStarted;
+  expect(await panel.locator('.review-actions button').evaluateAll((buttons) => buttons.length === 3 && buttons.every((button) => (button as HTMLButtonElement).disabled))).toBe(true);
+  await panel.locator('.review-actions button').first().click({ force: true });
+  expect(api.reviewPosts).toHaveLength(1);
+  release();
+  await expect(panel.getByRole('button', { name: 'Konfirmasi 0 field yang belum direview' })).toBeDisabled();
+  expect(api.leaked).toEqual([]);
+});
+
+test('copy failure reports feedback without changing selection', async ({ page }) => {
+  await page.addInitScript(() => Object.defineProperty(navigator, 'clipboard', { value: { writeText: () => Promise.reject(new Error('clipboard unavailable')) } }));
+  const api = await installApi(page);
+  await page.goto(`/?batchId=${batchId}&contentId=${contentId}&view=library`);
+  const selectedRow = page.locator('.content-row').first();
+  await selectedRow.getByRole('button', { name: 'Salin ID copy-full-external-id' }).click();
+  await expect(selectedRow.getByText('ID gagal disalin', { exact: true })).toBeVisible();
+  await expect(page).toHaveURL(new RegExp(`contentId=${contentId}`));
+  expect(api.leaked).toEqual([]);
+});
+
+for (const width of [1440, 375]) test(`decision controls and Compare hint meet floors at ${width}px`, async ({ page }) => {
   await page.setViewportSize({ width, height: width === 375 ? 812 : 900 });
   const api = await installApi(page);
-  await page.goto(`/?batchId=${batchId}&contentId=${contentId}&view=compare`);
-  const actionBox = await page.locator('.compare-actions').boundingBox();
-  const hintBox = await page.getByText('Pilih minimal dua konten', { exact: true }).boundingBox();
+  await page.goto(`/?batchId=${batchId}&contentId=${contentId}&view=library`);
+  const library = page.locator('.content-detail');
+  await library.getByRole('button', { name: 'Koreksi field' }).click();
+  await expectTextFloor(page, '.review-correction label, .review-correction input', 13);
+  await page.getByRole('navigation', { name: 'Workspace analyst' }).getByRole('link', { name: 'Compare', exact: true }).click();
+  await expectTextFloor(page, '.compare-controls label, .compare-controls select', 13);
+  const actions = page.locator('.compare-actions');
+  const actionBox = await actions.boundingBox();
+  const buttonBox = await actions.getByRole('button', { name: 'Buat perbandingan' }).boundingBox();
+  const hintBox = await actions.getByText('Pilih minimal dua konten', { exact: true }).boundingBox();
   expect(actionBox).not.toBeNull();
+  expect(buttonBox).not.toBeNull();
   expect(hintBox).not.toBeNull();
+  expect(buttonBox!.x).toBeGreaterThanOrEqual(actionBox!.x);
   expect(hintBox!.x).toBeGreaterThanOrEqual(actionBox!.x);
+  expect(buttonBox!.x + buttonBox!.width).toBeLessThanOrEqual(actionBox!.x + actionBox!.width + 1);
   expect(hintBox!.x + hintBox!.width).toBeLessThanOrEqual(actionBox!.x + actionBox!.width + 1);
+  expect(hintBox!.y).toBeLessThan(buttonBox!.y + buttonBox!.height);
+  expect(buttonBox!.y).toBeLessThan(hintBox!.y + hintBox!.height);
+  await page.locator('.compare-choice').first().focus();
+  await expect(page.locator('.compare-choice').first()).toBeFocused();
+  await page.locator('.compare-choice').nth(0).click();
+  await page.locator('.compare-choice').nth(1).click();
+  await page.getByRole('button', { name: 'Buat perbandingan' }).click();
+  await expectTextFloor(page, '.compare-metrics dt, .compare-metrics dd', 13);
+  await expectTextFloor(page, '.compare-choice span, .compare-metrics small', 12);
+  await page.goto(`/?batchId=${batchId}&contentId=${contentId}&view=review&hypothesisId=${hypothesisId}`);
+  const review = page.locator('.hypothesis-detail');
+  await review.locator('summary').filter({ hasText: 'Buat uji berikutnya' }).click();
+  await expectTextFloor(page, '.s10-notes label, .s10-notes input, .s10-notes textarea, .s10-next-test label, .s10-next-test input, .s10-next-test select', 13);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   expect(api.leaked).toEqual([]);
 });
