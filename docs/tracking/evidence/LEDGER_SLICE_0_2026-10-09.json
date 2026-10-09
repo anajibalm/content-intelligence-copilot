@@ -4,12 +4,12 @@
   "provenance": "Executor: OMP; model: 9router/cx/gpt-5.6-terra; reviewer: ChatGPT review fixes applied; owner merge approval: pending",
   "baseline": "4a929815c9f9089792b6aaff97e118b88f91f523",
   "branch": "task/35",
-  "tested_source_sha": "7350acf6b348a89fecf3560a37014c0409740409",
-  "delivery_head": "7350acf6b348a89fecf3560a37014c0409740409",
+  "tested_source_sha": "2103e7e8344267d7c1e7ff4d0a531cad31403532",
+  "delivery_head": "2103e7e8344267d7c1e7ff4d0a531cad31403532",
   "ci": {
     "workflow": "Build & Test",
     "run": null,
-    "head": "7350acf6b348a89fecf3560a37014c0409740409",
+    "head": "2103e7e8344267d7c1e7ff4d0a531cad31403532",
     "result": "PENDING_PUSH",
     "duration": null
   },
