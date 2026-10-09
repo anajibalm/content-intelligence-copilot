@@ -4,14 +4,14 @@
   "provenance": "Executor: OMP; model: 9router/cx/gpt-5.6-terra; reviewer: ChatGPT review fixes applied; owner merge approval: pending",
   "baseline": "4a929815c9f9089792b6aaff97e118b88f91f523",
   "branch": "task/35",
-  "tested_source_sha": "fa117ae135a0e070f3ac26d191562a64c1117205",
-  "delivery_head": "4f9c6b1a466a3deb2c207c86d4ec7e8bc5b32adb",
+  "tested_source_sha": "7350acf6b348a89fecf3560a37014c0409740409",
+  "delivery_head": "7350acf6b348a89fecf3560a37014c0409740409",
   "ci": {
     "workflow": "Build & Test",
-    "run": "https://github.com/anajibalm/content-intelligence-copilot/actions/runs/37898410727",
-    "head": "4f9c6b1a466a3deb2c207c86d4ec7e8bc5b32adb",
-    "result": "PASS",
-    "duration": "1m59s"
+    "run": null,
+    "head": "7350acf6b348a89fecf3560a37014c0409740409",
+    "result": "PENDING_PUSH",
+    "duration": null
   },
   "scope": {
     "included": [
@@ -50,8 +50,8 @@
     },
     "R36-4": {
       "status": "PASS",
-      "fix": "Visible metadata nodes use at least 12px; Compare decision labels/values use 13px.",
-      "proof": "Computed-style probes cover Compare choices, metric state, metric label/value, 1440x900 and 375x812 hint bounding boxes, plus no horizontal overflow."
+      "fix": "Raised only decision labels and inherited controls still at 12px: correction, Compare distribution/mode, and Notes/Next Test labels and controls. Palette and behavior unchanged.",
+      "proof": "Slice 0 Playwright opens correction, Compare controls/results, and Notes/Next Test at 1440x900 and 375x812; computed visible-node probes require decision controls >=13px, metadata >=12px, action/hint overlap, focus, and no horizontal overflow. Screenshots saved outside Git."
     },
     "R36-5": {
       "status": "PASS",
@@ -62,7 +62,7 @@
   "acceptance": {
     "S0-1": {
       "status": "PASS",
-      "proof": "Slice fixture covers whitespace reviewer, reviewer-first/reason-second focus, no invalid POST, trimmed valid reviewer, and pending guard. Inputs use aria-invalid, aria-describedby, unique alerts, and ref focus."
+      "proof": "Slice fixture covers reviewer whitespace-only and empty validation, reviewer-first/reason-second focus, no invalid POST, trimmed valid reviewer, and a held POST with all review actions disabled and no second POST. Inputs use aria-invalid, aria-describedby, unique alerts, and ref focus."
     },
     "S0-2": {
       "status": "PASS",
@@ -82,11 +82,11 @@
     },
     "S0-6": {
       "status": "PASS",
-      "proof": "Null title fallback, one external ID, complete clipboard ID, success feedback after write, failed-copy path existing coverage, and unchanged selection URL are covered."
+      "proof": "Null title fallback, one external ID, complete clipboard ID, success feedback after write, rejected clipboard feedback, and unchanged selection URL are covered."
     },
     "S0-7": {
       "status": "PASS",
-      "proof": "Computed browser probes prove metadata >=12px and decision text >=13px in visible Compare states; desktop/mobile overflow and focus bounds covered."
+      "proof": "Computed browser probes at 1440x900 and 375x812 require visible metadata >=12px plus correction, Compare mode/distribution, Notes, and Next Test decision controls >=13px; they also check action/hint overlap, focused visible selection, and no horizontal overflow."
     },
     "R01-R03": {
       "status": "PASS",
@@ -112,6 +112,16 @@
       "from": "Integrated PR34 expected synthetic banner.",
       "to": "It expects visible Data uji synthetic chip.",
       "reason": "Slice 0 replaces persistent banner with disclosure dialog."
+    },
+    {
+      "from": "Whitespace reviewer and pending one-submit were source reviewed only.",
+      "to": "Fixture submits whitespace-only reviewer, then holds a valid POST and proves all review actions disable with one request.",
+      "reason": "Acceptance requires no invalid write and no double submit."
+    },
+    {
+      "from": "Receipt described failed-copy coverage without a rejection probe.",
+      "to": "Fixture rejects navigator.clipboard.writeText and asserts failure feedback plus unchanged selection URL.",
+      "reason": "Separates source review from executed failure-path evidence."
     }
   ],
   "verification": {
@@ -122,9 +132,9 @@
     "npm_run_validate_fixtures": "PASS",
     "npm_run_build": "PASS",
     "git_diff_check": "PASS",
-    "targeted_browser": "PASS: Slice 0 6/6",
-    "npm_run_test_e2e": "PASS: 24/24 synthetic Chromium",
-    "integrated_staging": "PASS: 1/1 synthetic API/UI/DB persistence harness; no DB reset; provider/acquisition/extraction remain synthetic."
+    "targeted_browser": "PASS: Slice 0 8/8",
+    "npm_run_test_e2e": "PASS: 26/26 synthetic Chromium",
+    "integrated_staging": "Not rerun: CSS/test-only delta; R04 synthetic API/UI/DB proof remains tested source fa117ae135a0e070f3ac26d191562a64c1117205, as permitted by closure instruction."
   },
   "screenshots": [
     "/tmp/cic-pr34-ux-batch-1440.png",
@@ -136,7 +146,9 @@
     "/tmp/cic-pr34-ux-compare-375.png",
     "/tmp/cic-pr34-ux-review-375.png",
     "/tmp/cic-pr34-staging-review-1440.png",
-    "/tmp/cic-pr34-staging-review-375.png"
+    "/tmp/cic-pr34-staging-review-375.png",
+    "/tmp/cic-pr36-r36-4-decision-controls-1440.png",
+    "/tmp/cic-pr36-r36-4-decision-controls-375.png"
   ],
   "human_track": {
     "blind_evaluator_10x13": "NEEDS_OWNER/PENDING",
@@ -145,7 +157,8 @@
     "analyst_pilot_before_LB3_2": "NEEDS_OWNER/PENDING"
   },
   "limits": [
-    "Integrated proof is isolated synthetic worker/provider/acquisition/extraction evidence, not live provider, actual-media, real-brand, production, or owner approval.",
+    "CI for tested source is pending push; do not claim exact-head CI until GitHub reports Build & Test success.",
+    "Integrated proof remains isolated synthetic worker/provider/acquisition/extraction evidence at fa117ae135a0e070f3ac26d191562a64c1117205, not live provider, actual-media, real-brand, production, or owner approval.",
     "No item-level synthetic marker was added because response has no explicit per-item flag or label.",
     "No product ratification, merge, LB1.1, or LB4 work performed."
   ]
