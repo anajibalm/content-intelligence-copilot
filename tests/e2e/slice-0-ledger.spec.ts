@@ -264,5 +264,6 @@ for (const width of [1440, 375]) test(`decision controls and Compare hint meet f
   await review.locator('summary').filter({ hasText: 'Buat uji berikutnya' }).click();
   await expectTextFloor(page, '.s10-notes label, .s10-notes input, .s10-notes textarea, .s10-next-test label, .s10-next-test input, .s10-next-test select', 13);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({ path: `/tmp/cic-pr36-r36-4-decision-controls-${width}.png`, fullPage: true });
   expect(api.leaked).toEqual([]);
 });
