@@ -8,13 +8,16 @@ import HypothesisPanel from "./hypothesis-panel";
 import { FeatureReviewPanel } from "./review-panel";
 import HypothesisQueue from './hypothesis-queue';
 import { VIEW_LABELS, labelId, metricTextId } from '../lib/workspace/labels-id.ts';
+type DerivedMetric = { value: number | null; formulaVersion?: string; sourceMetricNames?: string[] };
 type Snapshot = {
   id: string;
   distribution: "ORGANIC" | "PAID";
+  source?: string | null;
+  capturedAt?: string | null;
   rawMetrics: Record<string, number | null>;
   quality: string;
   qualityByMetric: Record<string, { state: string; reason: string | null }>;
-  derivedMetrics: { engagement_rate?: { value: number | null } };
+  derivedMetrics: { engagement_rate?: DerivedMetric };
 };
 type Content = {
   id: string;
@@ -70,6 +73,43 @@ function metricText(content: Content, distribution: "ORGANIC" | "PAID") {
     return `${labelId(metric)} ${metricTextId(value, metric)}`;
   });
   return `${values.join(' · ')} · ${labelId(snapshot.quality)}`;
+}
+
+function MetricEvidence({ snapshot }: { snapshot: Snapshot }) {
+  const derived = snapshot.derivedMetrics.engagement_rate;
+  return <article id={`metric-snapshot-${snapshot.id}`} className="metric-card evidence-card">
+    <div className="evidence-card-heading"><strong>{labelId(snapshot.distribution)}</strong><span>Snapshot metrik</span></div>
+    <div className="metric-decision-rails">
+      <section className="metric-provenance-rail" role="group" aria-label="Jalur observasi">
+        <strong className="metric-decision-label">Tayangan · Observasi</strong>
+        <span className="metric-decision-value">{metricTextId(snapshot.rawMetrics.views, 'views')}</span>
+        <small>Sumber {snapshot.source ?? 'Belum tersedia'} · {snapshot.capturedAt ? new Date(snapshot.capturedAt).toLocaleString() : 'Waktu snapshot belum tersedia'}</small>
+      </section>
+      <section className="metric-provenance-rail" role="group" aria-label="Jalur perhitungan">
+        <strong className="metric-decision-label">Rasio interaksi · Perhitungan</strong>
+        <span className="metric-decision-value">{metricTextId(derived?.value, 'engagement_rate')}</span>
+        <small>Basis {derived?.formulaVersion ?? 'Belum tersedia'} · Input {derived?.sourceMetricNames?.map(labelId).join(', ') ?? 'Belum tersedia'}</small>
+      </section>
+    </div>
+    <span>Kualitas snapshot {labelId(snapshot.quality)}</span>
+    {Object.entries(snapshot.qualityByMetric).filter(([, value]) => value.state !== 'VALID').map(([metric, value]) => <small className="quality-reason" key={metric}>{labelId(metric)}: {labelId(value.state)} · {value.reason ? labelId(value.reason) : 'Tanpa alasan tersimpan'}</small>)}
+    <details>
+      <summary>Rincian teknis snapshot</summary>
+      <dl className="evidence-values">
+        <div><dt>Sumber</dt><dd>{snapshot.source ?? 'Belum tersedia'}</dd></div>
+        <div><dt>Waktu snapshot</dt><dd>{snapshot.capturedAt ? new Date(snapshot.capturedAt).toLocaleString() : 'Belum tersedia'}</dd></div>
+        <div><dt>ID snapshot</dt><dd><code>{snapshot.id}</code></dd></div>
+      </dl>
+      <h4>Observasi mentah</h4>
+      <dl className="evidence-values">{Object.entries(snapshot.rawMetrics).map(([metric, value]) => <div key={metric}><dt>{labelId(metric)}</dt><dd>{metricTextId(value, metric)} · {labelId(snapshot.qualityByMetric[metric]?.state ?? 'UNAVAILABLE')}{snapshot.qualityByMetric[metric]?.reason ? ` · ${labelId(snapshot.qualityByMetric[metric].reason!)}` : ''}</dd></div>)}</dl>
+      <h4>Hasil perhitungan</h4>
+      <dl className="evidence-values">
+        <div><dt>Rasio interaksi</dt><dd>{metricTextId(derived?.value, 'engagement_rate')} · {labelId(snapshot.qualityByMetric.engagement_rate?.state ?? 'UNAVAILABLE')}</dd></div>
+        <div><dt>Versi formula</dt><dd>{derived?.formulaVersion ?? 'Belum tersedia'}</dd></div>
+        <div><dt>Metrik sumber</dt><dd>{derived?.sourceMetricNames?.map(labelId).join(', ') ?? 'Belum tersedia'}</dd></div>
+      </dl>
+    </details>
+  </article>;
 }
 
 function statusLabel(value: string) {
@@ -280,16 +320,15 @@ export default function WorkspaceClient() {
             <div className="detail-facts"><span>Akuisisi <strong>{statusLabel(detail.acquisitionState)}</strong></span><span>Processing <strong>{statusLabel(detail.processingState)}</strong></span><span>Percobaan <strong>{detail.attemptCount}</strong></span><span>Durasi <strong>{detail.durationSeconds == null ? 'Belum tersedia' : `${detail.durationSeconds.toFixed(1)}s`}</strong></span></div>
             {detail.acquisitionError && <p className="error-state">Error sumber akuisisi: {detail.acquisitionError}</p>}
             {detail.processingError && <p className="error-state">Error processing: {detail.processingError}</p>}
-            <div className="detail-metrics">{detail.snapshots.map((snapshot) => <div id={`metric-snapshot-${snapshot.id}`} className="metric-card" key={snapshot.id}>
-              <strong>{labelId(snapshot.distribution)}</strong><span>{metricText(detail, snapshot.distribution)}</span><small>Kualitas {labelId(snapshot.quality)}</small>
-              {Object.entries(snapshot.qualityByMetric).filter(([, value]) => value.state !== 'VALID').map(([metric, value]) => <small className="quality-reason" key={metric} title={`${metric}: ${value.state} ${value.reason ?? ''}`}>{labelId(metric)}: {labelId(value.state)} · {value.reason ? labelId(value.reason) : 'Tanpa alasan tersimpan'}</small>)}
-            </div>)}</div>
+            <section className="detail-metrics" aria-labelledby="metric-evidence-heading"><h3 id="metric-evidence-heading">Kartu bukti metrik</h3>{detail.snapshots.length ? detail.snapshots.map((snapshot) => <MetricEvidence key={snapshot.id} snapshot={snapshot} />) : <p className="empty-state">Snapshot metrik belum tersedia untuk konten ini.</p>}</section>
             <div className="evidence-review-grid">
-              <div className="detail-evidence">
-                <h3>Bukti temporal</h3>
+              <section className="detail-evidence media-ledger" aria-labelledby="media-heading">
+                <h3 id="media-heading">Ringkasan media</h3>
                 <p className="muted">{detail.frames.length} frame · {detail.transcript.length} segmen transkrip</p>
+                <nav className="media-evidence-rail" aria-label="Jalur bukti media"><span>Media</span>{detail.frames[0] ? <a href={`#video-frame-${detail.frames[0].id}`}>Frame utama</a> : <span>Frame belum tersedia</span>}{detail.transcript[0] ? <a href={`#transcript-segment-${detail.transcript[0].id}`}>Transkrip</a> : <span>Transkrip belum tersedia</span>}{detail.extraction[0] ? <a href={`#content-feature-${detail.extraction[0].id}`}>Ekstraksi</a> : <span>Ekstraksi belum tersedia</span>}</nav>
+                <p className="muted media-evidence-limit">Payload belum memetakan frame atau segmen tertentu ke field ekstraksi.</p>
                 {detail.frames.length ? <>
-                  <div className="evidence-frames">{detail.frames.filter((frame) => frame.type === 'HOOK').map((frame) => <figure id={`video-frame-${frame.id}`} key={frame.id}>{frame.available && frame.url ? <img src={frame.url} alt={`${labelId(frame.type)} ${frame.timestampMs}ms`} /> : <div className="unavailable-media">Frame belum tersedia</div>}<figcaption>{labelId(frame.type)} · {frame.timestampMs}ms</figcaption></figure>)}</div>
+                  <div className="evidence-frames primary-media">{detail.frames.filter((frame) => frame.type === 'HOOK').slice(0, 3).map((frame) => <figure id={`video-frame-${frame.id}`} key={frame.id}>{frame.available && frame.url ? <img src={frame.url} alt={`${labelId(frame.type)} ${frame.timestampMs}ms`} /> : <div className="unavailable-media">Frame belum tersedia</div>}<figcaption>{labelId(frame.type)} · {frame.timestampMs}ms</figcaption></figure>)}</div>
                   <details key={`frames-${detail.id}-${evidenceAnchor}`} open={evidenceAnchor.startsWith('#video-frame-') && detail.frames.some((frame) => frame.type !== 'HOOK' && evidenceAnchor === `#video-frame-${frame.id}`)}>
                     <summary>Frame lainnya ({detail.frames.filter((frame) => frame.type !== 'HOOK').length})</summary>
                     <div className="evidence-frames">{detail.frames.filter((frame) => frame.type !== 'HOOK').map((frame) => <figure id={`video-frame-${frame.id}`} key={frame.id}>{frame.available && frame.url ? <img loading="lazy" src={frame.url} alt={`${labelId(frame.type)} ${frame.timestampMs}ms`} /> : <div className="unavailable-media">Frame belum tersedia</div>}<figcaption>{labelId(frame.type)} · {frame.timestampMs}ms</figcaption></figure>)}</div>
@@ -300,9 +339,8 @@ export default function WorkspaceClient() {
                   <summary>Transkrip bertimestamp ({detail.transcript.length})</summary>
                   {detail.transcript.length ? <ol className="transcript-list">{detail.transcript.map((segment) => <li id={`transcript-segment-${segment.id}`} key={segment.id}><strong>{segment.startMs}–{segment.endMs}ms</strong> {segment.text}{segment.role ? ` · ${labelId(segment.role)}` : ''}</li>)}</ol> : <p className="muted">Transkrip belum tersedia untuk konten ini.</p>}
                 </details>
-                <h3>Anotasi analyst</h3>
-                {detail.anchors.length ? detail.anchors.map((anchor) => <p className="annotation" key={anchor.id}>{labelId(anchor.type)} · {anchor.timestampMs}ms · {labelId(anchor.reviewState)} · {anchor.note ?? 'Tanpa catatan'}</p>) : <p className="muted">Belum ada anotasi analyst.</p>}
-              </div>
+                {detail.anchors.length ? <details><summary>Anotasi analyst ({detail.anchors.length})</summary>{detail.anchors.map((anchor) => <p className="annotation" key={anchor.id}>{labelId(anchor.type)} · {anchor.timestampMs}ms · {labelId(anchor.reviewState)} · {anchor.note ?? 'Tanpa catatan'}</p>)}</details> : <p className="muted">Belum ada anotasi analyst.</p>}
+              </section>
               <section className="detail-evidence" aria-labelledby="fingerprint-heading"><h2 id="fingerprint-heading">Fingerprint</h2>{detail.extraction.length ? <FeatureReviewPanel key={detail.id} contentId={detail.id} features={detail.extraction} onReviewed={refreshDetail} /> : <p className="muted">Fingerprint belum tersedia.</p>}</section>
             </div>
           </>}
