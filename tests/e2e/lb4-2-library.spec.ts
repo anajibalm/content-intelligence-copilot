@@ -79,7 +79,8 @@ function content(id: string, title: string | null, extractionState: 'MIXED' | 'U
     ],
     extraction: [
       ...features(`${id}-active`, extractionState),
-      ...features(`${id}-historic`, 'UNREVIEWED', true),
+      ...features(`${id}-historic-a`, 'UNREVIEWED', true),
+      ...features(`${id}-historic-b`, 'UNREVIEWED', true),
     ],
   };
 }
@@ -158,6 +159,10 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 375, height: 812 
     await expect(library.locator('.primary-media figure')).toHaveCount(3);
     await expect(library.locator('summary', { hasText: /Frame lainnya \(1\)/ })).toBeVisible();
     await expect(library.getByText('Kartu bukti metrik', { exact: true })).toBeVisible();
+    await expect(library.getByText('Tayangan · Observasi', { exact: true }).first()).toBeVisible();
+    await expect(library.getByText('Rasio interaksi · Perhitungan', { exact: true }).first()).toBeVisible();
+    await expect(library.getByRole('group', { name: 'Jalur observasi' }).first()).toBeVisible();
+    await expect(library.getByRole('group', { name: 'Jalur perhitungan' }).first()).toBeVisible();
     await expect(library.getByText('Rincian teknis snapshot', { exact: true }).first()).toBeVisible();
     await library.getByText('Rincian teknis snapshot', { exact: true }).first().click();
     await expect(library.getByText('Observasi mentah', { exact: true }).first()).toBeVisible();
@@ -167,20 +172,29 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 375, height: 812 
     await expect(library.locator('.metric-card .quality-reason', { hasText: 'Nilai nol belum memiliki penjelasan atau provenance yang memadai.' }).first()).toBeVisible();
 
     await expect(library.getByText('11 field perlu perhatian', { exact: true })).toBeVisible();
+    await expect(library.locator('summary', { hasText: /Perlu perhatian \(12 field\)/ })).toBeVisible();
+    await expect(library.locator('.fingerprint-attention a')).toHaveCount(12);
     await expect(library.locator('summary', { hasText: /Semua field aktif \(13\)/ })).toBeVisible();
-    await expect(library.locator('summary', { hasText: /Run historis \(1 run, 13 field\)/ })).toBeVisible();
-    await expect(page.locator(`#content-feature-${ids.mixed}-historic-0`)).toHaveCount(1);
+    await expect(library.locator('summary', { hasText: /Run historis \(2 run, 26 field\)/ })).toBeVisible();
+    await expect(library.getByText('Metadata run aktif', { exact: true })).toBeVisible();
+    await library.getByText('Metadata run aktif', { exact: true }).click();
+    await expect(library.getByText('synthetic-library', { exact: true })).toBeVisible();
+    await expect(library.getByText('library-v1', { exact: true })).toBeVisible();
+    await expect(library.getByText('prompt-v1', { exact: true })).toBeVisible();
+    await expect(library.getByText('schema-v1', { exact: true })).toBeVisible();
+    await expect(library.getByText(`sha256:${ids.mixed}-active`, { exact: true })).toBeVisible();
+    await expect(page.locator(`#content-feature-${ids.mixed}-historic-a-0`)).toHaveCount(1);
     await expect(library.getByText('Riwayat review (append-only)', { exact: true })).toBeVisible();
     await expect(library.locator('.review-history li', { hasText: 'catatan koreksi' })).toBeVisible();
 
     await page.goto(`/?batchId=${batch.id}&contentId=${ids.mixed}&view=library#video-frame-scene-6000`);
     await expect(page.locator('#video-frame-scene-6000')).toBeVisible();
     await expect(page.locator('details').filter({ has: page.locator('#video-frame-scene-6000') })).toHaveAttribute('open', '');
-    await page.goto(`/?batchId=${batch.id}&contentId=${ids.mixed}&view=library#content-feature-${ids.mixed}-historic-0`);
-    await expect(page.locator(`#content-feature-${ids.mixed}-historic-0`)).toBeVisible();
-    await expect(page.locator('details').filter({ has: page.locator(`#content-feature-${ids.mixed}-historic-0`) })).toHaveAttribute('open', '');
+    await page.goto(`/?batchId=${batch.id}&contentId=${ids.mixed}&view=library#content-feature-${ids.mixed}-historic-a-0`);
+    await expect(page.locator(`#content-feature-${ids.mixed}-historic-a-0`)).toBeVisible();
+    await expect(page.locator('details').filter({ has: page.locator(`#content-feature-${ids.mixed}-historic-a-0`) })).toHaveAttribute('open', '');
     await page.reload();
-    await expect(page.locator(`#content-feature-${ids.mixed}-historic-0`)).toBeVisible();
+    await expect(page.locator(`#content-feature-${ids.mixed}-historic-a-0`)).toBeVisible();
 
     await page.getByRole('button', { name: /Konfirmasi 11 field yang belum direview/ }).click();
     await expect(page.getByText('Isi nama reviewer untuk menyimpan keputusan', { exact: true })).toBeVisible();
@@ -189,7 +203,7 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 375, height: 812 
     const metadata = await library.locator('.metric-card small, .fingerprint-summary, .review-history, .content-name code').evaluateAll((nodes) => nodes.filter((node) => node.checkVisibility()).map((node) => Number.parseFloat(getComputedStyle(node).fontSize)));
     expect(metadata.length).toBeGreaterThan(0);
     expect(metadata.every((size) => size >= 12), `metadata ${metadata.join(', ')}`).toBe(true);
-    const decisions = await library.locator('.fingerprint-summary strong, .review-actions button, .metric-card strong').evaluateAll((nodes) => nodes.filter((node) => node.checkVisibility()).map((node) => Number.parseFloat(getComputedStyle(node).fontSize)));
+    const decisions = await library.locator('.fingerprint-summary strong, .review-actions button, .metric-decision-label, .metric-decision-value').evaluateAll((nodes) => nodes.filter((node) => node.checkVisibility()).map((node) => Number.parseFloat(getComputedStyle(node).fontSize)));
     expect(decisions.every((size) => size >= 13), `decisions ${decisions.join(', ')}`).toBe(true);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   });
