@@ -152,7 +152,6 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 375, height: 812 
     await context.grantPermissions(['clipboard-read', 'clipboard-write']);
     const api = await installApi(page);
     await page.goto(`/?batchId=${batch.id}&contentId=${ids.mixed}&view=library`);
-    await capture(page, testInfo, `mixed-${viewport.width}`);
 
     const library = page.locator('.view-library');
     await expect(library.getByText('Ringkasan media', { exact: true })).toBeVisible();
@@ -163,6 +162,11 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 375, height: 812 
     await expect(library.getByText('Rasio interaksi · Perhitungan', { exact: true }).first()).toBeVisible();
     await expect(library.getByRole('group', { name: 'Jalur observasi' }).first()).toBeVisible();
     await expect(library.getByRole('group', { name: 'Jalur perhitungan' }).first()).toBeVisible();
+    await expect(library.getByRole('navigation', { name: 'Jalur bukti media' })).toBeVisible();
+    await expect(library.getByRole('link', { name: 'Frame utama' })).toHaveAttribute('href', '#video-frame-hook-0');
+    await expect(library.getByRole('link', { name: 'Transkrip' })).toHaveAttribute('href', '#transcript-segment-segment-0');
+    await expect(library.getByRole('link', { name: 'Ekstraksi' })).toHaveAttribute('href', `#content-feature-${ids.mixed}-active-0`);
+    await expect(library.getByText('Payload belum memetakan frame atau segmen tertentu ke field ekstraksi.', { exact: true })).toBeVisible();
     await expect(library.getByText('Rincian teknis snapshot', { exact: true }).first()).toBeVisible();
     await library.getByText('Rincian teknis snapshot', { exact: true }).first().click();
     await expect(library.getByText('Observasi mentah', { exact: true }).first()).toBeVisible();
@@ -186,6 +190,7 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 375, height: 812 
     await expect(page.locator(`#content-feature-${ids.mixed}-historic-a-0`)).toHaveCount(1);
     await expect(library.getByText('Riwayat review (append-only)', { exact: true })).toBeVisible();
     await expect(library.locator('.review-history li', { hasText: 'catatan koreksi' })).toBeVisible();
+    await capture(page, testInfo, `mixed-${viewport.width}`);
 
     await page.goto(`/?batchId=${batch.id}&contentId=${ids.mixed}&view=library#video-frame-scene-6000`);
     await expect(page.locator('#video-frame-scene-6000')).toBeVisible();
