@@ -100,7 +100,9 @@ export default function WorkspaceClient() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const requestNumber = useRef(0);
+  const currentBatchId = useRef(batchId);
   const [selectionVersion, setSelectionVersion] = useState(0);
+  useEffect(() => { currentBatchId.current = batchId; }, [batchId]);
   function setSelection(nextBatchId: string | null, nextContentId: string | null, replace = false, nextView?: string) {
     requestNumber.current++;
     const query = new URLSearchParams(window.location.search);
@@ -198,7 +200,7 @@ export default function WorkspaceClient() {
       setView(params.get('view') ?? (window.location.hash ? 'library' : params.has('hypothesisId') ? 'review' : 'batch'));
       setEvidenceAnchor(window.location.hash);
       setBatchId(params.get("batchId"));
-      setProcessingJobSummary(null);
+      if (currentBatchId.current !== params.get('batchId')) setProcessingJobSummary(null);
       setHypothesisId(params.get('hypothesisId'));
       setContentId(params.get("contentId"));
       setComparisonId(null);
