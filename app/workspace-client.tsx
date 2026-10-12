@@ -325,6 +325,8 @@ export default function WorkspaceClient() {
               <section className="detail-evidence media-ledger" aria-labelledby="media-heading">
                 <h3 id="media-heading">Ringkasan media</h3>
                 <p className="muted">{detail.frames.length} frame · {detail.transcript.length} segmen transkrip</p>
+                <nav className="media-evidence-rail" aria-label="Jalur bukti media"><span>Media</span>{detail.frames[0] ? <a href={`#video-frame-${detail.frames[0].id}`}>Frame utama</a> : <span>Frame belum tersedia</span>}{detail.transcript[0] ? <a href={`#transcript-segment-${detail.transcript[0].id}`}>Transkrip</a> : <span>Transkrip belum tersedia</span>}{detail.extraction[0] ? <a href={`#content-feature-${detail.extraction[0].id}`}>Ekstraksi</a> : <span>Ekstraksi belum tersedia</span>}</nav>
+                <p className="muted media-evidence-limit">Payload belum memetakan frame atau segmen tertentu ke field ekstraksi.</p>
                 {detail.frames.length ? <>
                   <div className="evidence-frames primary-media">{detail.frames.filter((frame) => frame.type === 'HOOK').slice(0, 3).map((frame) => <figure id={`video-frame-${frame.id}`} key={frame.id}>{frame.available && frame.url ? <img src={frame.url} alt={`${labelId(frame.type)} ${frame.timestampMs}ms`} /> : <div className="unavailable-media">Frame belum tersedia</div>}<figcaption>{labelId(frame.type)} · {frame.timestampMs}ms</figcaption></figure>)}</div>
                   <details key={`frames-${detail.id}-${evidenceAnchor}`} open={evidenceAnchor.startsWith('#video-frame-') && detail.frames.some((frame) => frame.type !== 'HOOK' && evidenceAnchor === `#video-frame-${frame.id}`)}>

@@ -90,6 +90,9 @@ dd { margin: 5px 0 0; font-size: 15px; font-weight: 700; overflow-wrap: anywhere
 .fingerprint-summary strong { font-size: 13px; }
 .fingerprint-attention ul { display: grid; gap: 6px; margin: 0; padding-left: 20px; }
 .fingerprint-attention a { overflow-wrap: anywhere; }
+.media-evidence-rail { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 10px; border-left: 3px solid var(--accent); background: var(--paper); font-size: 13px; }
+.media-evidence-rail > span:first-child { font-weight: 700; }
+.media-evidence-limit { font-size: 12px; }
 .detail-evidence { display: grid; gap: 12px; margin-top: 24px; }
 .detail-evidence h3 { margin: 10px 0 0; font-size: 1rem; }
 .detail-evidence .evidence-frames { margin-top: 0; }
