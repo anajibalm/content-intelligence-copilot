@@ -74,6 +74,15 @@ dd { margin: 5px 0 0; font-size: 15px; font-weight: 700; overflow-wrap: anywhere
 .detail-metrics .metric-card { display: grid; gap: 5px; padding: 14px; border-radius: 6px; }
 .detail-metrics .metric-card span, .detail-metrics .metric-card small { color: var(--muted); font-size: 12px; }
 .quality-reason { color: #8b4a35 !important; }
+.detail-metrics .evidence-card { border: 1px solid var(--control-border); background: var(--surface); }
+.evidence-card-heading { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; }
+.evidence-card-heading span { color: var(--muted); font-size: 12px; }
+.evidence-values { display: grid; gap: 8px; margin: 10px 0; }
+.evidence-values > div { display: grid; grid-template-columns: minmax(100px, .7fr) minmax(0, 1.3fr); gap: 8px; }
+.evidence-values dt { font-size: 12px; font-weight: 700; }
+.evidence-values dd { margin: 0; font-size: 12px; overflow-wrap: anywhere; }
+.fingerprint-summary { margin: 0; font-size: 13px; }
+.fingerprint-summary strong { font-size: 13px; }
 .detail-evidence { display: grid; gap: 12px; margin-top: 24px; }
 .detail-evidence h3 { margin: 10px 0 0; font-size: 1rem; }
 .detail-evidence .evidence-frames { margin-top: 0; }

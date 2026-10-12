@@ -36,6 +36,7 @@ export function FeatureReviewPanel({ contentId, features, onReviewed }: { conten
   const [corrections, setCorrections] = useState<Record<string, string>>({});
   const [correctionReasons, setCorrectionReasons] = useState<Record<string, ReviewReason | "">>({});
   const [history, setHistory] = useState<ContentReviewHistory | null>(null);
+  const [historicalExpanded, setHistoricalExpanded] = useState(() => typeof window !== 'undefined' && features.some((feature) => window.location.hash === `#content-feature-${feature.id}` && feature.extractionRunId !== features[0]?.extractionRunId));
   const [error, setError] = useState<string | null>(null);
   const [validation, setValidation] = useState<Validation>({ reviewer: null, reason: null });
   const [pending, setPending] = useState(false);
@@ -59,8 +60,10 @@ export function FeatureReviewPanel({ contentId, features, onReviewed }: { conten
     return () => { requestId.current += 1; nextController.abort(); };
   }, [contentId]);
 
+
   const extractionRunId = features[0]?.extractionRunId;
   const activeFeatures = features.filter((feature) => feature.extractionRunId === extractionRunId);
+  const historicalFeatures = features.filter((feature) => feature.extractionRunId !== extractionRunId);
   const unreviewed = activeFeatures.filter((feature) => feature.reviewState === 'UNREVIEWED');
   const correctionEntries = Object.entries(corrections).filter(([, value]) => value.trim());
   function validate(decision: 'CONFIRM' | 'CORRECT' | 'REJECT') {
@@ -97,9 +100,12 @@ export function FeatureReviewPanel({ contentId, features, onReviewed }: { conten
     if (review.decision === 'CONFIRM' && last?.[0].decision === 'CONFIRM') last.push(review);
     else historyGroups.push([review]);
   }
+  const renderFeatures = (items: Feature[]) => <table className="fingerprint-table"><thead><tr><th>Field</th><th>AI asli</th><th>Hasil review</th><th>Status</th></tr></thead><tbody>{items.map((feature) => <tr id={`content-feature-${feature.id}`} key={feature.id} className={feature.reviewState === 'CORRECTED' || feature.reviewState === 'REJECTED' ? 'review-changed' : ''}><th scope="row" title={feature.fieldName}>{labelId(feature.fieldName)}<small>{feature.fieldName}</small></th><td data-label="AI asli">{feature.aiValue}</td><td data-label="Hasil review">{feature.reviewedValue ?? 'Belum direview'}{mode === 'CORRECT' && feature.extractionRunId === extractionRunId && <div className="review-correction"><label>Nilai koreksi<input value={corrections[feature.id] ?? ''} onChange={(event) => setCorrections((current) => ({ ...current, [feature.id]: event.target.value }))} placeholder="Kosong berarti tidak diubah" /></label><ReasonSelect label="Alasan koreksi" value={correctionReasons[feature.id] ?? ''} onChange={(value) => setCorrectionReasons((current) => ({ ...current, [feature.id]: value }))} /></div>}</td><td data-label="Status">{labelId(feature.reviewState)}</td></tr>)}</tbody></table>;
   return <>
     <p className="muted">AI asli tidak berubah. Ekstraksi belum direview membatasi confidence ke Rendah.</p>
-    <table className="fingerprint-table"><thead><tr><th>Field</th><th>AI asli</th><th>Hasil review</th><th>Status</th></tr></thead><tbody>{features.map((feature) => <tr id={`content-feature-${feature.id}`} key={feature.id} className={feature.reviewState === 'CORRECTED' || feature.reviewState === 'REJECTED' ? 'review-changed' : ''}><th scope="row" title={feature.fieldName}>{labelId(feature.fieldName)}<small>{feature.fieldName}</small></th><td data-label="AI asli">{feature.aiValue}</td><td data-label="Hasil review">{feature.reviewedValue ?? 'Belum direview'}{mode === 'CORRECT' && feature.extractionRunId === extractionRunId && <div className="review-correction"><label>Nilai koreksi<input value={corrections[feature.id] ?? ''} onChange={(event) => setCorrections((current) => ({ ...current, [feature.id]: event.target.value }))} placeholder="Kosong berarti tidak diubah" /></label><ReasonSelect label="Alasan koreksi" value={correctionReasons[feature.id] ?? ''} onChange={(value) => setCorrectionReasons((current) => ({ ...current, [feature.id]: value }))} /></div>}</td><td data-label="Status">{labelId(feature.reviewState)}</td></tr>)}</tbody></table>
+    <p className="fingerprint-summary"><strong>{unreviewed.length} field perlu perhatian</strong> · {activeFeatures.length} field pada run aktif</p>
+    <details open><summary>Semua field aktif ({activeFeatures.length})</summary>{renderFeatures(activeFeatures)}</details>
+    {historicalFeatures.length > 0 && <details open={historicalExpanded} onToggle={(event) => setHistoricalExpanded(event.currentTarget.open)}><summary>Run historis (1 run, {historicalFeatures.length} field)</summary><p className="muted">Run historis tidak mengubah hitungan review aktif.</p>{renderFeatures(historicalFeatures)}</details>}
     <div className="review-panel"><div className="section-heading"><h3>Review fingerprint</h3><span className="status">{unreviewed.length} menunggu review · {activeFeatures.length} field</span></div>
       <ReviewMeta reviewer={reviewer} setReviewer={(value) => { setReviewer(value); setValidation((current) => ({ ...current, reviewer: null })); }} note={note} setNote={setNote} goldenLabel={goldenLabel} setGoldenLabel={setGoldenLabel} error={validation.reviewer} reviewerRef={reviewerRef} />
       <ReasonSelect label="Alasan penolakan (wajib untuk Tolak semua)" value={reasonCode} onChange={(value) => { setReasonCode(value); setValidation((current) => ({ ...current, reason: null })); }} error={validation.reason} reasonRef={reasonRef} />
