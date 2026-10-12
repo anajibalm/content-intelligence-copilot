@@ -268,6 +268,8 @@ test('AC-05 failure detail without drill-in and retry POST', async ({ page }) =>
   await expect(panel).toContainText('synthetic processing failure');
   await expect(panel).toContainText('Percobaan 2');
   await expect(panel.getByText('Detail job').first()).toBeVisible();
+  await expect(panel.locator('a.job-source').first()).toBeVisible();
+  await expect(panel.locator('a.job-source').first()).toHaveText(/https:\/\/www\.tiktok\.com/);
   await expect(panel.locator('a.job-source').first()).toHaveAttribute('href', /tiktok\.com/);
   await panel.getByRole('button', { name: 'Coba lagi', exact: true }).click();
   await expect.poll(() => posts.length).toBe(1);
@@ -325,4 +327,27 @@ test('AC-07b synthetic chip disclosure keeps existing condition', async ({ page 
   await page.getByRole('dialog').getByRole('button', { name: 'Tutup' }).click();
   await expect(chip).toBeFocused();
   expect(await page.locator('.content-row .synthetic-chip, .content-row [data-synthetic]').count()).toBe(0);
+});
+
+test('R40 ledger state ignores delayed prior batch and control borders stay distinct', async ({ page }) => {
+  await installApi(page);
+  let releaseBatchA: (() => void) | undefined;
+  await page.route('**/api/processing**', async (route) => {
+    const url = new URL(route.request().url());
+    if (route.request().method() === 'GET' && url.searchParams.get('batchId') === batchA.id) await new Promise<void>((resolve) => { releaseBatchA = resolve; });
+    await route.fallback();
+  });
+  await page.goto(`/?batchId=${batchA.id}&view=batch`);
+  const summary = page.locator('.batch-members .section-heading .muted');
+  await expect(summary).toContainText('memuat status job');
+  await page.getByLabel('Pilih batch').selectOption(batchB.id);
+  await expect(summary).toContainText('0 job');
+  releaseBatchA?.();
+  await page.waitForTimeout(50);
+  await expect(summary).not.toContainText('8 job');
+  await page.goBack();
+  await expect(summary).toContainText('memuat status job');
+  releaseBatchA?.();
+  const controls = await page.locator('.batch-picker select, .form-row input, .copy-id').evaluateAll((nodes) => nodes.filter((node) => node.checkVisibility()).map((node) => getComputedStyle(node).borderTopColor));
+  expect(controls.every((color) => color === 'rgb(118, 133, 139)'), controls.join(', ')).toBe(true);
 });

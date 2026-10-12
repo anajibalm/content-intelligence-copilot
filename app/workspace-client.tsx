@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import ProcessingForm from "./processing-form";
+import ProcessingForm, { type ProcessingJobSummary } from "./processing-form";
 import { rankingExtremes } from "../lib/workspace/presentation.ts";
 import ComparePanel from "./compare-panel";
 import HypothesisPanel from "./hypothesis-panel";
@@ -93,7 +93,7 @@ export default function WorkspaceClient() {
   const [view, setView] = useState(() => typeof window === 'undefined' ? 'batch' : new URLSearchParams(window.location.search).get('view') ?? (window.location.hash ? 'library' : new URLSearchParams(window.location.search).has('hypothesisId') ? 'review' : 'batch'));
   const [queueRevision, setQueueRevision] = useState(0);
   const [copiedContentId, setCopiedContentId] = useState<string | null>(null);
-  const [processingJobSummary, setProcessingJobSummary] = useState<{ count: number | null; active: number; failed: number } | null>(null);
+  const [processingJobSummary, setProcessingJobSummary] = useState<ProcessingJobSummary | null>(null);
   const syntheticDialogRef = useRef<HTMLDialogElement>(null);
   const syntheticChipRef = useRef<HTMLButtonElement>(null);
   const [evidenceAnchor, setEvidenceAnchor] = useState(() => typeof window === 'undefined' ? '' : window.location.hash);
@@ -198,6 +198,7 @@ export default function WorkspaceClient() {
       setView(params.get('view') ?? (window.location.hash ? 'library' : params.has('hypothesisId') ? 'review' : 'batch'));
       setEvidenceAnchor(window.location.hash);
       setBatchId(params.get("batchId"));
+      setProcessingJobSummary(null);
       setHypothesisId(params.get('hypothesisId'));
       setContentId(params.get("contentId"));
       setComparisonId(null);
@@ -244,7 +245,7 @@ export default function WorkspaceClient() {
   if (!data?.selectedBatch) return <main className="workspace"><h1>Belum ada batch</h1><p className="muted">Pilih batch kontrak sebelum analisis.</p></main>;
 
   const detail = data.selectedContent;
-  const jobSummaryText = !processingJobSummary ? 'status job belum dimuat' : processingJobSummary.count == null ? 'status job gagal dimuat' : `${processingJobSummary.count} job${processingJobSummary.active ? ` · ${processingJobSummary.active} aktif` : ''}${processingJobSummary.failed ? ` · ${processingJobSummary.failed} gagal` : ''}`;
+  const jobSummaryText = !processingJobSummary || processingJobSummary.state === 'loading' ? 'memuat status job' : processingJobSummary.state === 'error' ? 'status job gagal dimuat' : `${processingJobSummary.count} job${processingJobSummary.active ? ` · ${processingJobSummary.active} aktif` : ''}${processingJobSummary.failed ? ` · ${processingJobSummary.failed} gagal` : ''}`;
   return (
     <div className="app-shell">
       <aside className="app-sidebar"><div className="app-brand"><strong>Content Intelligence</strong><span>Analyst Copilot</span></div><nav aria-label="Workspace analyst">{Object.entries(VIEW_LABELS).map(([id, label]) => <a key={id} href={`?batchId=${data.selectedBatch!.id}${contentId ? `&contentId=${contentId}` : ''}&view=${id}${hypothesisId ? `&hypothesisId=${hypothesisId}` : ''}`} aria-current={view === id ? 'page' : undefined} onClick={(event) => { event.preventDefault(); navigate(id); }}>{label}</a>)}</nav><p>AI mengusulkan. Analyst memvalidasi. Bukti dan hipotesis tetap terpisah.</p></aside>
