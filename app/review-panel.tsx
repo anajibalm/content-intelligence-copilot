@@ -4,7 +4,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { REVIEW_REASONS, type ReviewReason } from "../lib/domain/types.ts";
 import { labelId, reasonId } from '../lib/workspace/labels-id.ts';
 
-type Feature = { id: string; extractionRunId: string; fieldName: string; aiValue: string; reviewedValue: string | null; reviewState: string };
+type Feature = { id: string; extractionRunId: string; fieldName: string; aiValue: string; reviewedValue: string | null; reviewState: string; provider: string; model: string; promptVersion: string; schemaVersion: string; inputHash: string };
 type FeatureReviewRecord = { id: string; contentFeatureId: string; extractionRunId: string; fieldName: string; decision: string; reasonCode: ReviewReason | null; reviewedValue: string | null; goldenLabel: boolean; reviewer: string; note: string | null; createdAt: string };
 type FeatureCorrectionRecord = { id: string; contentFeatureId: string; extractionRunId: string; fieldName: string; originalAiValue: string; correctedValue: string; reasonCode: ReviewReason; reviewer: string; note: string | null; createdAt: string };
 type ContentReviewHistory = { contentId: string; reviews: FeatureReviewRecord[]; corrections: FeatureCorrectionRecord[] };
@@ -64,7 +64,9 @@ export function FeatureReviewPanel({ contentId, features, onReviewed }: { conten
   const extractionRunId = features[0]?.extractionRunId;
   const activeFeatures = features.filter((feature) => feature.extractionRunId === extractionRunId);
   const historicalFeatures = features.filter((feature) => feature.extractionRunId !== extractionRunId);
+  const historicalRunCount = new Set(historicalFeatures.map((feature) => feature.extractionRunId)).size;
   const unreviewed = activeFeatures.filter((feature) => feature.reviewState === 'UNREVIEWED');
+  const attentionFeatures = activeFeatures.filter((feature) => feature.reviewState === 'UNREVIEWED' || feature.reviewState === 'CORRECTED' || feature.reviewState === 'REJECTED');
   const correctionEntries = Object.entries(corrections).filter(([, value]) => value.trim());
   function validate(decision: 'CONFIRM' | 'CORRECT' | 'REJECT') {
     const next = { reviewer: reviewer.trim() ? null : 'Isi nama reviewer untuk menyimpan keputusan', reason: decision === 'REJECT' && !reasonCode ? 'Pilih alasan penolakan untuk menyimpan keputusan' : null };
@@ -104,8 +106,10 @@ export function FeatureReviewPanel({ contentId, features, onReviewed }: { conten
   return <>
     <p className="muted">AI asli tidak berubah. Ekstraksi belum direview membatasi confidence ke Rendah.</p>
     <p className="fingerprint-summary"><strong>{unreviewed.length} field perlu perhatian</strong> · {activeFeatures.length} field pada run aktif</p>
+    {attentionFeatures.length > 0 && <details className="fingerprint-attention" open><summary>Perlu perhatian ({attentionFeatures.length} field)</summary><ul>{attentionFeatures.map((feature) => <li key={feature.id}><a href={`#content-feature-${feature.id}`}>{labelId(feature.fieldName)} · {labelId(feature.reviewState)}</a></li>)}</ul></details>}
     <details open><summary>Semua field aktif ({activeFeatures.length})</summary>{renderFeatures(activeFeatures)}</details>
-    {historicalFeatures.length > 0 && <details open={historicalExpanded} onToggle={(event) => setHistoricalExpanded(event.currentTarget.open)}><summary>Run historis (1 run, {historicalFeatures.length} field)</summary><p className="muted">Run historis tidak mengubah hitungan review aktif.</p>{renderFeatures(historicalFeatures)}</details>}
+    {activeFeatures[0] && <details><summary>Metadata run aktif</summary><dl className="evidence-values"><div><dt>Provider</dt><dd>{activeFeatures[0].provider}</dd></div><div><dt>Model</dt><dd>{activeFeatures[0].model}</dd></div><div><dt>Versi prompt</dt><dd>{activeFeatures[0].promptVersion}</dd></div><div><dt>Versi schema</dt><dd>{activeFeatures[0].schemaVersion}</dd></div><div><dt>Input hash</dt><dd><code>{activeFeatures[0].inputHash}</code></dd></div></dl></details>}
+    {historicalFeatures.length > 0 && <details open={historicalExpanded} onToggle={(event) => setHistoricalExpanded(event.currentTarget.open)}><summary>Run historis ({historicalRunCount} run, {historicalFeatures.length} field)</summary><p className="muted">Run historis tidak mengubah hitungan review aktif.</p>{renderFeatures(historicalFeatures)}</details>}
     <div className="review-panel"><div className="section-heading"><h3>Review fingerprint</h3><span className="status">{unreviewed.length} menunggu review · {activeFeatures.length} field</span></div>
       <ReviewMeta reviewer={reviewer} setReviewer={(value) => { setReviewer(value); setValidation((current) => ({ ...current, reviewer: null })); }} note={note} setNote={setNote} goldenLabel={goldenLabel} setGoldenLabel={setGoldenLabel} error={validation.reviewer} reviewerRef={reviewerRef} />
       <ReasonSelect label="Alasan penolakan (wajib untuk Tolak semua)" value={reasonCode} onChange={(value) => { setReasonCode(value); setValidation((current) => ({ ...current, reason: null })); }} error={validation.reason} reasonRef={reasonRef} />

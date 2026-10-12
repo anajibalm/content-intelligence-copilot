@@ -78,8 +78,20 @@ function metricText(content: Content, distribution: "ORGANIC" | "PAID") {
 function MetricEvidence({ snapshot }: { snapshot: Snapshot }) {
   const derived = snapshot.derivedMetrics.engagement_rate;
   return <article id={`metric-snapshot-${snapshot.id}`} className="metric-card evidence-card">
-    <div className="evidence-card-heading"><strong>{labelId(snapshot.distribution)}</strong><span>Observasi</span></div>
-    <span>{metricTextId(snapshot.rawMetrics.views, 'views')} tayangan · Rasio interaksi {metricTextId(derived?.value, 'engagement_rate')} · Basis {derived?.formulaVersion ?? 'Belum tersedia'} · Kualitas {labelId(snapshot.quality)}</span>
+    <div className="evidence-card-heading"><strong>{labelId(snapshot.distribution)}</strong><span>Snapshot metrik</span></div>
+    <div className="metric-decision-rails">
+      <section className="metric-provenance-rail" role="group" aria-label="Jalur observasi">
+        <strong className="metric-decision-label">Tayangan · Observasi</strong>
+        <span className="metric-decision-value">{metricTextId(snapshot.rawMetrics.views, 'views')}</span>
+        <small>Sumber {snapshot.source ?? 'Belum tersedia'} · {snapshot.capturedAt ? new Date(snapshot.capturedAt).toLocaleString() : 'Waktu snapshot belum tersedia'}</small>
+      </section>
+      <section className="metric-provenance-rail" role="group" aria-label="Jalur perhitungan">
+        <strong className="metric-decision-label">Rasio interaksi · Perhitungan</strong>
+        <span className="metric-decision-value">{metricTextId(derived?.value, 'engagement_rate')}</span>
+        <small>Basis {derived?.formulaVersion ?? 'Belum tersedia'} · Input {derived?.sourceMetricNames?.map(labelId).join(', ') ?? 'Belum tersedia'}</small>
+      </section>
+    </div>
+    <span>Kualitas snapshot {labelId(snapshot.quality)}</span>
     {Object.entries(snapshot.qualityByMetric).filter(([, value]) => value.state !== 'VALID').map(([metric, value]) => <small className="quality-reason" key={metric}>{labelId(metric)}: {labelId(value.state)} · {value.reason ? labelId(value.reason) : 'Tanpa alasan tersimpan'}</small>)}
     <details>
       <summary>Rincian teknis snapshot</summary>
