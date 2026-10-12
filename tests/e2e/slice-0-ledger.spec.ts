@@ -181,7 +181,7 @@ test('hypothesis validation, compare adjacency, synthetic disclosure, and copy p
   await page.getByRole('dialog').getByRole('button', { name: 'Tutup' }).click();
   await expect(chip).toBeFocused();
   await expect(page.getByText('Penyimpanan Postgres')).toHaveCount(0);
-  const selectedRow = page.locator('.content-row').first();
+  const selectedRow = page.getByRole('region', { name: 'Daftar konten' }).locator('.content-row').first();
   await expect(selectedRow).toContainText('Organik · Tayangan: Perlu diperiksa · Nilai nol belum memiliki penjelasan atau provenance yang memadai.');
   await selectedRow.getByRole('button', { name: 'Salin ID copy-full-external-id' }).click();
   await expect(selectedRow).toContainText('ID disalin');
@@ -223,7 +223,7 @@ test('copy failure reports feedback without changing selection', async ({ page }
   await page.addInitScript(() => Object.defineProperty(navigator, 'clipboard', { value: { writeText: () => Promise.reject(new Error('clipboard unavailable')) } }));
   const api = await installApi(page);
   await page.goto(`/?batchId=${batchId}&contentId=${contentId}&view=library`);
-  const selectedRow = page.locator('.content-row').first();
+  const selectedRow = page.getByRole('region', { name: 'Daftar konten' }).locator('.content-row').first();
   await selectedRow.getByRole('button', { name: 'Salin ID copy-full-external-id' }).click();
   await expect(selectedRow.getByText('ID gagal disalin', { exact: true })).toBeVisible();
   await expect(page).toHaveURL(new RegExp(`contentId=${contentId}`));

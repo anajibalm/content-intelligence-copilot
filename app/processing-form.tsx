@@ -6,10 +6,14 @@ import { labelId } from '../lib/workspace/labels-id.ts';
 type ProcessingJob = { id: string; contentId: string; sourceUrl: string; status: string; attemptCount: number; error: string | null };
 
 function terminal(status: string) {
-  return status === "COMPLETED" || status === "FAILED";
+  return status === 'COMPLETED' || status === 'FAILED';
 }
 
-export default function ProcessingForm({ batchId, onAccepted, onSettled }: { batchId: string; onAccepted: (contentId: string) => void; onSettled: () => void }) {
+function jobSummary(items: ProcessingJob[], count: number | null = items.length) {
+  return { count, active: items.filter((job) => !terminal(job.status)).length, failed: items.filter((job) => job.status === 'FAILED').length };
+}
+
+export default function ProcessingForm({ batchId, onAccepted, onSettled, onJobSummaryChange }: { batchId: string; onAccepted: (contentId: string) => void; onSettled: () => void; onJobSummaryChange: (summary: { count: number | null; active: number; failed: number }) => void }) {
   const [url, setUrl] = useState("");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
@@ -20,13 +24,13 @@ export default function ProcessingForm({ batchId, onAccepted, onSettled }: { bat
   const [refreshVersion, setRefreshVersion] = useState(0);
   const jobsRef = useRef<ProcessingJob[]>([]);
   const currentBatch = useRef(batchId);
-  const callbacks = useRef({ onAccepted, onSettled });
+  const callbacks = useRef({ onAccepted, onSettled, onJobSummaryChange });
   const submitController = useRef<AbortController | null>(null);
 
   useEffect(() => {
     currentBatch.current = batchId;
-    callbacks.current = { onAccepted, onSettled };
-  }, [batchId, onAccepted, onSettled]);
+    callbacks.current = { onAccepted, onSettled, onJobSummaryChange };
+  }, [batchId, onAccepted, onSettled, onJobSummaryChange]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -48,6 +52,7 @@ export default function ProcessingForm({ batchId, onAccepted, onSettled }: { bat
         const settled = body.items.some((job) => terminal(job.status) && jobsRef.current.some((previous) => previous.id === job.id && !terminal(previous.status)));
         jobsRef.current = body.items;
         setJobs(body.items);
+        callbacks.current.onJobSummaryChange(jobSummary(body.items));
         setStatusLoaded(true);
         setStatusError(null);
         failures = 0;
@@ -57,6 +62,7 @@ export default function ProcessingForm({ batchId, onAccepted, onSettled }: { bat
         if (!active()) return;
         failures++;
         setStatusError(`${String((error as Error).message)} · attempt ${failures}/3`);
+        callbacks.current.onJobSummaryChange(jobSummary([], null));
         if (failures < 3) timer = window.setTimeout(() => void refresh(), 2000);
       }
     };
@@ -89,7 +95,7 @@ export default function ProcessingForm({ batchId, onAccepted, onSettled }: { bat
       if (!response.ok) throw new Error(body.error ?? "Processing submission failed");
       jobsRef.current = [body, ...jobsRef.current.filter((job) => job.id !== body.id)];
       setJobs(jobsRef.current);
-      setMessage(`Diterima · ${labelId(body.status)}`);
+      callbacks.current.onJobSummaryChange(jobSummary(jobsRef.current));
       if (!retryId) setUrl('');
       setRefreshVersion((version) => version + 1);
       callbacks.current.onAccepted(body.contentId);
