@@ -107,3 +107,52 @@ test('status failures stop automatic retries after three attempts and manual ret
   await expect(page.getByText('Belum ada job processing pada batch ini.')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Coba lagi status' })).toHaveCount(0);
 });
+
+test('MF-01 same-batch history preserves loaded ledger and delayed old ledger cannot replace current batch', async ({ page }) => {
+  await workspace(page);
+  let releaseBatchA!: () => void;
+  let holdBatchA = false;
+  const batchAStarted = new Promise<void>((resolve) => { releaseBatchA = resolve; });
+  let startBatchA!: () => void;
+  const waitBatchA = new Promise<void>((resolve) => { startBatchA = resolve; });
+  await page.route('**/api/processing**', async (route) => {
+    const requestedBatchId = new URL(route.request().url()).searchParams.get('batchId');
+    if (requestedBatchId === batchA && holdBatchA) { startBatchA(); await batchAStarted; }
+    return route.fulfill({ json: { items: requestedBatchId === batchA ? [] : [{ ...job, status: 'RUNNING' }] } });
+  });
+  await page.goto(`/?batchId=${batchA}&view=batch`);
+  const summary = page.locator('.batch-members .section-heading .muted');
+  await expect(summary).toContainText('0 job');
+  await page.getByRole('link', { name: 'Library', exact: true }).click();
+  await page.goBack();
+  await expect(summary).toContainText('0 job');
+  await page.goForward();
+  await expect(page.getByRole('heading', { name: 'Library', exact: true })).toBeVisible();
+  await page.getByRole('link', { name: 'Batch', exact: true }).click();
+  await expect(summary).toContainText('0 job');
+  await page.getByRole('combobox', { name: 'Pilih batch' }).selectOption(batchB);
+  await expect(summary).toContainText('1 job');
+  holdBatchA = true;
+  await page.getByRole('combobox', { name: 'Pilih batch' }).selectOption(batchA);
+  await waitBatchA;
+  await page.getByRole('combobox', { name: 'Pilih batch' }).selectOption(batchB);
+  await expect(summary).toContainText('1 job');
+  releaseBatchA();
+  await expect(summary).toContainText('1 job');
+});
+
+test('MF-02 initial status error never renders loading or empty before successful retry', async ({ page }) => {
+  await workspace(page);
+  let failed = true;
+  await page.route('**/api/processing**', (route) => failed ? route.fulfill({ status: 503, json: { error: 'synthetic status failure' } }) : route.fulfill({ json: { items: [] } }));
+  await page.goto(`/?batchId=${batchA}&view=batch`);
+  const panel = page.getByLabel('Status processing batch');
+  await expect(panel.getByRole('alert')).toContainText('Batch job status unavailable');
+  await expect(panel).not.toContainText('Memuat status processing…');
+  await expect(panel).not.toContainText('Memuat status job…');
+  await expect(panel).not.toContainText('Belum ada job processing pada batch ini.');
+  failed = false;
+  await page.getByRole('button', { name: 'Coba lagi status' }).click();
+  await expect(panel).toContainText('0 job pada ledger processing');
+  await expect(panel).toContainText('Belum ada job processing pada batch ini.');
+});
