@@ -132,6 +132,8 @@ export function HypothesisReviewControls({ hypothesisId, onReviewed }: { hypothe
   const [error, setError] = useState<string | null>(null);
   const [validation, setValidation] = useState<Validation>({ reviewer: null, reason: null });
   const [pending, setPending] = useState(false);
+  const [compact, setCompact] = useState(() => typeof window !== 'undefined' && window.matchMedia('(max-width: 720px)').matches);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const reviewerRef = useRef<HTMLInputElement>(null);
   const reasonRef = useRef<HTMLSelectElement>(null);
   const requestId = useRef(0);
@@ -148,12 +150,25 @@ export function HypothesisReviewControls({ hypothesisId, onReviewed }: { hypothe
     }).catch((reason: unknown) => { if (!nextController.signal.aborted && currentRequest === requestId.current) setError(reason instanceof Error ? reason.message : 'Review history unavailable'); });
     return () => { requestId.current += 1; nextController.abort(); };
   }, [hypothesisId]);
+  useEffect(() => {
+    const query = window.matchMedia('(max-width: 720px)');
+    const update = () => setCompact(query.matches);
+    update(); query.addEventListener('change', update);
+    return () => query.removeEventListener('change', update);
+  }, []);
+  useEffect(() => {
+    if (!validation.reviewer && !validation.reason) return;
+    const frame = requestAnimationFrame(() => {
+      if (validation.reviewer) reviewerRef.current?.focus();
+      else if (validation.reason) reasonRef.current?.focus();
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [validation]);
   function validate(decision: 'APPROVE' | 'EDIT' | 'REJECT') {
     const next = { reviewer: reviewer.trim() ? null : 'Isi nama reviewer untuk menyimpan keputusan', reason: decision === 'REJECT' && !reasonCode ? 'Pilih alasan penolakan untuk menyimpan keputusan' : null };
     setValidation(next);
-    if (next.reviewer) { reviewerRef.current?.focus(); return false; }
-    if (next.reason) { reasonRef.current?.focus(); return false; }
-    return true;
+    if (next.reviewer || next.reason) setDrawerOpen(true);
+    return !next.reviewer && !next.reason;
   }
   async function submit(decision: 'APPROVE' | 'EDIT' | 'REJECT') {
     if (pending || !validate(decision)) return;
@@ -166,10 +181,12 @@ export function HypothesisReviewControls({ hypothesisId, onReviewed }: { hypothe
       const body = await response.json() as HypothesisReviewRecord & { error?: string };
       if (currentRequest !== requestId.current) return;
       if (!response.ok) throw new Error(body.error ?? 'Hypothesis review unavailable');
-      setMode('IDLE'); setEditedStatement(''); setGoldenLabel(false); setReviews((current) => [...current, body]); onReviewed?.();
+      setMode('IDLE'); setEditedStatement(''); setGoldenLabel(false); setDrawerOpen(true); setReviews((current) => [...current, body]); onReviewed?.();
     } catch (reason) { if (!nextController.signal.aborted && currentRequest === requestId.current) setError(reason instanceof Error ? reason.message : 'Hypothesis review request failed'); }
     finally { if (currentRequest === requestId.current) { controller.current = null; setPending(false); } }
   }
   const latestReviewedStatement = reviews.reduce<string | null>((value, review) => review.reviewedStatement || review.editedStatement || value, null);
-  return <div className="review-panel"><div className="section-heading"><h3>Review hipotesis</h3><span className="status">{reviews.length} keputusan tersimpan · {reviews.length ? labelId(reviews.at(-1)!.decision) : 'Menunggu review'}</span></div>{latestReviewedStatement && <p className="notice">Hasil review terbaru: {latestReviewedStatement}</p>}<ReviewMeta reviewer={reviewer} setReviewer={(value) => { setReviewer(value); setValidation((current) => ({ ...current, reviewer: null })); }} note={note} setNote={setNote} goldenLabel={goldenLabel} setGoldenLabel={setGoldenLabel} error={validation.reviewer} reviewerRef={reviewerRef} /><ReasonSelect label="Alasan penolakan (wajib untuk Tolak)" value={reasonCode} onChange={(value) => { setReasonCode(value); setValidation((current) => ({ ...current, reason: null })); }} error={validation.reason} reasonRef={reasonRef} />{mode === 'EDIT' && <label>Pernyataan hasil edit<textarea value={editedStatement} onChange={(event) => setEditedStatement(event.target.value)} rows={3} placeholder="Bukti dan AI asli tetap tidak berubah" /></label>}<div className="review-actions"><button type="button" onClick={() => submit('APPROVE')} disabled={pending}>{pending ? 'Menyimpan…' : 'Setujui'}</button><button className="secondary" type="button" onClick={() => setMode(mode === 'EDIT' ? 'IDLE' : 'EDIT')} disabled={pending}>{mode === 'EDIT' ? 'Tutup edit' : 'Edit'}</button>{mode === 'EDIT' && <button type="button" onClick={() => submit('EDIT')} disabled={pending || !editedStatement.trim()}>{pending ? 'Menyimpan…' : 'Simpan edit'}</button>}<button className="destructive" type="button" onClick={() => submit('REJECT')} disabled={pending}>{pending ? 'Menyimpan…' : 'Tolak'}</button></div>{error && <p className="error-state" role="alert">{error}</p>}{reviews.length > 0 && <div className="review-history" aria-live="polite"><h4>Riwayat review (append-only)</h4><ul>{reviews.map((review) => <li className={review.decision !== 'APPROVE' ? 'review-changed' : ''} key={review.id}><span className="status">{labelId(review.decision)}{review.goldenLabel ? ' · GOLDEN' : ''}</span> · {review.reasonCode ? reasonId(review.reasonCode) : 'Tanpa alasan'} · {review.reviewer} · {new Date(review.createdAt).toLocaleString()}{review.editedStatement ? ` · ${review.editedStatement}` : ''}{review.note ? ` · ${review.note}` : ''}<details><summary>Metadata event</summary><pre>{JSON.stringify(review, null, 2)}</pre></details></li>)}</ul></div>}</div>;
+  const form = <><ReviewMeta reviewer={reviewer} setReviewer={(value) => { setReviewer(value); setValidation((current) => ({ ...current, reviewer: null })); }} note={note} setNote={setNote} goldenLabel={goldenLabel} setGoldenLabel={setGoldenLabel} error={validation.reviewer} reviewerRef={reviewerRef} /><ReasonSelect label="Alasan penolakan (wajib untuk Tolak)" value={reasonCode} onChange={(value) => { setReasonCode(value); setValidation((current) => ({ ...current, reason: null })); }} error={validation.reason} reasonRef={reasonRef} />{mode === 'EDIT' && <label>Pernyataan hasil edit<textarea value={editedStatement} onChange={(event) => setEditedStatement(event.target.value)} rows={3} placeholder="Bukti dan AI asli tetap tidak berubah" /></label>}<div className="review-actions"><button type="button" onClick={() => submit('APPROVE')} disabled={pending}>{pending ? 'Menyimpan…' : 'Setujui'}</button><button className="secondary" type="button" onClick={() => setMode(mode === 'EDIT' ? 'IDLE' : 'EDIT')} disabled={pending}>{mode === 'EDIT' ? 'Tutup edit' : 'Edit'}</button>{mode === 'EDIT' && <button type="button" onClick={() => submit('EDIT')} disabled={pending || !editedStatement.trim()}>{pending ? 'Menyimpan…' : 'Simpan edit'}</button>}<button className="destructive" type="button" onClick={() => submit('REJECT')} disabled={pending}>{pending ? 'Menyimpan…' : 'Tolak'}</button></div>{error && <p className="error-state" role="alert">{error}</p>}</>;
+  const panel = <><div className="section-heading"><h3>Review hipotesis</h3><span className="status">{reviews.length} keputusan tersimpan · {reviews.length ? labelId(reviews.at(-1)!.decision) : 'Menunggu review'}</span></div>{form}</>;
+  return <div className="review-panel hypothesis-decision">{latestReviewedStatement && <p className="notice">Hasil review terbaru: {latestReviewedStatement}</p>}<details className={compact ? 'decision-drawer' : 'decision-desktop'} open={!compact || drawerOpen}><summary onClick={(event) => { if (compact) { event.preventDefault(); setDrawerOpen((current) => !current); } }}>Keputusan review</summary><div className="hypothesis-decision-form">{panel}</div></details>{reviews.length > 0 && <div className="review-history" aria-live="polite"><h4>Riwayat review (append-only)</h4><ul>{reviews.map((review) => <li className={review.decision !== 'APPROVE' ? 'review-changed' : ''} key={review.id}><span className="status">{labelId(review.decision)}{review.goldenLabel ? ' · GOLDEN' : ''}</span> · {review.reasonCode ? reasonId(review.reasonCode) : 'Tanpa alasan'} · {review.reviewer} · {new Date(review.createdAt).toLocaleString()}{review.editedStatement ? ` · ${review.editedStatement}` : ''}{review.note ? ` · ${review.note}` : ''}<details><summary>Metadata event</summary><pre>{JSON.stringify(review, null, 2)}</pre></details></li>)}</ul></div>}</div>;
 }

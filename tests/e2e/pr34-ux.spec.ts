@@ -57,6 +57,7 @@ for (const width of [1440, 375]) test(`persisted review queue, draft isolation a
   await queue.getByRole('button', { name: /Synthetic original hypothesis/ }).click();
   await expect(page).toHaveURL(new RegExp(`hypothesisId=${hypothesisId}`));
   const detail = page.locator(`[data-hypothesis-id="${hypothesisId}"]`);
+  if (width === 375) await detail.getByText('Keputusan review', { exact: true }).click();
   const approve = detail.getByRole('button', { name: 'Setujui', exact: true });
   await expect(approve).toBeEnabled();
   await approve.click();

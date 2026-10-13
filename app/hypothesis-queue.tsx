@@ -5,10 +5,10 @@ import type { Hypothesis } from './hypothesis-panel';
 import { HypothesisReviewControls } from './review-panel';
 import { S10Panel } from './s10-panel';
 import { KeyValueView } from './key-value-view';
+import { ReviewEvidence } from './review-evidence';
 import { labelId, reasonId } from '../lib/workspace/labels-id.ts';
 
 type QueueItem = { id: string; batchId: string; statement: string; confidence: string; reviewDecision: string | null; reviewedStatement: string | null };
-
 function HypothesisDetail({ batchId, hypothesisId, onReviewed }: { batchId: string; hypothesisId: string; onReviewed: () => void }) {
   const [result, setResult] = useState<Hypothesis | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -26,13 +26,14 @@ function HypothesisDetail({ batchId, hypothesisId, onReviewed }: { batchId: stri
   }, [batchId, hypothesisId, version]);
   return <section className="hypothesis-detail" aria-label="Detail hipotesis" data-hypothesis-id={hypothesisId}>
     {error ? <div role="alert"><p className="error-state">{error}</p><button className="secondary" type="button" onClick={() => { setError(null); setVersion((value) => value + 1); }}>Coba lagi detail</button></div> : !result ? <p role="status">Memuat detail hipotesis…</p> : <>
-      <h2>Detail hipotesis</h2><p className="muted">Confidence: {labelId(result.confidence)}</p>
-      <h3>AI asli</h3><p className="preserve-text">{result.statement}</p>
-      {result.confidenceCaps.length > 0 && <div className="notice"><strong>Batas confidence</strong><ul>{result.confidenceCaps.map((cap) => <li key={cap.rule}>{reasonId(cap.rule)}</li>)}</ul></div>}
-      <details><summary>Detail teknis hipotesis</summary><KeyValueView value={{ id: result.id, confidence: result.confidence, confidenceCaps: result.confidenceCaps }} /></details>
-      <h3>Bukti</h3><ul className="evidence-list">{result.evidence.map((item) => <li key={item.id}><span className="status">{labelId(item.role)} · {labelId(item.layer)} · {labelId(item.source_type)}</span>{item.basis && typeof item.basis === 'object' ? <KeyValueView value={item.basis} /> : <details><summary>Isi bukti asli (struktur historis tidak lengkap)</summary><KeyValueView value={item.statement} /></details>}{item.link && <a href={item.link}>Buka sumber exact</a>}<details><summary>Provenance dan isi asli</summary><KeyValueView value={item} /></details></li>)}</ul>
+      <h2>Detail hipotesis</h2>
+      <div className="hypothesis-statement"><span className="status">Dugaan</span><p className="preserve-text">{result.statement}</p><p className="muted">Confidence</p><strong>{labelId(result.confidence)}</strong></div>
+      {result.confidenceCaps.length > 0 && <details className="confidence-caps" open><summary>Batas confidence</summary><ul>{result.confidenceCaps.map((cap) => <li key={cap.rule}>{reasonId(cap.rule)}</li>)}</ul></details>}
+      <ReviewEvidence evidence={result.evidence} comparisons={result.comparisons ?? []} />
+      <details><summary>Detail teknis hipotesis</summary><KeyValueView value={{ id: result.id, state: result.state, confidence: result.confidence, confidenceCaps: result.confidenceCaps, provider: result.provider, model: result.model, promptVersion: result.promptVersion, schemaVersion: result.schemaVersion, ruleVersion: result.ruleVersion, inputHash: result.inputHash, rawOutput: result.rawOutput }} /></details>
       {result.suggestedNextTest != null && <details><summary>Saran AI untuk uji berikutnya</summary><p className="muted">Saran, bukan record eksperimen tersimpan.</p><KeyValueView value={result.suggestedNextTest} /></details>}
       <HypothesisReviewControls hypothesisId={result.id} onReviewed={onReviewed} />
+      <p className="muted">Disetujui adalah keputusan reviewer, bukan pembuktian dugaan. Selesai pada Rencana Uji adalah status rencana, bukan hasil pendukung.</p>
       <S10Panel hypothesisId={result.id} targetBatchId={result.batchId} />
     </>}
   </section>;
