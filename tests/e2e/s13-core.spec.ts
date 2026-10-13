@@ -97,14 +97,15 @@ test.describe('S13 actual staging core', () => {
     await expect(hypothesisReview.locator('.review-history')).toBeVisible();
 
     const s10 = detail.locator('.s10-panel');
+    await s10.getByRole('button', { name: 'Tambah Catatan', exact: true }).click();
     await s10.getByLabel('Penulis').fill('s13-e2e-analyst');
-    await s10.getByLabel('Notes').fill(noteText);
+    await s10.getByRole('textbox', { name: 'Catatan', exact: true }).fill(noteText);
     const noteResponse = page.waitForResponse((response) => new URL(response.url()).pathname === `/api/hypotheses/${hypothesis.id}/s10` && response.request().method() === 'POST');
-    await s10.getByRole('button', { name: 'Simpan Notes', exact: true }).click();
+    await s10.getByRole('button', { name: 'Simpan Catatan', exact: true }).click();
     expect((await noteResponse).status()).toBe(201);
     await expect(s10.getByText(noteText, { exact: true })).toBeVisible();
 
-    await s10.getByRole('button', { name: 'Buat uji berikutnya', exact: true }).click();
+    await s10.getByRole('button', { name: 'Buat Rencana Uji', exact: true }).click();
     await s10.getByLabel('Variabel yang diuji').fill(nextTestText);
     await s10.getByLabel('Varian A').fill('Current opening');
     await s10.getByLabel('Varian B').fill('Alternative opening');
@@ -114,7 +115,7 @@ test.describe('S13 actual staging core', () => {
     await s10.getByLabel('Metrik keberhasilan').fill('Organic retention');
     await s10.getByLabel('Periode pengukuran').fill('7 days');
     const nextTestResponse = page.waitForResponse((response) => new URL(response.url()).pathname === `/api/hypotheses/${hypothesis.id}/s10` && response.request().method() === 'POST');
-    await s10.getByRole('button', { name: 'Buat Next Test', exact: true }).click();
+    await s10.getByRole('button', { name: 'Simpan Rencana Uji', exact: true }).click();
     expect((await nextTestResponse).status()).toBe(201);
     await expect(s10.getByText(nextTestText, { exact: true })).toBeVisible();
 
