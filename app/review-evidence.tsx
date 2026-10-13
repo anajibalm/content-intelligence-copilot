@@ -31,12 +31,13 @@ function canonicalMetric(item: ReviewEvidenceItem): FrozenMetric | null {
   try {
     const values = record(JSON.parse(item.statement.slice(marker + 2)));
     if (!values) return null;
-    const name = item.layer === 'DERIVED' ? 'engagement_rate' : Object.keys(values).find((key) => record(values[key])?.value === null || typeof record(values[key])?.value === 'number');
-    const entry = name ? record(values[name]) : null;
-    if (!name || !entry || (entry.value !== null && typeof entry.value !== 'number')) return null;
+    const name = item.layer === 'DERIVED' ? 'engagement_rate' : Object.keys(values).find((key) => values[key] === null || typeof values[key] === 'number');
+    const derived = name ? record(values[name]) : null;
+    const value = item.layer === 'DERIVED' ? derived?.value : name ? values[name] : undefined;
+    if (!name || (value !== null && typeof value !== 'number')) return null;
     const basis = record(item.basis);
     const quality = record(record(basis?.qualityJson)?.[name]);
-    return { name, value: entry.value as number | null, kind: item.layer === 'DERIVED' ? 'Perhitungan' : 'Observasi', quality: typeof quality?.state === 'string' ? quality.state : typeof basis?.quality === 'string' ? basis.quality : null, reason: typeof quality?.reason === 'string' ? quality.reason : null };
+    return { name, value, kind: item.layer === 'DERIVED' ? 'Perhitungan' : 'Observasi', quality: typeof quality?.state === 'string' ? quality.state : typeof basis?.quality === 'string' ? basis.quality : null, reason: typeof quality?.reason === 'string' ? quality.reason : null };
   } catch {
     return null;
   }

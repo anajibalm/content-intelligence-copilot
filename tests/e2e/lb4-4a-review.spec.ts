@@ -9,6 +9,8 @@ const ids = {
   primary: 'a4000000-0000-4000-8000-000000000001',
   legacy: 'a4000000-0000-4000-000000000002',
   nullEr: 'a4000000-0000-4000-8000-000000000004',
+  nullObserved: 'a4000000-0000-4000-8000-000000000005',
+  zeroObserved: 'a4000000-0000-4000-8000-000000000006',
   reviewed: 'a4000000-0000-4000-000000000003',
   high: 'b4000000-0000-4000-8000-000000000001',
   low: 'b4000000-0000-4000-000000000002',
@@ -23,7 +25,11 @@ function post(route: Route): Body {
 function detail(id: string) {
   const legacy = id === ids.legacy;
   const nullEr = id === ids.nullEr;
-  const metricBasis = { sourceSnapshotId: 'snapshot-frozen', source: 'frozen-source', capturedAt: '2026-10-12T09:00:00.000Z', distribution: 'ORGANIC', quality: 'SUSPECT', qualityJson: { views: { state: 'SUSPECT', reason: 'UNEXPLAINED_ZERO' }, engagement_rate: { state: 'SUSPECT', reason: 'INVALID_VALUE' } }, rawObservations: { views: { value: 100, quality: 'SUSPECT' } }, sourceMetricNames: ['likes', 'comments', 'shares', 'saves', 'views'], formulaVersion: 'metrics-v2' };
+  const nullObserved = id === ids.nullObserved;
+  const zeroObserved = id === ids.zeroObserved;
+  const views = nullObserved ? null : zeroObserved ? 0 : 100;
+  const viewsQuality = nullObserved ? { state: 'MISSING', reason: 'NOT_PROVIDED' } : zeroObserved ? { state: 'VALID', reason: null } : { state: 'SUSPECT', reason: 'SOURCE_ERROR' };
+  const metricBasis = { sourceSnapshotId: 'snapshot-frozen', source: 'frozen-source', capturedAt: '2026-10-12T09:00:00.000Z', distribution: 'ORGANIC', quality: 'SUSPECT', qualityJson: { views: viewsQuality, engagement_rate: { state: 'SUSPECT', reason: 'INVALID_VALUE' } }, rawObservations: { views: { value: views, quality: viewsQuality.state } }, sourceMetricNames: ['likes', 'comments', 'shares', 'saves', 'views'], formulaVersion: 'metrics-v2' };
   return {
     id,
     batchId: batch.id,
@@ -35,7 +41,7 @@ function detail(id: string) {
     suggestedNextTest: { action: 'Uji ulang pada batch berikutnya' },
     comparisons: legacy ? [] : [{ comparison_id: ids.high, role: 'PRIMARY' }, { comparison_id: ids.low, role: 'CONTEXTUAL' }],
     evidence: legacy ? [{ id: 'legacy-evidence', layer: 'DERIVED', statement: 'legacy metric artifact', source_type: 'METRIC_SNAPSHOT', role: 'SUPPORTING', link: null }] : [
-      { id: 'frozen-observed', layer: 'OBSERVED', statement: 'OBSERVED metrics from frozen snapshot snapshot-frozen using metrics-v2: {"views":{"value":100,"quality":"SUSPECT"}}', source_type: 'METRIC_SNAPSHOT', role: 'SUPPORTING', link: `/?batchId=${batch.id}&contentId=${content.id}#metric-snapshot-snapshot-frozen`, basis: metricBasis },
+      { id: 'frozen-observed', layer: 'OBSERVED', statement: `OBSERVED metrics from frozen snapshot snapshot-frozen using metrics-v2: ${JSON.stringify({ views, likes: 10, comments: 5, shares: 3, saves: 2 })}`, source_type: 'METRIC_SNAPSHOT', role: 'SUPPORTING', link: `/?batchId=${batch.id}&contentId=${content.id}#metric-snapshot-snapshot-frozen`, basis: metricBasis },
       { id: 'frozen-er', layer: 'DERIVED', statement: `DERIVED metrics from frozen snapshot snapshot-frozen using metrics-v2: ${JSON.stringify({ engagement_rate: { value: nullEr ? null : 0.2, formulaVersion: 'metrics-v2', sourceMetricNames: ['likes', 'comments', 'shares', 'saves', 'views'] } })}`, source_type: 'METRIC_SNAPSHOT', role: 'SUPPORTING', link: `/?batchId=${batch.id}&contentId=${content.id}#metric-snapshot-snapshot-frozen`, basis: metricBasis },
       { id: 'frame', layer: 'OBSERVED', statement: 'Frame pembuka tersimpan', source_type: 'VIDEO_FRAME', role: 'SUPPORTING', link: `/?batchId=${batch.id}&contentId=${content.id}#video-frame-hook`, basis: { timestampMs: 0 } },
       { id: 'extract', layer: 'EXTRACTED', statement: 'Ekstraksi snapshot lama', source_type: 'CONTENT_FEATURE', role: 'CONTEXTUAL', link: `/?batchId=${batch.id}&contentId=${content.id}#content-feature-hook`, basis: { provider: 'historic-provider', inputHash: 'sha256:frozen-feature' }, currentSource: { aiValue: 'AI sumber kini berubah', reviewedValue: 'Nilai reviewer kini', reviewState: 'CORRECTED' } },
@@ -152,7 +158,8 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 375, height: 812 
     const observedCard = evidence.locator('.review-evidence-card').first();
     await expect(observedCard.getByText('Ringkasan tampilan', { exact: true })).toBeVisible();
     await expect(observedCard.getByText('Tayangan · Observasi', { exact: true })).toBeVisible();
-    await expect(observedCard.locator('.metric-quality')).toHaveText('Perlu diperiksa · Nilai nol belum memiliki penjelasan atau provenance yang memadai.');
+    await expect(observedCard.locator('.review-evidence-value')).toHaveText('100');
+    await expect(observedCard.locator('.metric-quality')).toHaveText('Perlu diperiksa · Sumber melaporkan error.');
     const erCard = evidence.locator('.review-evidence-card').nth(1);
     await expect(erCard.locator('.review-evidence-value')).toHaveText('20.0%');
     await expect(erCard.locator('.metric-quality')).toHaveText('Perlu diperiksa · Nilai atau metrik sumber tidak valid.');
@@ -189,6 +196,19 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 375, height: 812 
     await expect(nullErCard).not.toContainText('Format bukti historis tidak dikenali untuk ringkasan tampilan.');
   });
 }
+
+test('R45-2 renders canonical OBSERVED null and explicit valid zero', async ({ page }, testInfo) => {
+  await installApi(page);
+  for (const [hypothesisId, value, quality] of [[ids.nullObserved, 'Belum tersedia', 'Belum tersedia · Nilai belum diberikan.'], [ids.zeroObserved, '0', 'Valid']] as const) {
+    await page.goto(`/?batchId=${batch.id}&contentId=${content.id}&view=review&hypothesisId=${hypothesisId}`);
+    const card = page.locator(`[data-hypothesis-id="${hypothesisId}"]`).getByRole('region', { name: 'Bukti hipotesis' }).locator('.review-evidence-card').first();
+    await expect(card.getByText('Ringkasan tampilan', { exact: true })).toBeVisible();
+    await expect(card.locator('.review-evidence-value')).toHaveText(value);
+    await expect(card.locator('.metric-quality')).toHaveText(quality);
+    await expect(card).not.toContainText('Format bukti historis tidak dikenali untuk ringkasan tampilan.');
+    await card.screenshot({ path: testInfo.outputPath(`r45-2-observed-${value === '0' ? 'zero' : 'null'}.png`) });
+  }
+});
 
 test('R45 synthetic warning follows workspace and analysis flags, not batch name', async ({ page }) => {
   const syntheticState = { workspace: true, analysis: false };
