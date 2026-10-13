@@ -4,10 +4,12 @@ import { useEffect, useRef, useState } from 'react';
 import { labelId } from '../lib/workspace/labels-id.ts';
 
 export type Hypothesis = {
-  batchId: string; statement: string; id: string; confidence: string;
+  batchId: string; statement: string; id: string; confidence: string; state?: string;
   confidenceCaps: Array<{ rule: string; reason: string }>;
+  provider?: string; model?: string; promptVersion?: string; schemaVersion?: string; ruleVersion?: string; inputHash?: string; rawOutput?: unknown;
   suggestedNextTest: unknown;
-  evidence: Array<{ id: string; layer: string; statement: string; source_type: string; role: string; link: string | null; basis?: unknown }>;
+  comparisons?: Array<{ comparison_id: string; role: string }>;
+  evidence: Array<{ id: string; layer: string; statement: string; source_type: string; role: string; link: string | null; basis?: unknown; currentSource?: { aiValue: string; reviewedValue: string | null; reviewState: string } | null }>;
 };
 
 export default function HypothesisPanel({ batchId, comparisonId, onReview, onGenerated }: { batchId: string; comparisonId: string | null; onReview: (id: string) => void; onGenerated: () => void }) {

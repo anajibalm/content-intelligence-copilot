@@ -202,7 +202,7 @@ test('Approve, Edit, Reject hypothesis controls persist reviewed statement after
   await expect(panel.getByText('Hasil review terbaru: Reviewed hypothesis B')).toBeVisible();
   await panel.getByLabel('Alasan penolakan (wajib untuk Tolak)').selectOption('OVERCLAIM');
   await panel.getByRole('button', { name: 'Tolak', exact: true }).click();
-  await expect(panel.getByText('Ditolak', { exact: true })).toBeVisible();
+  await expect(page.locator('.hypothesis-detail').getByText('Ditolak', { exact: true })).toBeVisible();
   await page.goto(persistedUrl);
   await expect(page.getByText('Synthetic S9 hypothesis', { exact: true })).toBeVisible();
   await expect(page.getByText('Hasil review terbaru: Reviewed hypothesis B')).toBeVisible();

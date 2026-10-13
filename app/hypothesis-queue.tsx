@@ -5,11 +5,11 @@ import type { Hypothesis } from './hypothesis-panel';
 import { HypothesisReviewControls } from './review-panel';
 import { S10Panel } from './s10-panel';
 import { KeyValueView } from './key-value-view';
+import { ReviewEvidence } from './review-evidence';
 import { labelId, reasonId } from '../lib/workspace/labels-id.ts';
 
 type QueueItem = { id: string; batchId: string; statement: string; confidence: string; reviewDecision: string | null; reviewedStatement: string | null };
-
-function HypothesisDetail({ batchId, hypothesisId, onReviewed }: { batchId: string; hypothesisId: string; onReviewed: () => void }) {
+function HypothesisDetail({ batchId, hypothesisId, synthetic, onReviewed }: { batchId: string; hypothesisId: string; synthetic: boolean; onReviewed: () => void }) {
   const [result, setResult] = useState<Hypothesis | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [version, setVersion] = useState(0);
@@ -26,19 +26,20 @@ function HypothesisDetail({ batchId, hypothesisId, onReviewed }: { batchId: stri
   }, [batchId, hypothesisId, version]);
   return <section className="hypothesis-detail" aria-label="Detail hipotesis" data-hypothesis-id={hypothesisId}>
     {error ? <div role="alert"><p className="error-state">{error}</p><button className="secondary" type="button" onClick={() => { setError(null); setVersion((value) => value + 1); }}>Coba lagi detail</button></div> : !result ? <p role="status">Memuat detail hipotesis…</p> : <>
-      <h2>Detail hipotesis</h2><p className="muted">Confidence: {labelId(result.confidence)}</p>
-      <h3>AI asli</h3><p className="preserve-text">{result.statement}</p>
-      {result.confidenceCaps.length > 0 && <div className="notice"><strong>Batas confidence</strong><ul>{result.confidenceCaps.map((cap) => <li key={cap.rule}>{reasonId(cap.rule)}</li>)}</ul></div>}
-      <details><summary>Detail teknis hipotesis</summary><KeyValueView value={{ id: result.id, confidence: result.confidence, confidenceCaps: result.confidenceCaps }} /></details>
-      <h3>Bukti</h3><ul className="evidence-list">{result.evidence.map((item) => <li key={item.id}><span className="status">{labelId(item.role)} · {labelId(item.layer)} · {labelId(item.source_type)}</span>{item.basis && typeof item.basis === 'object' ? <KeyValueView value={item.basis} /> : <details><summary>Isi bukti asli (struktur historis tidak lengkap)</summary><KeyValueView value={item.statement} /></details>}{item.link && <a href={item.link}>Buka sumber exact</a>}<details><summary>Provenance dan isi asli</summary><KeyValueView value={item} /></details></li>)}</ul>
+      <h2>Detail hipotesis</h2>
+      <div className="hypothesis-statement"><span className="status">Dugaan</span><p className="preserve-text">{result.statement}</p><p className="muted">Confidence</p><strong>{labelId(result.confidence)}</strong></div>
+      {result.confidenceCaps.length > 0 && <details className="confidence-caps" open><summary>Batas confidence</summary><ul>{result.confidenceCaps.map((cap) => <li key={cap.rule}>{reasonId(cap.rule)}</li>)}</ul></details>}
+      <ReviewEvidence evidence={result.evidence} comparisons={result.comparisons ?? []} />
+      <details><summary>Detail teknis hipotesis</summary><KeyValueView value={{ id: result.id, state: result.state, confidence: result.confidence, confidenceCaps: result.confidenceCaps, provider: result.provider, model: result.model, promptVersion: result.promptVersion, schemaVersion: result.schemaVersion, ruleVersion: result.ruleVersion, inputHash: result.inputHash, rawOutput: result.rawOutput }} /></details>
       {result.suggestedNextTest != null && <details><summary>Saran AI untuk uji berikutnya</summary><p className="muted">Saran, bukan record eksperimen tersimpan.</p><KeyValueView value={result.suggestedNextTest} /></details>}
-      <HypothesisReviewControls hypothesisId={result.id} onReviewed={onReviewed} />
+      <HypothesisReviewControls hypothesisId={result.id} synthetic={synthetic} onReviewed={onReviewed} />
+      <p className="muted">Disetujui adalah keputusan reviewer, bukan pembuktian dugaan. Selesai pada Rencana Uji adalah status rencana, bukan hasil pendukung.</p>
       <S10Panel hypothesisId={result.id} targetBatchId={result.batchId} />
     </>}
   </section>;
 }
 
-export default function HypothesisQueue({ batchId, hypothesisId, onSelect, revision }: { batchId: string; hypothesisId: string | null; onSelect: (id: string) => void; revision: number }) {
+export default function HypothesisQueue({ batchId, hypothesisId, synthetic, onSelect, revision }: { batchId: string; hypothesisId: string | null; synthetic: boolean; onSelect: (id: string) => void; revision: number }) {
   const [items, setItems] = useState<QueueItem[]>([]);
   const [all, setAll] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -65,6 +66,6 @@ export default function HypothesisQueue({ batchId, hypothesisId, onSelect, revis
       {loading ? <p role="status">Memuat antrean review…</p> : error ? <div role="alert"><p className="error-state">{error}</p><button className="secondary" type="button" onClick={refreshQueue}>Coba lagi</button></div> : visible.length === 0 ? <p className="empty-state">{all ? 'Belum ada hipotesis tersimpan pada batch ini. Buat dari Compare.' : 'Tidak ada hipotesis menunggu review. Pilih Semua untuk membuka hasil review tersimpan.'}</p> : <ul>{visible.map((item) => <li key={item.id}><button className="queue-choice secondary" type="button" aria-pressed={item.id === hypothesisId} onClick={() => onSelect(item.id)}><strong>{item.reviewedStatement ?? item.statement}</strong><span>{item.reviewDecision ? labelId(item.reviewDecision) : 'Menunggu review'} · Confidence {labelId(item.confidence)}</span></button></li>)}</ul>}
     </section>
     {!hypothesisId && <p className="empty-state">Pilih satu hipotesis untuk melihat bukti, review, Notes, dan Next Test.</p>}
-    {opened.map((id) => <div key={id} hidden={id !== hypothesisId}><HypothesisDetail batchId={batchId} hypothesisId={id} onReviewed={refreshQueue} /></div>)}
+    {opened.map((id) => <div key={id} hidden={id !== hypothesisId}><HypothesisDetail batchId={batchId} hypothesisId={id} synthetic={synthetic} onReviewed={refreshQueue} /></div>)}
   </div>;
 }
