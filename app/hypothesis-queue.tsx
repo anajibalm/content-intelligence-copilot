@@ -9,7 +9,7 @@ import { ReviewEvidence } from './review-evidence';
 import { labelId, reasonId } from '../lib/workspace/labels-id.ts';
 
 type QueueItem = { id: string; batchId: string; statement: string; confidence: string; reviewDecision: string | null; reviewedStatement: string | null };
-function HypothesisDetail({ batchId, hypothesisId, onReviewed }: { batchId: string; hypothesisId: string; onReviewed: () => void }) {
+function HypothesisDetail({ batchId, hypothesisId, synthetic, onReviewed }: { batchId: string; hypothesisId: string; synthetic: boolean; onReviewed: () => void }) {
   const [result, setResult] = useState<Hypothesis | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [version, setVersion] = useState(0);
@@ -32,14 +32,14 @@ function HypothesisDetail({ batchId, hypothesisId, onReviewed }: { batchId: stri
       <ReviewEvidence evidence={result.evidence} comparisons={result.comparisons ?? []} />
       <details><summary>Detail teknis hipotesis</summary><KeyValueView value={{ id: result.id, state: result.state, confidence: result.confidence, confidenceCaps: result.confidenceCaps, provider: result.provider, model: result.model, promptVersion: result.promptVersion, schemaVersion: result.schemaVersion, ruleVersion: result.ruleVersion, inputHash: result.inputHash, rawOutput: result.rawOutput }} /></details>
       {result.suggestedNextTest != null && <details><summary>Saran AI untuk uji berikutnya</summary><p className="muted">Saran, bukan record eksperimen tersimpan.</p><KeyValueView value={result.suggestedNextTest} /></details>}
-      <HypothesisReviewControls hypothesisId={result.id} onReviewed={onReviewed} />
+      <HypothesisReviewControls hypothesisId={result.id} synthetic={synthetic} onReviewed={onReviewed} />
       <p className="muted">Disetujui adalah keputusan reviewer, bukan pembuktian dugaan. Selesai pada Rencana Uji adalah status rencana, bukan hasil pendukung.</p>
       <S10Panel hypothesisId={result.id} targetBatchId={result.batchId} />
     </>}
   </section>;
 }
 
-export default function HypothesisQueue({ batchId, hypothesisId, onSelect, revision }: { batchId: string; hypothesisId: string | null; onSelect: (id: string) => void; revision: number }) {
+export default function HypothesisQueue({ batchId, hypothesisId, synthetic, onSelect, revision }: { batchId: string; hypothesisId: string | null; synthetic: boolean; onSelect: (id: string) => void; revision: number }) {
   const [items, setItems] = useState<QueueItem[]>([]);
   const [all, setAll] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -66,6 +66,6 @@ export default function HypothesisQueue({ batchId, hypothesisId, onSelect, revis
       {loading ? <p role="status">Memuat antrean review…</p> : error ? <div role="alert"><p className="error-state">{error}</p><button className="secondary" type="button" onClick={refreshQueue}>Coba lagi</button></div> : visible.length === 0 ? <p className="empty-state">{all ? 'Belum ada hipotesis tersimpan pada batch ini. Buat dari Compare.' : 'Tidak ada hipotesis menunggu review. Pilih Semua untuk membuka hasil review tersimpan.'}</p> : <ul>{visible.map((item) => <li key={item.id}><button className="queue-choice secondary" type="button" aria-pressed={item.id === hypothesisId} onClick={() => onSelect(item.id)}><strong>{item.reviewedStatement ?? item.statement}</strong><span>{item.reviewDecision ? labelId(item.reviewDecision) : 'Menunggu review'} · Confidence {labelId(item.confidence)}</span></button></li>)}</ul>}
     </section>
     {!hypothesisId && <p className="empty-state">Pilih satu hipotesis untuk melihat bukti, review, Notes, dan Next Test.</p>}
-    {opened.map((id) => <div key={id} hidden={id !== hypothesisId}><HypothesisDetail batchId={batchId} hypothesisId={id} onReviewed={refreshQueue} /></div>)}
+    {opened.map((id) => <div key={id} hidden={id !== hypothesisId}><HypothesisDetail batchId={batchId} hypothesisId={id} synthetic={synthetic} onReviewed={refreshQueue} /></div>)}
   </div>;
 }

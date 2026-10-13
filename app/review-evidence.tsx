@@ -18,23 +18,25 @@ export type ReviewEvidenceItem = {
 type ComparisonLink = { comparison_id: string; role: string };
 type Comparison = { id: string; quality: string; qualityReasons?: string[] };
 
-type FrozenEr = { value: number; formulaVersion?: string; sourceMetricNames?: string[] };
+type FrozenMetric = { name: string; value: number | null; kind: 'Observasi' | 'Perhitungan'; quality: string | null; reason: string | null };
 
-function frozenErValue(value: unknown): FrozenEr | null {
-  if (!value || typeof value !== 'object' || Array.isArray(value) || !('value' in value) || typeof value.value !== 'number') return null;
-  const formulaVersion = 'formulaVersion' in value && typeof value.formulaVersion === 'string' ? value.formulaVersion : undefined;
-  const sourceMetricNames = 'sourceMetricNames' in value && Array.isArray(value.sourceMetricNames) && value.sourceMetricNames.every((item) => typeof item === 'string') ? value.sourceMetricNames : undefined;
-  return { value: value.value, formulaVersion, sourceMetricNames };
+function record(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : null;
 }
 
-function frozenEr(item: ReviewEvidenceItem): FrozenEr | null {
-  if (item.layer !== 'DERIVED' || item.source_type !== 'METRIC_SNAPSHOT') return null;
+function canonicalMetric(item: ReviewEvidenceItem): FrozenMetric | null {
+  if (item.source_type !== 'METRIC_SNAPSHOT' || (item.layer !== 'OBSERVED' && item.layer !== 'DERIVED')) return null;
   const marker = item.statement.lastIndexOf(': ');
   if (marker < 0) return null;
   try {
-    const parsed: unknown = JSON.parse(item.statement.slice(marker + 2));
-    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed) || !('engagement_rate' in parsed)) return null;
-    return frozenErValue(parsed.engagement_rate);
+    const values = record(JSON.parse(item.statement.slice(marker + 2)));
+    if (!values) return null;
+    const name = item.layer === 'DERIVED' ? 'engagement_rate' : Object.keys(values).find((key) => record(values[key])?.value === null || typeof record(values[key])?.value === 'number');
+    const entry = name ? record(values[name]) : null;
+    if (!name || !entry || (entry.value !== null && typeof entry.value !== 'number')) return null;
+    const basis = record(item.basis);
+    const quality = record(record(basis?.qualityJson)?.[name]);
+    return { name, value: entry.value as number | null, kind: item.layer === 'DERIVED' ? 'Perhitungan' : 'Observasi', quality: typeof quality?.state === 'string' ? quality.state : typeof basis?.quality === 'string' ? basis.quality : null, reason: typeof quality?.reason === 'string' ? quality.reason : null };
   } catch {
     return null;
   }
@@ -44,22 +46,16 @@ function SourceLink({ link }: { link: string | null }) {
   return link ? <a href={link}>Buka sumber exact</a> : null;
 }
 
+function MetricSummary({ metric }: { metric: FrozenMetric }) {
+  return <><span className="metric-summary-label">Ringkasan tampilan</span><strong>{labelId(metric.name)} · {metric.kind}</strong><span className="review-evidence-value">{metricTextId(metric.value, metric.name)}</span><span>{metric.kind}</span><span className="status">Basis beku</span><span className="metric-quality">{metric.quality ? `${labelId(metric.quality)}${metric.reason ? ` · ${reasonId(metric.reason)}` : ''}` : 'Kualitas belum tersedia'}</span></>;
+}
+
 function EvidenceCard({ item }: { item: ReviewEvidenceItem }) {
-  const er = frozenEr(item);
+  const metric = canonicalMetric(item);
   const isMetric = item.source_type === 'METRIC_SNAPSHOT';
   return <article className="review-evidence-card">
     <header><span className="status">{labelId(item.role)} · {labelId(item.layer)}</span><span>{labelId(item.source_type)}</span></header>
-    {er ? <>
-      <strong>Rasio interaksi</strong><span className="review-evidence-value">{metricTextId(er.value, 'engagement_rate')}</span><span>Perhitungan</span><span className="status">Basis beku</span>
-      <details><summary>Basis snapshot dan input</summary><KeyValueView value={item.basis} /></details>
-    </> : isMetric && item.layer === 'DERIVED' ? <>
-      <p className="muted">Format bukti historis tidak dikenali untuk ringkasan tampilan.</p>
-      <details><summary>Isi bukti asli</summary><KeyValueView value={item.statement} /></details>
-    </> : <>
-      <p className="preserve-text">{item.statement}</p>
-      {item.basis != null && <details><summary>Basis dan provenance</summary><KeyValueView value={item.basis} /></details>}
-      {item.currentSource && <details open><summary>Nilai sumber kini</summary><KeyValueView value={item.currentSource} /></details>}
-    </>}
+    {metric ? <><MetricSummary metric={metric} /><details><summary>Basis snapshot dan input</summary><KeyValueView value={item.basis} /></details></> : isMetric ? <><p className="muted">Format bukti historis tidak dikenali untuk ringkasan tampilan.</p><details><summary>Isi bukti asli</summary><KeyValueView value={item.statement} /></details></> : <><p className="preserve-text">{item.statement}</p>{item.basis != null && <details><summary>Basis dan provenance</summary><KeyValueView value={item.basis} /></details>}{item.currentSource && <details open><summary>Nilai sumber kini</summary><KeyValueView value={item.currentSource} /></details>}</>}
     <SourceLink link={item.link} />
     <details><summary>Provenance dan isi asli</summary><KeyValueView value={item} /></details>
   </article>;
