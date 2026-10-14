@@ -15,7 +15,8 @@ export async function GET(request: Request) {
     const jobs = await service.list(batchId);
     return NextResponse.json({ items: jobs.map(service.toPublic) });
   } catch (error) {
-    const message = String((error as Error).message ?? error);
+    const message = error instanceof Error ? error.message : String(error);
+    console.error('GET /api/processing failed:', message);
     return NextResponse.json({ error: message }, { status: message.includes('selected batch not found') ? 404 : 502 });
   } finally {
     await service.close();
