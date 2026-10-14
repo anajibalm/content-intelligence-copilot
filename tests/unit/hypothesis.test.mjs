@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { HYPOTHESIS_RULE_VERSION, evidenceCatalogId, validateHypothesis } from '../../lib/hypothesis/rules.ts';
 import { parseModelOutput } from '../../lib/hypothesis/postgres.ts';
+import { promptFor } from '../../lib/hypothesis/rules.ts';
 
 const evidence = [
   { id: 'metric-1', sourceType: 'METRIC_SNAPSHOT', sourceId: 'snapshot-1', workspaceId: 'workspace-1', batchId: 'batch-1', contentId: 'content-1', comparisonId: 'comparison-1', layer: 'OBSERVED', statement: 'OBSERVED views 1200', link: '/?batchId=batch-1&contentId=content-1#metric-snapshot-snapshot-1' },
@@ -70,4 +71,10 @@ test('evidence IDs change when frozen source basis changes', () => {
   const original = { statement: 'EXTRACTED format talking_head', reviewState: 'UNREVIEWED', reviewedValue: null };
   const reviewed = { ...original, reviewState: 'CONFIRMED', reviewedValue: 'product_demo' };
   assert.notEqual(evidenceCatalogId('workspace-1', 'comparison-1', 'CONTENT_FEATURE', 'feature-1', 'EXTRACTED', original), evidenceCatalogId('workspace-1', 'comparison-1', 'CONTENT_FEATURE', 'feature-1', 'EXTRACTED', reviewed));
+});
+
+test('provider prompt enumerates only scoped catalog evidence IDs', () => {
+  const prompt = promptFor({ comparisonId: 'comparison-1', comparisonContext: {}, evidence });
+  assert.match(prompt, /Allowed evidence IDs: metric-1, feature-1/);
+  assert.match(prompt, /Copy IDs exactly from the supplied evidence catalog/);
 });

@@ -125,7 +125,9 @@ export function promptFor(input: { comparisonId: string; comparisonContext: Reco
   return [
     'You are an evidence-bound content analyst. Return JSON only.',
     'Return statement and suggested_next_test in concise Bahasa Indonesia.',
-    'Do not invent evidence IDs. Do not claim causation. Keep OBSERVED, DERIVED, EXTRACTED, and INFERRED distinct.',
+    'Do not invent evidence IDs. Copy IDs exactly from the supplied evidence catalog; cite only IDs from the catalog for this comparison.',
+    `Allowed evidence IDs: ${input.evidence.map((item) => item.id).join(', ')}`,
+    'Do not claim causation. Keep OBSERVED, DERIVED, EXTRACTED, and INFERRED distinct.',
     'Shape: {statement, supporting_evidence_ids, contradicting_evidence_ids, contextual_evidence_ids, suggested_next_test, confidence}.',
     JSON.stringify(input),
   ].join('\n');

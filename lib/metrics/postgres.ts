@@ -1,3 +1,5 @@
+import { isDeepStrictEqual } from 'node:util';
+import { actualTikTokReceiptSnapshot } from './actual-receipts.ts';
 import { Pool, type PoolClient } from 'pg';
 import {
   assessKpi,
@@ -92,7 +94,56 @@ export function createMetricsRepository(config: MetricsRepositoryConfig) {
     }
   }
 
-  return { batch, batchAndPersist, close: () => pool.end() };
+  async function appendActualTikTokSnapshots(batchId: string, contentIds: string[]) {
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      const batchResult = await client.query<{ id: string }>('SELECT id FROM batch WHERE workspace_id = $1 AND id = $2 FOR SHARE', [config.workspaceId, batchId]);
+      if (!contentIds.length || new Set(contentIds).size !== contentIds.length) throw new Error('unique content IDs are required for actual metric snapshot import');
+      const receipts = await client.query<{ content_id: string; id: string; provider: string; status: string; created_at: string; raw_payload: Record<string, unknown> }>(
+        `SELECT c.id AS content_id, ar.id, ar.provider, ar.status, ar.created_at::text AS created_at, ar.raw_payload
+         FROM content c JOIN LATERAL (
+           SELECT id, provider, status, created_at::text AS created_at, raw_payload FROM acquisition_run
+           WHERE workspace_id = $1 AND content_id = c.id AND status = 'SUCCEEDED'
+           ORDER BY created_at DESC, id DESC LIMIT 1
+         ) ar ON true
+         WHERE c.workspace_id = $1 AND c.batch_id = $2 AND c.id = ANY($3::uuid[])
+         ORDER BY c.external_id`, [config.workspaceId, batchId, contentIds],
+      );
+      if (receipts.rowCount !== contentIds.length) throw new Error('one or more requested content IDs are not members of the selected batch or lack a successful acquisition receipt');
+      let inserted = 0;
+      for (const row of receipts.rows) {
+        if (row.provider !== 'yt-dlp' || row.raw_payload.extractor !== 'TikTok' || row.raw_payload.extractor_key !== 'TikTok') continue;
+        const snapshot = actualTikTokReceiptSnapshot({ id: row.id, provider: row.provider, status: row.status, createdAt: row.created_at, rawPayload: row.raw_payload }, row.content_id);
+        const normalized = normalizeMetricSnapshot(snapshot);
+        const rawMetrics = Object.fromEntries(Object.entries(normalized.rawMetrics).map(([name, value]) => [name, { value, quality: normalized.qualityByMetric[name]?.state, reason: normalized.qualityByMetric[name]?.reason }]));
+        const result = await client.query(
+          `INSERT INTO metric_snapshot (id, workspace_id, content_id, distribution, captured_at, source, quality, raw_metrics, derived_metrics, quality_json)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9::jsonb, $10::jsonb)
+           ON CONFLICT (id) DO NOTHING RETURNING id`,
+          [snapshot.id, config.workspaceId, snapshot.contentId, snapshot.distribution, snapshot.capturedAt, snapshot.source, normalized.quality, JSON.stringify(rawMetrics), JSON.stringify(normalized.derivedMetrics), JSON.stringify(normalized.qualityByMetric)],
+        );
+        if (result.rowCount) inserted++;
+        else {
+          const existing = await client.query<{ content_id: string; source: string; captured_at: string; raw_metrics: Record<string, unknown> }>(
+            'SELECT content_id, source, captured_at::text AS captured_at, raw_metrics FROM metric_snapshot WHERE id = $1 AND workspace_id = $2 FOR SHARE',
+            [snapshot.id, config.workspaceId],
+          );
+          const existingSnapshot = existing.rows[0];
+          if (!existingSnapshot || existingSnapshot.content_id !== snapshot.contentId || existingSnapshot.source !== snapshot.source || new Date(existingSnapshot.captured_at ?? '').getTime() !== Date.parse(snapshot.capturedAt) || !isDeepStrictEqual(existingSnapshot.raw_metrics, rawMetrics)) throw new Error(`receipt snapshot identity conflict: ${snapshot.id}`);
+        }
+      }
+      await client.query('COMMIT');
+      return { batchId, receipts: receipts.rowCount, inserted };
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  return { batch, batchAndPersist, appendActualTikTokSnapshots, close: () => pool.end() };
 
 }
 

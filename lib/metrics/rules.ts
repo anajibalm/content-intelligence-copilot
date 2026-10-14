@@ -9,6 +9,7 @@ export const RANKING_RULE_VERSION = 'ranking-v1';
 export const KPI_RULE_VERSION = 'kpi-v1';
 
 export function qualityDetailsFromRaw(rawMetrics, qualityJson) {
+
   return Object.fromEntries(Object.entries(rawMetrics ?? {}).map(([name, rawEntry]) => {
     const rawObject = rawEntry && typeof rawEntry === 'object' && !Array.isArray(rawEntry) ? rawEntry : {};
     const detail = qualityJson?.[name] && typeof qualityJson[name] === 'object' ? qualityJson[name] : {};
