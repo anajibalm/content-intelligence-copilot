@@ -8,24 +8,24 @@ const thirdId = '91000000-0000-4000-8000-000000000003';
 const otherId = '91000000-0000-4000-8000-000000000002';
 const comparisonId = '92000000-0000-4000-8000-000000000001';
 
-function snapshotEvidence(index: number) {
+function snapshotEvidence(index: number, missingComments = false) {
   const content = fixture.contentsByBatch[batchA][index - 1];
   const snapshotId = content.snapshots[0].id;
   const capturedAt = index === 1 ? '2026-10-06T08:14:06.531Z' : '2026-10-06T14:23:10.480Z';
-  const metrics = index === 1 ? { views: 236, likes: 27, saves: 1, shares: 2, comments: 0 } : { views: 192, likes: 19, saves: 0, shares: 0, comments: 0 };
-  const rawMetrics = Object.fromEntries(Object.entries(metrics).map(([key, value]) => [key, { value, quality: 'VALID' }]));
-  const qualityByMetric = Object.fromEntries([...Object.keys(metrics), 'engagement_rate'].map((key) => [key, { state: 'VALID', reason: null }]));
+  const metrics = index === 1 ? { views: 236, likes: 27, saves: 1, shares: 2, comments: missingComments ? null : 0 } : { views: 192, likes: 19, saves: 0, shares: 0, comments: 0 };
+  const rawMetrics = Object.fromEntries(Object.entries(metrics).map(([key, value]) => [key, { value: key === 'comments' && missingComments ? null : value, quality: key === 'comments' && missingComments ? 'UNAVAILABLE' : 'VALID' }]));
+  const qualityByMetric = Object.fromEntries([...Object.keys(metrics), 'engagement_rate'].map((key) => [key, { state: key === 'comments' && missingComments ? 'UNAVAILABLE' : 'VALID', reason: key === 'comments' && missingComments ? 'MISSING_METRIC' : null }]));
   const basis = { sourceSnapshotId: snapshotId, source: 'synthetic fixture (unverified)', capturedAt, distribution: 'ORGANIC', rawObservations: rawMetrics, qualityJson: qualityByMetric };
-  const layers = [{ layer: 'OBSERVED', values: { likes: metrics.likes, saves: metrics.saves, views: metrics.views, shares: metrics.shares, comments: metrics.comments } }, { layer: 'DERIVED', values: { engagement_rate: { value: (metrics.likes + metrics.saves + metrics.shares + metrics.comments) / metrics.views } } }];
+  const layers = [{ layer: 'OBSERVED', values: rawMetrics }, { layer: 'DERIVED', values: { engagement_rate: { value: missingComments ? null : (Number(metrics.likes) + Number(metrics.saves) + Number(metrics.shares) + Number(metrics.comments)) / Number(metrics.views) } } }];
   return layers.map(({ layer, values }) => ({ id: `${snapshotId}-${layer}`, layer, statement: `${layer} metrics from frozen snapshot ${snapshotId}: ${JSON.stringify(values)}`, role: 'SUPPORTING', source_type: 'METRIC_SNAPSHOT', source_id: snapshotId, content_id: content.id, basis: { ...basis, statement: `${layer} metrics from frozen snapshot ${snapshotId}: ${JSON.stringify(values)}` }, captured_at: capturedAt, currentSource: null, link: null }));
 }
-async function api(page: Page) {
+async function api(page: Page, missingComments = false) {
   const reviews: Record<string, unknown>[] = [];
   const notes: Record<string, unknown>[] = [];
   const nextTests: Record<string, unknown>[] = [];
   const leaked: string[] = [];
   let failQueue = false;
-  const hypothesis = (id: string) => ({ id, batchId: batchA, statement: id === hypothesisId ? 'Synthetic original hypothesis' : id === thirdId ? 'Alternative synthetic hypothesis' : 'Other original hypothesis', confidence: 'LOW', state: 'ACTIVE', confidenceCaps: [{ rule: 'INSUFFICIENT_SAMPLE', reason: 'sample too small' }, { rule: 'ONE_COMPARISON', reason: 'one pair' }, { rule: 'LEGACY_ONLY', reason: 'legacy only' }], suggestedNextTest: { action: 'Repeat', controls: [true, null, 'text'] }, comparisons: [{ comparison_id: comparisonId, role: 'ORIGIN' }], provider: 'synthetic', model: 'synthetic', promptVersion: 'test', schemaVersion: 'test', ruleVersion: 'test', inputHash: 'test-hash', rawOutput: {}, evidence: [...snapshotEvidence(1), ...snapshotEvidence(2), { id: 'e-1', layer: 'OBSERVED', statement: 'Historical raw evidence', role: 'SUPPORTING', source_type: 'VIDEO_FRAME', source_id: 'last-frame', content_id: fixture.contentsByBatch[batchA][0].id, basis: {}, captured_at: null, currentSource: null, link: `/?batchId=${batchA}&contentId=${fixture.contentsByBatch[batchA][0].id}#video-frame-last-frame` }] });
+  const hypothesis = (id: string) => ({ id, batchId: batchA, statement: id === hypothesisId ? 'Synthetic original hypothesis' : id === thirdId ? 'Alternative synthetic hypothesis' : 'Other original hypothesis', confidence: 'LOW', state: 'ACTIVE', confidenceCaps: [{ rule: 'INSUFFICIENT_SAMPLE', reason: 'sample too small' }, { rule: 'ONE_COMPARISON', reason: 'one pair' }, { rule: 'LEGACY_ONLY', reason: 'legacy only' }], suggestedNextTest: { action: 'Repeat', controls: [true, null, 'text'] }, comparisons: [{ comparison_id: comparisonId, role: 'ORIGIN' }], provider: 'synthetic', model: 'synthetic', promptVersion: 'test', schemaVersion: 'test', ruleVersion: 'test', inputHash: 'test-hash', rawOutput: {}, evidence: [...snapshotEvidence(1, missingComments), ...snapshotEvidence(2), { id: 'e-1', layer: 'OBSERVED', statement: 'Historical raw evidence', role: 'SUPPORTING', source_type: 'VIDEO_FRAME', source_id: 'last-frame', content_id: fixture.contentsByBatch[batchA][0].id, basis: {}, captured_at: null, currentSource: null, link: `/?batchId=${batchA}&contentId=${fixture.contentsByBatch[batchA][0].id}&view=library#video-frame-last-frame` }], contentIds: [fixture.contentsByBatch[batchA][0].id] });
   await page.route('**/api/**', async (route) => {
     const request = route.request();
     const url = new URL(request.url());
@@ -210,6 +210,22 @@ test('exact frozen metric snapshots render side by side with raw delta and sourc
   await expect(detail.getByText('Selisih waktu snapshot lebih dari 1 jam: 6,15 jam', { exact: true })).toBeVisible();
   await expect(detail.locator('details').evaluateAll((elements) => elements.every((element) => element instanceof HTMLDetailsElement && !element.open))).resolves.toBe(true);
 });
+test('null metric cells are hidden with exact count and toggle while valid zero stays visible', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await api(page, true);
+  await page.goto(`/?batchId=${batchA}&view=review`);
+  const queue = page.getByRole('region', { name: 'Antrean hipotesis' });
+  await queue.getByRole('button', { name: /Synthetic original hypothesis/ }).click();
+  const detail = page.getByRole('region', { name: 'Detail hipotesis' });
+  const table = detail.getByRole('table').first();
+  await expect(detail.getByText('2 field kosong disembunyikan.')).toBeVisible();
+  await expect(table.getByRole('rowheader', { name: 'Komentar' })).toBeVisible();
+  await expect(table.getByRole('cell').nth(10)).toContainText('Disembunyikan');
+  await expect(table.getByRole('cell').nth(7)).toContainText('0 Observasi');
+  await detail.getByRole('button', { name: 'Lihat field kosong' }).click();
+  await expect(table).toContainText('MISSING_METRIC');
+  await expect(table.getByRole('cell').nth(10)).toContainText('Belum tersedia');
+});
 for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 }]) test(`review list, detail, and decision viewport ${viewport.width}`, async ({ page }) => {
   await page.setViewportSize(viewport);
   await api(page);
@@ -217,15 +233,26 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
   const queue = page.getByRole('region', { name: 'Antrean hipotesis' });
   await expect(queue.getByRole('button', { name: /Synthetic original hypothesis/ })).toBeVisible();
   await page.screenshot({ path: `/tmp/cic-pr34-review-queue-${viewport.width}.png` });
-  await queue.getByRole('button', { name: /Synthetic original hypothesis/ }).click();
+  const queueItem = queue.getByRole('button', { name: /Synthetic original hypothesis/ });
+  const queueBox = await queueItem.boundingBox();
+  expect(queueBox).not.toBeNull();
+  await page.mouse.move(queueBox!.x + queueBox!.width / 2, queueBox!.y + queueBox!.height / 2);
+  await page.mouse.down();
+  await page.mouse.up();
   const detail = page.getByRole('region', { name: 'Detail hipotesis' });
+  const decision = detail.getByRole('button', { name: 'Setujui', exact: true });
   await expect(detail.getByRole('table')).toBeVisible();
-  await expect(detail.getByRole('button', { name: 'Setujui', exact: true })).toBeVisible();
-  expect(await detail.locator('.review-actions').evaluate((element) => getComputedStyle(element).position)).toBe('fixed');
-  await expect(detail.getByRole('button', { name: 'Setujui', exact: true })).toBeInViewport();
+  await expect(decision).toBeVisible();
+  expect(await detail.locator('.decision-region').evaluate((element) => getComputedStyle(element).position)).toBe('fixed');
+  const decisionBox = await decision.boundingBox();
+  expect(decisionBox).not.toBeNull();
+  expect(decisionBox!.height).toBeGreaterThanOrEqual(44);
+  expect(decisionBox!.y + decisionBox!.height).toBeLessThanOrEqual(viewport.height);
+  await expect(decision).toBeInViewport();
+  await expect(detail.getByRole('heading', { name: 'Bukti terhubung' })).toBeInViewport();
   await page.screenshot({ path: `/tmp/cic-pr34-review-detail-${viewport.width}.png` });
   await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-  await expect(detail.getByRole('button', { name: 'Setujui', exact: true })).toBeInViewport();
+  await expect(decision).toBeInViewport();
   await page.screenshot({ path: `/tmp/cic-pr34-review-sticky-${viewport.width}.png` });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   const group = detail.getByRole('table').first();
@@ -242,4 +269,5 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
   await expect(page.locator('#content-feature-cta')).toBeVisible();
   await expect(page).toHaveURL(/view=library.*hypothesisId=.*#content-feature-cta/);
   await expect(detail.locator('details').evaluateAll((elements) => elements.every((element) => element instanceof HTMLDetailsElement && !element.open))).resolves.toBe(true);
+
 });

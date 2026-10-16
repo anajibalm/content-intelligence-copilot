@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { classifyHypothesisNote, comparisonChecklist, groupHypotheses, formatMetricId, formatDateTimeId, presentStatement, summarizeStatement } from '../../lib/hypothesis/presentation.ts';
+import { classifyHypothesisNote, comparisonChecklist, groupHypotheses, formatMetricId, formatDateTimeId, presentStatement, statementSegments, summarizeStatement } from '../../lib/hypothesis/presentation.ts';
 
 const make = (id, contentIds, statement, createdAt = '2026-10-01T00:00:00Z') => ({ id, batchId: 'batch', contentIds, statement, confidence: 'LOW', reviewDecision: null, reviewedStatement: null, createdAt, evidenceCount: 2 });
 
@@ -42,4 +42,22 @@ test('unknown and malformed UUID-like tokens remain visible and warned', () => {
   assert.equal(malformed.unknown[0], '99962fb3-edd3-4448-8cc4-999b4c06ce8');
   assert.match(malformed.segments.map((part) => part.text).join(''), /ID tidak dikenal/);
   assert.equal(result.original, text);
+});
+test('keeps original statement and separates every ontology prefix without guessing absent layers', () => {
+  const original = 'EXTRACTED: format: A. OBSERVED: engagement_rate 12,71%';
+  const parsed = statementSegments(original);
+  assert.equal(parsed.statement, original);
+  assert.deepEqual(parsed.segments, [
+    { layer: 'EXTRACTED', text: 'format: A. ' },
+    { layer: 'OBSERVED', text: 'engagement_rate 12,71%' },
+  ]);
+  assert.deepEqual(statementSegments('Narrative without ontology prefix').segments, [{ layer: null, text: 'Narrative without ontology prefix' }]);
+});
+
+test('flags malformed UUID-like reference without rewriting token', () => {
+  const malformed = '99962fb3-edd3-4448-8cc4-999b4c06ce87';
+  const result = presentStatement(`Acuan ${malformed}`, new Map());
+  assert.equal(result.unknown[0], malformed);
+  assert.equal(result.segments.map((part) => part.text).join(''), `Acuan ID tidak dikenal [${malformed}]`);
+  assert.equal(result.original, `Acuan ${malformed}`);
 });

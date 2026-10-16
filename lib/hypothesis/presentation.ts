@@ -1,7 +1,7 @@
 export type QueueHypothesis = { id: string; batchId: string; statement: string; confidence: string; reviewDecision: string | null; reviewedStatement: string | null; reviewedAt?: string | null; createdAt: string; contentIds: string[]; evidenceCount: number };
 export type QueueGroup = { key: string; contentIds: string[]; representative: QueueHypothesis; variants: QueueHypothesis[]; hypothesisCount: number };
 
-const UUID_LIKE = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f-]{1,36}/gi;
+const UUID_LIKE = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f-]{3,5}-[0-9a-f-]{8,14}/gi
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const DISCLAIMER = /\b(?:tidak|belum|tanpa|bukan|perlu|butuh|catatan|keterbatasan|belum dapat|belum bisa|tidak dapat|tidak bisa|tidak cukup|belum cukup|tidak membuktikan|belum membuktikan|bukan bukti|tidak mendukung|belum mendukung|tidak tersedia|belum tersedia)\b/i;
 const ASSERTION = /\b(?:lebih tinggi|lebih rendah|selisih|meningkat|menurun|unggul|kalah|berbeda|dibanding|versus|vs\.?|\d+(?:[,.]\d+)?\s*(?:%|poin|kali|x))\b/i;
@@ -10,13 +10,27 @@ const PERCENT = new Intl.NumberFormat('id-ID', { minimumFractionDigits: 2, maxim
 const NUMBER = new Intl.NumberFormat('id-ID', { maximumFractionDigits: 2 });
 
 export function summarizeStatement(statement: string, max = 105) {
-  const sentence = statementSegments(statement.trim()).statement.split(/(?<=[.!?])\s+/u)[0]?.trim() ?? '';
+  const sentence = statement.replace(/^\s*(?:OBSERVED|DERIVED|EXTRACTED|INFERRED)\s*:\s*/i, '').trim().split(/(?<=[.!?])\s+/u)[0]?.trim() ?? '';
   return sentence.length <= max ? sentence : `${sentence.slice(0, max - 1).trimEnd()}…`;
 }
 
+export type StatementSegment = { layer: string | null; text: string };
+
 export function statementSegments(statement: string) {
-  const match = /^(OBSERVED|DERIVED|EXTRACTED|INFERRED)\s*:\s*/i.exec(statement);
-  return match ? { layer: match[1].toUpperCase(), statement: statement.slice(match[0].length) } : { layer: null, statement };
+  const pattern = /\b(OBSERVED|DERIVED|EXTRACTED|INFERRED)\s*:\s*/gi;
+  const matches = [...statement.matchAll(pattern)];
+  if (!matches.length) return { layer: null, statement, segments: [{ layer: null, text: statement }] as StatementSegment[] };
+  const segments: StatementSegment[] = [];
+  let offset = 0;
+  for (const [index, match] of matches.entries()) {
+    const start = match.index ?? 0;
+    if (start > offset) segments.push({ layer: null, text: statement.slice(offset, start) });
+    const textStart = start + match[0].length;
+    const end = matches[index + 1]?.index ?? statement.length;
+    segments.push({ layer: match[1].toUpperCase(), text: statement.slice(textStart, end) });
+    offset = end;
+  }
+  return { layer: segments.find((segment) => segment.layer)?.layer ?? null, statement, segments };
 }
 export function parseSnapshotStatement(statement: unknown) {
   if (typeof statement !== 'string') return null;
