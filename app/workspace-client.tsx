@@ -64,7 +64,7 @@ function metricValue(snapshot: Snapshot, metric: MetricName) {
 
 function metricText(content: Content, distribution: "ORGANIC" | "PAID") {
   const snapshot = content.snapshots.find((item) => item.distribution === distribution);
-  if (!snapshot) return 'Belum tersedia';
+  if (!snapshot) return '–';
   const values = (["views", "awt_seconds", "wfv_pct", "engagement_rate"] as MetricName[]).map((metric) => {
     const value = metricValue(snapshot, metric);
     return `${labelId(metric)} ${metricTextId(value, metric)}`;
@@ -97,6 +97,7 @@ export default function WorkspaceClient() {
   const syntheticDialogRef = useRef<HTMLDialogElement>(null);
   const syntheticChipRef = useRef<HTMLButtonElement>(null);
   const [evidenceAnchor, setEvidenceAnchor] = useState(() => typeof window === 'undefined' ? '' : window.location.hash);
+  const [activeLibraryTab, setActiveLibraryTab] = useState<'fingerprint' | 'bukti' | 'riwayat'>('fingerprint');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const requestNumber = useRef(0);
@@ -268,7 +269,7 @@ export default function WorkspaceClient() {
       <ComparePanel key={data.selectedBatch.id} batchId={data.selectedBatch.id} contents={data.contents} onCreated={setComparisonId} onInvalidated={() => setComparisonId(null)} />
       </div>
       <div hidden={view !== 'compare'}>
-      <HypothesisPanel key={`${data.selectedBatch.id}:${comparisonId ?? "none"}`} batchId={data.selectedBatch.id} comparisonId={comparisonId} onReview={openReview} onGenerated={() => setQueueRevision((value) => value + 1)} />
+      <div><HypothesisPanel key={`${data.selectedBatch.id}:${comparisonId ?? "none"}`} batchId={data.selectedBatch.id} comparisonId={comparisonId} onReview={openReview} onGenerated={() => setQueueRevision((value) => value + 1)} /></div>
       </div>
       <div hidden={view !== 'review'}><HypothesisQueue key={batchId ?? data.selectedBatch.id} batchId={batchId ?? data.selectedBatch.id} hypothesisId={hypothesisId} onSelect={openReview} revision={queueRevision} contents={data.contents} /></div>
       <div className="workspace-columns" hidden={view !== 'library'}>
@@ -277,7 +278,7 @@ export default function WorkspaceClient() {
           <div className="section-heading"><h2 id="detail-heading">{detail ? contentLabel(detail) : 'Pilih konten'}</h2>{detail && <span className="status">Processing {statusLabel(detail.processingState)}</span>}</div>
           {!detail ? <p className="empty-state">Pilih anggota batch untuk melihat metrik dan bukti.</p> : <>
             <p className="muted"><a href={detail.permalink} target="_blank" rel="noreferrer">Buka permalink TikTok</a> · {detail.externalId}</p>
-            <div className="detail-facts"><span>Akuisisi <strong>{statusLabel(detail.acquisitionState)}</strong></span><span>Processing <strong>{statusLabel(detail.processingState)}</strong></span><span>Percobaan <strong>{detail.attemptCount}</strong></span><span>Durasi <strong>{detail.durationSeconds == null ? 'Belum tersedia' : `${detail.durationSeconds.toFixed(1)}s`}</strong></span></div>
+            <div className="detail-facts"><span>Akuisisi <strong>{statusLabel(detail.acquisitionState)}</strong></span><span>Processing <strong>{statusLabel(detail.processingState)}</strong></span><span>Percobaan <strong>{detail.attemptCount}</strong></span><span>Durasi <strong>{detail.durationSeconds == null ? '–' : `${detail.durationSeconds.toFixed(1)}s`}</strong></span></div>
             {detail.acquisitionError && <p className="error-state">Error sumber akuisisi: {detail.acquisitionError}</p>}
             {detail.processingError && <p className="error-state">Error processing: {detail.processingError}</p>}
             <div className="detail-metrics">{detail.snapshots.map((snapshot) => <div id={`metric-snapshot-${snapshot.id}`} className="metric-card" key={snapshot.id}>

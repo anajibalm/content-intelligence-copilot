@@ -118,8 +118,8 @@ for (const width of [1440, 390]) test(`persisted review queue, draft isolation a
   await page.locator(`[data-hypothesis-id="${hypothesisId}"] details.s10-disclosure > summary`).click();
   await expect(page.getByText('Saved synthetic note', { exact: true })).toBeVisible();
   await expect(page.getByText('Synthetic Variabel yang diuji', { exact: true }).first()).toBeVisible();
+  await page.locator(`[data-hypothesis-id="${hypothesisId}"]`).getByRole('button', { name: 'Ekstraksi AI', exact: true }).click();
   await detail.getByRole('textbox', { name: 'Notes', exact: true }).fill('Draft survives source navigation');
-  await detail.locator('details.evidence-features > summary').click();
   await detail.locator('a[href$="#video-frame-last-frame"]').click();
   await expect(page.locator('#video-frame-last-frame')).toBeVisible();
   await expect(page).toHaveURL(/view=library.*hypothesisId=.*#video-frame-last-frame/);
@@ -245,8 +245,8 @@ test('feature evidence groups same exact content and field while preserving hist
   await page.mouse.down();
   await page.mouse.up();
   const detail = page.getByRole('region', { name: 'Detail hipotesis' });
-  const features = detail.locator('details.evidence-features');
-  await features.locator(':scope > summary').click();
+  await detail.getByRole('button', { name: 'Ekstraksi AI', exact: true }).click();
+  const features = detail.locator('#review-panel-extraction');
   const featureGroups = features.locator('article.evidence-source');
   const format = featureGroups.filter({ hasText: 'format' });
   await expect(format).toHaveCount(1);
@@ -254,7 +254,6 @@ test('feature evidence groups same exact content and field while preserving hist
   await expect(format).not.toContainText('Basis saat hipotesis dibuat: B');
   await expect(format.getByText('Nilai sumber terkini: B (Dikonfirmasi)', { exact: true })).toHaveCount(1);
   await expect(featureGroups.filter({ hasText: 'opening_style' })).toHaveCount(1);
-  await expect(format.getByText('Basis bukti dan provenance')).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 
@@ -265,6 +264,7 @@ test('exact frozen metric snapshots render side by side with raw delta and sourc
   const queue = page.getByRole('region', { name: 'Antrean hipotesis' });
   await queue.getByRole('button', { name: /Synthetic original hypothesis/ }).click();
   const detail = page.getByRole('region', { name: 'Detail hipotesis' });
+  await detail.getByRole('button', { name: 'Metrik', exact: true }).click();
   const table = detail.getByRole('table').first();
   await expect(table).toContainText('Alpha creative');
   await expect(table).toContainText('Beta creative');
@@ -282,6 +282,7 @@ test('null metric cells are hidden with exact count and toggle while valid zero 
   const queue = page.getByRole('region', { name: 'Antrean hipotesis' });
   await queue.getByRole('button', { name: /Synthetic original hypothesis/ }).click();
   const detail = page.getByRole('region', { name: 'Detail hipotesis' });
+  await detail.getByRole('button', { name: 'Metrik', exact: true }).click();
   const table = detail.getByRole('table').first();
   await expect(detail.getByText('2 field kosong disembunyikan.')).toBeVisible();
   const commentsRow = table.getByRole('row').filter({ hasText: 'Komentar' });
@@ -294,8 +295,30 @@ test('null metric cells are hidden with exact count and toggle while valid zero 
   await expect(alphaCell).toContainText('MISSING_METRIC');
   await expect(betaCell).toContainText('0Observasi');
 });
+test('review detail tabs keep claim visible and scope exact evidence to selected panel', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await api(page);
+  await page.goto(`/?batchId=${batchA}&view=review`);
+  const queue = page.getByRole('region', { name: 'Antrean hipotesis' });
+  await queue.getByRole('button', { name: /Synthetic original hypothesis/ }).click();
+  const detail = page.getByRole('region', { name: 'Detail hipotesis' });
+  await expect(detail.locator('.hypothesis-claim')).toBeVisible();
+  await expect(detail.locator('#review-panel-metrics')).toBeVisible();
+  const technicalTab = detail.getByRole('button', { name: 'Teknis', exact: true });
+  const box = await technicalTab.boundingBox();
+  expect(box).not.toBeNull();
+  await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2);
+  await page.mouse.down();
+  await page.mouse.up();
+  await expect(detail.locator('#review-panel-technical')).toBeVisible();
+  await expect(detail.locator('#review-panel-metrics')).toBeHidden();
+  await expect(detail.locator('.hypothesis-claim').getByText('Synthetic original hypothesis', { exact: true })).toBeVisible();
+  await detail.getByRole('button', { name: 'Kriteria', exact: true }).click();
+  await expect(detail.locator('#review-panel-criteria')).toBeVisible();
+  await expect(detail.locator('#review-panel-technical')).toBeHidden();
+});
 
-for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 }]) test(`review list, detail, and decision viewport ${viewport.width}`, async ({ page }) => {
+for (const viewport of [{ width: 1280, height: 900 }, { width: 1440, height: 900 }, { width: 390, height: 844 }]) test(`review list, detail, and decision viewport ${viewport.width}`, async ({ page }) => {
   await page.setViewportSize(viewport);
   await api(page);
   await page.goto(`/?batchId=${batchA}&view=review`);
@@ -309,6 +332,13 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
   await page.mouse.down();
   await page.mouse.up();
   const detail = page.getByRole('region', { name: 'Detail hipotesis' });
+  const technicalTab = page.getByRole('button', { name: 'Teknis', exact: true });
+  const technicalBox = await technicalTab.boundingBox();
+  expect(technicalBox).not.toBeNull();
+  await technicalTab.click();
+  await expect(detail.locator('#review-panel-technical')).toBeVisible();
+  await expect(detail.locator('#review-panel-metrics')).toBeHidden();
+  await detail.getByRole('button', { name: 'Metrik', exact: true }).click();
   const decision = detail.getByRole('button', { name: 'Setujui', exact: true });
   await expect(detail.getByRole('table')).toBeVisible();
   await expect(decision).toBeVisible();
@@ -336,11 +366,10 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
   await expect(group).toContainText('12,71%');
   await expect(group).toContainText('9,90%');
   await expect(group).toContainText('2,82 poin persentase');
+  await detail.getByRole('button', { name: 'Ekstraksi AI', exact: true }).click();
   await expect(detail.locator('article.evidence-source')).toHaveCount(2);
   const extracted = detail.locator('article.evidence-source').filter({ hasText: 'cta_type' });
   await expect(extracted).toContainText('Nilai sumber terkini: AI soft sell; hasil review direct pitch (Dikoreksi)');
-  await expect(extracted).toContainText('Evidence tersimpan tetap menjadi basis hipotesis.');
-  await detail.locator('details.evidence-features > summary').click();
   await expect(extracted.locator('a[href$="#content-feature-cta"]')).toBeVisible();
   await extracted.locator('a[href$="#content-feature-cta"]').click();
   await expect(page.locator('#content-feature-cta')).toBeVisible();

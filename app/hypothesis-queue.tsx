@@ -83,6 +83,7 @@ function HypothesisDetail({ batchId, hypothesisId, contents, onReviewed, onBack 
   const [copyMessage, setCopyMessage] = useState('');
   const evidence = result?.evidence as Evidence[] | undefined;
   const [showNullMetrics, setShowNullMetrics] = useState(false);
+  const [activeDetailTab, setActiveDetailTab] = useState<'metrics' | 'extraction' | 'criteria' | 'technical'>('metrics');
   const byContent = new Map<string, Evidence[]>();
   for (const item of evidence ?? []) { const group = byContent.get(item.content_id) ?? []; group.push(item); byContent.set(item.content_id, group); }
   const snapshotGroups = [...byContent].flatMap(([contentId, items]) => [...new Map(items.filter((item) => item.source_type === 'METRIC_SNAPSHOT').map((item) => [String(item.basis?.sourceSnapshotId ?? item.source_id), items.filter((candidate) => candidate.source_type === 'METRIC_SNAPSHOT' && String(candidate.basis?.sourceSnapshotId ?? candidate.source_id) === String(item.basis?.sourceSnapshotId ?? item.source_id))])).entries()].map(([snapshotId, rows]) => ({ contentId, snapshotId: `${contentId}:${snapshotId}`, rows })));
@@ -102,12 +103,16 @@ function HypothesisDetail({ batchId, hypothesisId, contents, onReviewed, onBack 
   return <section className="hypothesis-detail" aria-label="Detail hipotesis" data-hypothesis-id={hypothesisId}>
     <button className="secondary review-back" type="button" onClick={onBack}>Kembali ke antrean</button>
     {error ? <div role="alert"><p className="error-state">{error}</p><button className="secondary" type="button" onClick={() => { setError(null); setVersion((value) => value + 1); }}>Coba lagi detail</button></div> : !result ? <p role="status">Memuat detail hipotesis…</p> : <>
-      <div className="hypothesis-claim"><p className="eyebrow">Klaim asli, tanpa perubahan</p>{presentation && <div className="statement-presentation">{presentation.map((part, segmentIndex) => <span className="statement-segment" key={segmentIndex}>{part.layer && <span className="ontology-chip">{labelId(part.layer)}</span>}<span>{part.segments.map((segment) => segment.text).join('')}</span>{part.unknown.length > 0 && <span className="unknown-id-warning" role="status">⚠ ID tidak dikenal: {part.unknown.join(', ')}</span>}</span>)}</div>}<p className="hypothesis-confidence">Confidence {labelId(result.confidence)}</p><p className="muted">Confidence ditetapkan engine dari bukti dan batas yang berlaku; kualitas perbandingan ditampilkan terpisah.</p></div>
-      <section className="hypothesis-evidence" aria-labelledby="evidence-heading">
+      <section className="hypothesis-claim" aria-label="Ringkasan klaim"><p className="eyebrow">Klaim asli, tanpa perubahan</p>{presentation && <div className="statement-presentation">{presentation.map((part, segmentIndex) => <span className="statement-segment" key={segmentIndex}>{part.layer && <span className="ontology-chip">{labelId(part.layer)}</span>}<span>{part.segments.map((segment) => segment.text).join('')}</span>{part.unknown.length > 0 && <span className="unknown-id-warning" role="status">⚠ ID tidak dikenal: {part.unknown.join(', ')}</span>}</span>)}</div>}<p className="hypothesis-confidence">Confidence {labelId(result.confidence)}</p><p className="muted">Confidence ditetapkan engine dari bukti dan batas yang berlaku; kualitas perbandingan ditampilkan terpisah.</p></section>
+      <div className="review-detail-tabs" role="group" aria-label="Bagian detail hipotesis">
+        {[{ id: 'metrics', label: 'Metrik' }, { id: 'extraction', label: 'Ekstraksi AI' }, { id: 'criteria', label: 'Kriteria' }, { id: 'technical', label: 'Teknis' }].map((tab) => <button key={tab.id} type="button" aria-pressed={activeDetailTab === tab.id} aria-controls={`review-panel-${tab.id}`} onClick={() => setActiveDetailTab(tab.id as typeof activeDetailTab)}>{tab.label}</button>)}
+      </div>
+      <section id="review-panel-metrics" hidden={activeDetailTab !== 'metrics'} className="hypothesis-evidence" aria-label="Bukti metrik">
         <h3 id="evidence-heading">Bukti terhubung</h3>
         {snapshots.length === 0 ? <p className="muted">Snapshot metrik tidak dirujuk sebagai bukti hipotesis.</p> : <>
           {allMetricsValid && <p className="muted">Semua metrik valid.</p>}
           {missingMetrics > 0 && <p className="muted">{missingMetrics} field kosong disembunyikan. <button className="secondary" type="button" aria-expanded={showNullMetrics} onClick={() => setShowNullMetrics((current) => !current)}>{showNullMetrics ? 'Sembunyikan field kosong' : 'Lihat field kosong'}</button></p>}
+          {timeDelta !== null && timeDelta > 3_600_000 && <p className="snapshot-time-warning">Selisih waktu snapshot lebih dari 1 jam: {formatMetricId(timeDelta / 3_600_000, 'awt_seconds').replace(' dtk', ' jam')}</p>}
           <table className="snapshot-table">
             <thead><tr><th scope="col">Metrik</th>{snapshots.map((group) => <th scope="col" key={group.snapshotId}>{contentNames.get(group.contentId) ?? `TikTok ${group.contentId.slice(0, 8)}`}</th>)}</tr></thead>
             <tbody>
@@ -116,14 +121,14 @@ function HypothesisDetail({ batchId, hypothesisId, contents, onReviewed, onBack 
                   const metricValue = snapshotValue(group, metric);
                   const label = contentNames.get(group.contentId) ?? `TikTok ${group.contentId.slice(0, 8)}`;
                   const hideNull = metricValue.value === null && !showNullMetrics;
-                  return <span key={group.snapshotId}>{index > 0 && ' · '}{label}: {hideNull ? null : metricValue.value === null ? 'Belum tersedia' : <>{formatMetricId(metricValue.value, metric)} <span className="ontology-chip">{labelId(metricValue.layer)}</span></>}</span>;
+                  return <span key={group.snapshotId}>{index > 0 && ' · '}{label}: {hideNull ? null : metricValue.value === null ? '–' : <>{formatMetricId(metricValue.value, metric)} <span className="ontology-chip">{labelId(metricValue.layer)}</span></>}</span>;
                 })}</span></th>
                 {snapshots.map((group) => {
                   const metricValue = snapshotValue(group, metric);
                   const label = contentNames.get(group.contentId) ?? `TikTok ${group.contentId.slice(0, 8)}`;
                   const hideNull = metricValue.value === null && !showNullMetrics;
                   return <td key={group.snapshotId} data-label={label}>
-                    {!hideNull && (metricValue.value === null ? 'Belum tersedia' : formatMetricId(metricValue.value, metric))}
+                    {!hideNull && (metricValue.value === null ? '–' : formatMetricId(metricValue.value, metric))}
                     {!hideNull && <><span className="ontology-chip">{labelId(metricValue.layer)}</span>{metricValue.quality?.state === 'VALID' && metricValue.value !== null ? null : <span>{labelId(metricValue.quality?.state ?? 'UNAVAILABLE')}{metricValue.quality?.reason ? ` · ${labelId(metricValue.quality.reason)}` : ''}</span>}{metric === 'engagement_rate' && metricValue.calculation && <p>Rumus metrics-v2: {metricValue.calculation.interactions} ÷ {metricValue.calculation.views} = {formatMetricId(metricValue.calculation.value, metric)}</p>}</>}
                   </td>;
                 })}
@@ -138,9 +143,9 @@ function HypothesisDetail({ batchId, hypothesisId, contents, onReviewed, onBack 
             </tbody>
           </table>
         </>}
-        {timeDelta !== null && timeDelta > 3_600_000 && <p className="snapshot-time-warning">Selisih waktu snapshot lebih dari 1 jam: {formatMetricId(timeDelta / 3_600_000, 'awt_seconds').replace(' dtk', ' jam')}</p>}
-        {(evidence ?? []).some((item) => item.source_type !== 'METRIC_SNAPSHOT') && <details className="evidence-features">
-          <summary>Ekstraksi AI · {(evidence ?? []).filter((item) => item.source_type !== 'METRIC_SNAPSHOT').length} bukti</summary>
+      </section>
+      <section id="review-panel-extraction" hidden={activeDetailTab !== 'extraction'} className="hypothesis-evidence" aria-label="Ekstraksi AI">
+        {(evidence ?? []).some((item) => item.source_type !== 'METRIC_SNAPSHOT') ? <>
           {(evidence ?? []).filter((item) => item.source_type !== 'METRIC_SNAPSHOT' && item.source_type !== 'CONTENT_FEATURE').map((item) => <article className="evidence-source" key={item.id}><strong>{labelId(item.layer)} · {contentNames.get(item.content_id) ?? 'Konten tidak dikenal'} · {labelId(item.role)}</strong><p>{statementSegments(item.statement).statement}</p>{item.link && <a href={item.link}>Buka sumber exact</a>}<details><summary>Basis bukti</summary><KeyValueView value={item.basis ?? item} /></details></article>)}
           {groupFeatureEvidence((evidence ?? []).filter((item) => item.source_type === 'CONTENT_FEATURE')).map((group) => {
             const first = group[0];
@@ -151,16 +156,18 @@ function HypothesisDetail({ batchId, hypothesisId, contents, onReviewed, onBack 
             return <article className="evidence-source" key={`${first.content_id}:${field}`}>
               <strong>{labelId(first.layer)} · {label} · {labelId(first.role)} · {labelId(field)}</strong>
               {frozenValues.map((value) => <p key={value}>Basis saat hipotesis dibuat: {value}</p>)}
-              {currentValues.map((value) => value.aiValue === value.reviewedValue ? <p key={JSON.stringify(value)}>Nilai sumber terkini: {value.aiValue ?? 'Belum tersedia'} ({labelId(value.reviewState ?? 'UNAVAILABLE')})</p> : <p key={JSON.stringify(value)}>Nilai sumber terkini: AI {value.aiValue ?? 'Belum tersedia'}; hasil review {value.reviewedValue ?? 'Belum tersedia'} ({labelId(value.reviewState ?? 'UNAVAILABLE')})</p>)}
+              {currentValues.map((value) => value.aiValue === value.reviewedValue ? <p key={JSON.stringify(value)}>Nilai sumber terkini: {value.aiValue ?? '–'} ({labelId(value.reviewState ?? 'UNAVAILABLE')})</p> : <p key={JSON.stringify(value)}>Nilai sumber terkini: AI {value.aiValue ?? '–'}; hasil review {value.reviewedValue ?? '–'} ({labelId(value.reviewState ?? 'UNAVAILABLE')})</p>)}
               <p>Evidence tersimpan tetap menjadi basis hipotesis.</p>
               {group.map((item) => item.link && <a key={item.id} href={item.link}>Buka sumber exact</a>)}
               <details><summary>Basis bukti dan provenance</summary><KeyValueView value={group.map((item) => ({ id: item.id, layer: item.layer, source_type: item.source_type, source_id: item.source_id, statement: item.statement, basis: item.basis, currentSource: item.currentSource, role: item.role }))} /></details>
             </article>;
           })}
-        </details>}
+        </> : <p className="muted">Tidak ada bukti ekstraksi AI pada hipotesis ini.</p>}
       </section>
-      {checklist && <section className="comparison-checks"><h3>Kriteria perbandingan</h3><ul>{checklist.checks.map((item) => <li key={item.label}><strong>{item.label}:</strong> {item.value}</li>)}</ul>{checklist.reasons.length > 0 && <details><summary>Alasan engine</summary><ul>{checklist.reasons.map((reason) => <li key={reason}>{reason}</li>)}</ul></details>}</section>}
-      <details className="hypothesis-technical"><summary>Detail teknis</summary><p className="preserve-text">{result.statement}</p><KeyValueView value={{ id: result.id, batchId: result.batchId, state: result.state, confidence: result.confidence, confidenceCaps: result.confidenceCaps, comparisons: result.comparisons, provider: result.provider, model: result.model, promptVersion: result.promptVersion, schemaVersion: result.schemaVersion, ruleVersion: result.ruleVersion, inputHash: result.inputHash, rawOutput: result.rawOutput, evidence }} /><button className="secondary" type="button" onClick={async () => { try { await navigator.clipboard.writeText(JSON.stringify({ id: result.id, statement: result.statement, evidence }, null, 2)); setCopyMessage('Detail tersalin'); } catch { setCopyMessage('Gagal menyalin detail'); } }}>{copyMessage === 'Detail tersalin' ? 'Detail tersalin' : 'Salin detail teknis'}</button><p role="status">{copyMessage}</p></details>
+      <section id="review-panel-criteria" hidden={activeDetailTab !== 'criteria'} className="comparison-checks" aria-label="Kriteria perbandingan">
+        {checklist ? <><h3>Kriteria perbandingan</h3><ul>{checklist.checks.map((item) => <li key={item.label}><strong>{item.label}:</strong> {item.value}</li>)}</ul>{checklist.reasons.length > 0 && <details><summary>Alasan engine</summary><ul>{checklist.reasons.map((reason) => <li key={reason}>{reason}</li>)}</ul></details>}{result.comparisons.map((item) => <p className="muted" key={item.comparison_id}>Perbandingan asal hipotesis · {labelId(item.role)}</p>)}</> : <p className="muted">Kriteria perbandingan tidak tersedia.</p>}
+      </section>
+      <section id="review-panel-technical" role="tabpanel" aria-labelledby="review-tab-technical" hidden={activeDetailTab !== 'technical'} className="hypothesis-technical" aria-label="Detail teknis"><p className="preserve-text">{result.statement}</p><KeyValueView value={{ id: result.id, batchId: result.batchId, state: result.state, confidence: result.confidence, confidenceCaps: result.confidenceCaps, comparisons: result.comparisons, provider: result.provider, model: result.model, promptVersion: result.promptVersion, schemaVersion: result.schemaVersion, ruleVersion: result.ruleVersion, inputHash: result.inputHash, rawOutput: result.rawOutput, evidence }} /><button className="secondary" type="button" onClick={async () => { try { await navigator.clipboard.writeText(JSON.stringify({ id: result.id, statement: result.statement, evidence }, null, 2)); setCopyMessage('Detail tersalin'); } catch { setCopyMessage('Gagal menyalin detail'); } }}>{copyMessage === 'Detail tersalin' ? 'Detail tersalin' : 'Salin detail teknis'}</button><p role="status" aria-live="polite">{copyMessage}</p></section>
       <details className="s10-disclosure"><summary>Catatan dan rencana uji</summary><p className="muted">ⓘ Catatan memberi konteks manusia; status rencana bukan hasil hipotesis.</p><S10Panel hypothesisId={result.id} targetBatchId={result.batchId} /></details>
       <div className="decision-region"><HypothesisReviewControls key={result.id} hypothesisId={result.id} onReviewed={onReviewed} /></div>
     </>}
