@@ -208,14 +208,12 @@ test('AC-03 null-title identity, mono IDs, copy, and open in Library', async ({ 
   await page.goto(`/?batchId=${batchA.id}&contentId=${ids.failed}&view=batch`);
   const members = page.getByRole('region', { name: 'Anggota batch' });
   const first = members.locator('.content-row').first();
-  await expect(first.getByRole('button').first()).toContainText('Konten TikTok');
-  await expect(first.locator('code')).toHaveText(FULL_A);
-  await expect(first.locator('code')).toHaveCount(1);
+  await expect(first.getByRole('button').first()).toContainText(FULL_A);
+  await expect(first.locator('code')).toHaveCount(0);
   await expect(first).toContainText('Frame belum tersedia');
   const second = members.locator('.content-row').nth(1);
-  await expect(second.getByRole('button').first()).toContainText('Konten TikTok');
-  await expect(second.locator('code')).toHaveText(FULL_B);
-  await expect(second.locator('code')).toHaveCount(1);
+  await expect(second.getByRole('button').first()).toContainText(FULL_B);
+  await expect(second.locator('code')).toHaveCount(0);
   await first.getByRole('button', { name: `Salin ID ${FULL_A}` }).click();
   await expect(first.getByText('ID disalin', { exact: true })).toBeVisible();
   await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe(FULL_A);
@@ -241,11 +239,11 @@ test('AC-04 metric quality states and separate distributions', async ({ page }) 
   await page.goto(`/?batchId=${batchA.id}&view=batch`);
   const members = page.getByRole('region', { name: 'Anggota batch' });
   const failed = members.locator('.content-row').first();
-  await expect(failed).toContainText('Organik: Tayangan Belum tersedia');
-  await expect(failed).toContainText('Belum tersedia · Nilai belum diberikan.');
+  await expect(failed).toContainText('Organik: Tayangan –');
+  await expect(failed).toContainText('Organik · Tayangan: Belum tersedia · Nilai belum diberikan.');
   const suspect = members.locator('.content-row').filter({ hasText: 'e2e-a-suspect' });
-  await expect(suspect).toContainText('Tayangan Belum tersedia');
-  await expect(suspect).toContainText('Perlu diperiksa · Nilai belum diberikan.');
+  await expect(suspect).toContainText('Tayangan –');
+  await expect(suspect).toContainText('Organik · Tayangan: Perlu diperiksa · Nilai belum diberikan.');
   const zero = members.locator('.content-row').filter({ hasText: 'e2e-a-zero' });
   await expect(zero).toContainText('Organik: Tayangan 0');
   await expect(zero).toContainText('Iklan: Tayangan 1100');
@@ -294,13 +292,14 @@ test('AC-06 empty states and available KPI/ranking with ties', async ({ page }) 
 });
 
 test('AC-07 readability floors and no horizontal overflow', async ({ page }) => {
-  for (const viewport of [{ width: 1440, height: 900 }, { width: 375, height: 812 }]) {
+  for (const viewport of [{ width: 1440, height: 900 }, { width: 1280, height: 900 }, { width: 390, height: 844 }, { width: 375, height: 812 }]) {
     await page.setViewportSize(viewport);
     await installApi(page);
     await page.goto(`/?batchId=${batchA.id}&contentId=${ids.failed}&view=batch`);
     const members = page.getByRole('region', { name: 'Anggota batch' });
-    await expect(members.locator('code').first()).toHaveText(FULL_A);
-    await expect(members).toContainText('Tayangan Belum tersedia');
+    await expect(members.locator('.content-row-select').first()).toContainText(FULL_A);
+    await expect(members.locator('.content-row-select').first().locator('code')).toHaveCount(0);
+    await expect(members).toContainText('Organik: Tayangan –');
     const metadata = await page.locator('.batch-members code, .batch-members .quality-reason, .batch-members .content-status small').evaluateAll((nodes) => nodes.filter((node) => node.checkVisibility()).map((node) => Number.parseFloat(getComputedStyle(node).fontSize)));
     expect(metadata.length).toBeGreaterThan(0);
     expect(metadata.every((size) => size >= 12), `metadata ${metadata.join(', ')}`).toBe(true);
