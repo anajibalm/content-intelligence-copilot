@@ -13,13 +13,13 @@ function snapshotEvidence(index: number, missingComments = false) {
   const snapshotId = content.snapshots[0].id;
   const capturedAt = index === 1 ? '2026-10-06T08:14:06.531Z' : '2026-10-06T14:23:10.480Z';
   const metrics = index === 1 ? { views: 236, likes: 27, saves: 1, shares: 2, comments: missingComments ? null : 0 } : { views: 192, likes: 19, saves: 0, shares: 0, comments: 0 };
-  const rawMetrics = Object.fromEntries(Object.entries(metrics).map(([key, value]) => [key, { value: key === 'comments' && missingComments ? null : value, quality: key === 'comments' && missingComments ? 'UNAVAILABLE' : 'VALID' }]));
-  const qualityByMetric = Object.fromEntries([...Object.keys(metrics), 'engagement_rate'].map((key) => [key, { state: key === 'comments' && missingComments ? 'UNAVAILABLE' : 'VALID', reason: key === 'comments' && missingComments ? 'MISSING_METRIC' : null }]));
-  const basis = { sourceSnapshotId: snapshotId, source: 'synthetic fixture (unverified)', capturedAt, distribution: 'ORGANIC', rawObservations: rawMetrics, qualityJson: qualityByMetric };
-  const layers = [{ layer: 'OBSERVED', values: rawMetrics }, { layer: 'DERIVED', values: { engagement_rate: { value: missingComments ? null : (Number(metrics.likes) + Number(metrics.saves) + Number(metrics.shares) + Number(metrics.comments)) / Number(metrics.views) } } }];
+  const rawMetrics = Object.fromEntries(Object.entries(metrics).map(([key, value]) => [key, { value: key === 'comments' && index === 1 && missingComments ? null : value, quality: key === 'comments' && index === 1 && missingComments ? 'UNAVAILABLE' : 'VALID' }]));
+  const qualityByMetric = Object.fromEntries([...Object.keys(metrics), 'engagement_rate'].map((key) => [key, { state: key === 'comments' && index === 1 && missingComments ? 'UNAVAILABLE' : 'VALID', reason: key === 'comments' && index === 1 && missingComments ? 'MISSING_METRIC' : null }]));
+  const basis = { sourceSnapshotId: snapshotId, source: 'synthetic fixture (unverified)', capturedAt, distribution: 'ORGANIC', rawObservations: rawMetrics, qualityJson: qualityByMetric, formulaVersion: 'metrics-v2' };
+  const layers = [{ layer: 'OBSERVED', values: rawMetrics }, { layer: 'DERIVED', values: { engagement_rate: { value: index === 1 && missingComments ? null : (Number(metrics.likes) + Number(metrics.saves) + Number(metrics.shares) + Number(metrics.comments)) / Number(metrics.views) } } }];
   return layers.map(({ layer, values }) => ({ id: `${snapshotId}-${layer}`, layer, statement: `${layer} metrics from frozen snapshot ${snapshotId}: ${JSON.stringify(values)}`, role: 'SUPPORTING', source_type: 'METRIC_SNAPSHOT', source_id: snapshotId, content_id: content.id, basis: { ...basis, statement: `${layer} metrics from frozen snapshot ${snapshotId}: ${JSON.stringify(values)}` }, captured_at: capturedAt, currentSource: null, link: null }));
 }
-async function api(page: Page, missingComments = false) {
+async function api(page: Page, missingComments = false, featureVariants = false) {
   const reviews: Record<string, unknown>[] = [];
   const notes: Record<string, unknown>[] = [];
   const nextTests: Record<string, unknown>[] = [];
@@ -44,7 +44,11 @@ async function api(page: Page, missingComments = false) {
       if (failQueue && !id) { failQueue = false; return route.fulfill({ status: 503, json: { error: 'Synthetic queue read failed' } }); }
       if (id) {
         const detail = hypothesis(id);
-        const evidence = [...detail.evidence, { id: 'e-feature', layer: 'EXTRACTED', statement: 'EXTRACTED cta_type: soft sell', role: 'SUPPORTING', source_type: 'CONTENT_FEATURE', source_id: 'cta', content_id: fixture.contentsByBatch[batchA][0].id, basis: { fieldName: 'cta_type' }, captured_at: null, currentSource: { aiValue: 'soft sell', reviewedValue: 'direct pitch', reviewState: 'CORRECTED' }, link: `/?batchId=${batchA}&contentId=${fixture.contentsByBatch[batchA][0].id}#content-feature-cta` }];
+        const currentFeature = featureVariants
+          ? { id: 'e-feature', layer: 'EXTRACTED', statement: 'EXTRACTED format: B', role: 'SUPPORTING', source_type: 'CONTENT_FEATURE', source_id: 'cta', content_id: fixture.contentsByBatch[batchA][0].id, basis: { fieldName: 'format', aiValue: 'A', reviewState: 'UNREVIEWED' }, captured_at: null, currentSource: { aiValue: 'B', reviewedValue: 'B', reviewState: 'CONFIRMED' }, link: `/?batchId=${batchA}&contentId=${fixture.contentsByBatch[batchA][0].id}#content-feature-cta` }
+          : { id: 'e-feature', layer: 'EXTRACTED', statement: 'EXTRACTED cta_type: soft sell', role: 'SUPPORTING', source_type: 'CONTENT_FEATURE', source_id: 'cta', content_id: fixture.contentsByBatch[batchA][0].id, basis: { fieldName: 'cta_type' }, captured_at: null, currentSource: { aiValue: 'soft sell', reviewedValue: 'direct pitch', reviewState: 'CORRECTED' }, link: `/?batchId=${batchA}&contentId=${fixture.contentsByBatch[batchA][0].id}#content-feature-cta` };
+        const evidence = [...detail.evidence, currentFeature];
+        if (featureVariants) evidence.push({ ...currentFeature, id: 'e-feature-history', source_id: 'cta-old', statement: 'EXTRACTED format: A', basis: { fieldName: 'format', aiValue: 'A', reviewState: 'UNREVIEWED' }, currentSource: { aiValue: 'B', reviewedValue: 'B', reviewState: 'CONFIRMED' } }, { ...currentFeature, id: 'e-feature-opening', source_id: 'opening', statement: 'EXTRACTED opening_style: slow reveal', basis: { fieldName: 'opening_style', aiValue: 'slow reveal', reviewState: 'UNREVIEWED' }, currentSource: { aiValue: 'slow reveal', reviewedValue: 'slow reveal', reviewState: 'CONFIRMED' } });
         return route.fulfill({ json: { ...detail, evidence } });
       }
       return route.fulfill({ json: { items: url.searchParams.get('batchId') === batchB ? [] : [hypothesisId, otherId, thirdId].map((id) => ({ id, batchId: batchA, statement: id === hypothesisId ? 'Synthetic original hypothesis' : id === thirdId ? 'Alternative synthetic hypothesis' : 'Other original hypothesis', confidence: 'LOW', confidenceCaps: [], suggestedNextTest: { action: 'Repeat' }, contentIds: [fixture.contentsByBatch[batchA][id === otherId ? 1 : 0].id], evidenceCount: 1, createdAt: '2026-10-08T00:00:00Z', reviewDecision: id === hypothesisId ? reviews.at(-1)?.decision ?? null : id === otherId ? 'APPROVE' : null, reviewedAt: null, reviewedStatement: id === hypothesisId ? reviews.at(-1)?.reviewedStatement ?? null : null })) } });
@@ -193,6 +197,67 @@ test('queue failure has working retry and detail survives queue refresh', async 
   await expect(queue.getByRole('button', { name: /Synthetic original hypothesis/ })).toBeVisible();
   expect(state.leaked).toEqual([]);
 });
+test('snapshot detail displays exact formula and hides complete-null rows without replacing surviving values', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await api(page, true);
+  await page.goto(`/?batchId=${batchA}&view=review`);
+  const queue = page.getByRole('region', { name: 'Antrean hipotesis' });
+  const item = queue.getByRole('button', { name: /Synthetic original hypothesis/ });
+  const box = await item.boundingBox();
+  expect(box).not.toBeNull();
+  await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2);
+  await page.mouse.down();
+  await page.mouse.up();
+  const detail = page.getByRole('region', { name: 'Detail hipotesis' });
+  const table = detail.getByRole('table').first();
+  const alpha = table.getByRole('columnheader', { name: /Alpha creative/ });
+  const alphaIndex = await alpha.evaluate((element) => [...element.parentElement!.children].indexOf(element));
+  const beta = table.getByRole('columnheader', { name: /Beta creative/ });
+  const betaIndex = await beta.evaluate((element) => [...element.parentElement!.children].indexOf(element));
+  const viewsRow = table.locator('tr').filter({ hasText: 'Tayangan' });
+  const savesRow = table.locator('tr').filter({ hasText: 'Simpan' });
+  const rateRow = table.locator('tr').filter({ hasText: 'Engagement rate' });
+  const commentsRow = table.locator('tr').filter({ hasText: 'Komentar' });
+  const likesRow = table.locator('tr').filter({ hasText: 'Suka' });
+  await expect(table.getByText('Rumus metrics-v2: 19 ÷ 192 = 9,90%')).toBeVisible();
+  await expect(commentsRow.locator('td[data-label="Alpha creative"]')).toHaveText('');
+  await expect(detail.getByText('2 field kosong disembunyikan.')).toBeVisible();
+  await expect(viewsRow.locator('td').nth(alphaIndex - 1)).toContainText('236');
+  await expect(likesRow.locator('td').nth(alphaIndex - 1)).toContainText('27');
+  await expect(savesRow.locator('td').nth(alphaIndex - 1)).toContainText('1');
+  await expect(table.locator('tr').filter({ hasText: 'Bagikan' }).locator('td').first()).toContainText('2');
+  await detail.getByRole('button', { name: 'Lihat field kosong' }).click();
+  await expect(commentsRow.locator('td[data-label="Alpha creative"]')).toContainText('Belum tersedia');
+  await expect(commentsRow.locator('td[data-label="Alpha creative"]')).toContainText('MISSING_METRIC');
+  await expect(commentsRow.locator('td[data-label="Beta creative"]')).toContainText('0Observasi');
+  await expect(table.getByText('Rumus metrics-v2: 19 ÷ 192 = 9,90%')).toBeVisible();
+});
+
+test('feature evidence groups same exact content and field while preserving historical and current values', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await api(page, false, true);
+  await page.goto(`/?batchId=${batchA}&view=review`);
+  const queue = page.getByRole('region', { name: 'Antrean hipotesis' });
+  const item = queue.getByRole('button', { name: /Synthetic original hypothesis/ });
+  const box = await item.boundingBox();
+  expect(box).not.toBeNull();
+  await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2);
+  await page.mouse.down();
+  await page.mouse.up();
+  const detail = page.getByRole('region', { name: 'Detail hipotesis' });
+  const features = detail.locator('details.evidence-features');
+  await features.locator(':scope > summary').click();
+  const featureGroups = features.locator('article.evidence-source');
+  const format = featureGroups.filter({ hasText: 'format' });
+  await expect(format).toHaveCount(1);
+  await expect(format).toContainText('Basis saat hipotesis dibuat: A');
+  await expect(format).not.toContainText('Basis saat hipotesis dibuat: B');
+  await expect(format.getByText('Nilai sumber terkini: B (Dikonfirmasi)', { exact: true })).toHaveCount(1);
+  await expect(featureGroups.filter({ hasText: 'opening_style' })).toHaveCount(1);
+  await expect(format.getByText('Basis bukti dan provenance')).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
 test('exact frozen metric snapshots render side by side with raw delta and source timestamps', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await api(page);
@@ -219,13 +284,17 @@ test('null metric cells are hidden with exact count and toggle while valid zero 
   const detail = page.getByRole('region', { name: 'Detail hipotesis' });
   const table = detail.getByRole('table').first();
   await expect(detail.getByText('2 field kosong disembunyikan.')).toBeVisible();
-  await expect(table.getByRole('rowheader', { name: 'Komentar' })).toBeVisible();
-  await expect(table.getByRole('cell').nth(10)).toContainText('Disembunyikan');
-  await expect(table.getByRole('cell').nth(7)).toContainText('0 Observasi');
+  const commentsRow = table.getByRole('row').filter({ hasText: 'Komentar' });
+  const alphaCell = commentsRow.locator('td[data-label="Alpha creative"]');
+  const betaCell = commentsRow.locator('td[data-label="Beta creative"]');
+  await expect(alphaCell).toHaveText('');
+  await expect(betaCell).toContainText('0Observasi');
   await detail.getByRole('button', { name: 'Lihat field kosong' }).click();
-  await expect(table).toContainText('MISSING_METRIC');
-  await expect(table.getByRole('cell').nth(10)).toContainText('Belum tersedia');
+  await expect(alphaCell).toContainText('Belum tersedia');
+  await expect(alphaCell).toContainText('MISSING_METRIC');
+  await expect(betaCell).toContainText('0Observasi');
 });
+
 for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 }]) test(`review list, detail, and decision viewport ${viewport.width}`, async ({ page }) => {
   await page.setViewportSize(viewport);
   await api(page);
@@ -256,12 +325,20 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
   await page.screenshot({ path: `/tmp/cic-pr34-review-sticky-${viewport.width}.png` });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   const group = detail.getByRole('table').first();
+  if (viewport.width < 850) {
+    await expect(group.locator('.snapshot-metric-name').first()).toHaveCSS('white-space', 'nowrap');
+    await expect(group.locator('.snapshot-metric-name').first()).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(viewport.width);
+    await expect(group.locator('.metric-data-row').first().locator('.snapshot-mobile-values')).toContainText('Alpha creative: 236 Observasi · Beta creative: 192 Observasi');
+    await expect(group.locator('.metric-data-row').first().locator('td').first()).toBeHidden();
+    await expect(group.locator('.metric-data-row').first().locator('td').nth(1)).toBeHidden();
+  }
   await expect(group).toContainText('12,71%');
   await expect(group).toContainText('9,90%');
   await expect(group).toContainText('2,82 poin persentase');
   await expect(detail.locator('article.evidence-source')).toHaveCount(2);
-  const extracted = detail.locator('article.evidence-source').filter({ hasText: 'EXTRACTED cta_type: soft sell' });
-  await expect(extracted).toContainText('Nilai sumber saat ini: AI soft sell; hasil review direct pitch');
+  const extracted = detail.locator('article.evidence-source').filter({ hasText: 'cta_type' });
+  await expect(extracted).toContainText('Nilai sumber terkini: AI soft sell; hasil review direct pitch (Dikoreksi)');
   await expect(extracted).toContainText('Evidence tersimpan tetap menjadi basis hipotesis.');
   await detail.locator('details.evidence-features > summary').click();
   await expect(extracted.locator('a[href$="#content-feature-cta"]')).toBeVisible();

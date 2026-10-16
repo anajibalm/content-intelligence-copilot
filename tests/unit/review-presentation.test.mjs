@@ -1,9 +1,29 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { classifyHypothesisNote, comparisonChecklist, groupHypotheses, formatMetricId, formatDateTimeId, presentStatement, statementSegments, summarizeStatement } from '../../lib/hypothesis/presentation.ts';
+import { classifyHypothesisNote, comparisonChecklist, engagementCalculation, groupFeatureEvidence, groupHypotheses, formatMetricId, formatDateTimeId, presentStatement, statementSegments, summarizeStatement } from '../../lib/hypothesis/presentation.ts';
 
 const make = (id, contentIds, statement, createdAt = '2026-10-01T00:00:00Z') => ({ id, batchId: 'batch', contentIds, statement, confidence: 'LOW', reviewDecision: null, reviewedStatement: null, createdAt, evidenceCount: 2 });
 
+test('derives engagement display only from complete valid metrics-v2 snapshot inputs', () => {
+  const raw = { likes: 27, comments: 0, shares: 2, saves: 1, views: 236 };
+  const qualities = Object.fromEntries(Object.keys(raw).map((key) => [key, { state: 'VALID' }]));
+  assert.deepEqual(engagementCalculation(raw, qualities, 30 / 236, 'metrics-v2'), { interactions: 30, views: 236, value: 30 / 236 });
+  assert.equal(engagementCalculation(raw, qualities, 30 / 236, 'metrics-v1'), null);
+  assert.equal(engagementCalculation(raw, { ...qualities, comments: { state: 'UNAVAILABLE' } }, 30 / 236, 'metrics-v2'), null);
+  assert.equal(engagementCalculation({ ...raw, views: 0 }, qualities, null, 'metrics-v2'), null);
+  assert.equal(engagementCalculation(raw, qualities, 0.127, 'metrics-v2'), null);
+});
+
+test('groups feature evidence by exact content and field, without collapsing different fields', () => {
+  const items = [
+    { id: 'frozen', content_id: 'a', source_id: 'old', basis: { fieldName: 'format', aiValue: 'A', reviewState: 'UNREVIEWED' } },
+    { id: 'current', content_id: 'a', source_id: 'new', basis: { fieldName: 'format', aiValue: 'A', reviewState: 'CORRECTED' } },
+    { id: 'other', content_id: 'b', source_id: 'other', basis: { fieldName: 'format' } },
+    { id: 'field', content_id: 'a', source_id: 'field', basis: { fieldName: 'opening_style' } },
+  ];
+  const groups = groupFeatureEvidence(items);
+  assert.deepEqual(groups.map((group) => group.map((item) => item.id)), [['frozen', 'current'], ['other'], ['field']]);
+});
 test('groups only identical canonical content sets and selects stable representative', () => {
   const groups = groupHypotheses([make('b', ['z', 'a'], 'claim B'), make('a', ['a', 'z'], 'claim A'), make('c', ['a'], 'claim C')]);
   const pair = groups.find((group) => group.contentIds.length === 2);

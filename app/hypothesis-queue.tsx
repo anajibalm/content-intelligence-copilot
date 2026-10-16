@@ -7,7 +7,7 @@ import { HypothesisReviewControls } from './review-panel';
 import { S10Panel } from './s10-panel';
 import { KeyValueView } from './key-value-view';
 import { labelId } from '../lib/workspace/labels-id.ts';
-import { classifyHypothesisNote, comparisonChecklist, formatDateTimeId, formatMetricId, groupHypotheses, parseSnapshotStatement, presentStatement, snapshotTimeDelta, statementSegments, summarizeStatement, type QueueHypothesis } from '../lib/hypothesis/presentation.ts';
+import { classifyHypothesisNote, comparisonChecklist, engagementCalculation, formatDateTimeId, formatMetricId, groupFeatureEvidence, groupHypotheses, parseSnapshotStatement, presentStatement, snapshotTimeDelta, statementSegments, summarizeStatement, type QueueHypothesis } from '../lib/hypothesis/presentation.ts';
 
 type QueueItem = QueueHypothesis & { comparisons?: Array<{ comparison_id: string; role: string }> };
 type ContentSummary = { id: string; title: string | null; externalId: string; snapshots?: Array<{ id: string; distribution: string; capturedAt?: string; source?: string | null; rawMetrics: Record<string, number | null>; derivedMetrics?: { engagement_rate?: { value: number | null } }; qualityByMetric?: Record<string, { state: string; reason: string | null }> }> };
@@ -38,7 +38,14 @@ function snapshotValue(group: { rows: Evidence[] }, metric: string) {
   const entry = derived ? snapshot.derivedMetrics[metric] : snapshot.raw[metric];
   const value = entry && typeof entry === 'object' ? entry.value : entry;
   const quality = snapshot.qualities[metric];
-  return { value: typeof value === 'number' ? value : null, quality: quality && typeof quality.state === 'string' ? quality : null, layer: derived ? 'DERIVED' : 'OBSERVED' };
+  const formulaVersion = snapshot.basis.formulaVersion;
+  const calculation = derived ? engagementCalculation(
+    Object.fromEntries(Object.entries(snapshot.raw).map(([key, raw]) => [key, raw && typeof raw === 'object' ? raw.value ?? null : raw])) as Record<string, number | null>,
+    snapshot.qualities,
+    typeof value === 'number' ? value : null,
+    formulaVersion,
+  ) : null;
+  return { value: typeof value === 'number' ? value : null, quality: quality && typeof quality.state === 'string' ? quality : null, layer: derived ? 'DERIVED' : 'OBSERVED', calculation, formulaVersion };
 }
 function QueueClaim({ statement, contentIds, contents }: { statement: string; contentIds: string[]; contents: ContentSummary[] }) {
   const names = new Map<string, string>();
@@ -83,20 +90,75 @@ function HypothesisDetail({ batchId, hypothesisId, contents, onReviewed, onBack 
   const metricNames: Record<string, string> = { views: 'Tayangan', likes: 'Suka', saves: 'Simpan', shares: 'Bagikan', comments: 'Komentar', engagement_rate: 'Engagement rate' };
   const metricRows = Object.keys(metricNames);
   const missingMetrics = snapshots.reduce((count, group) => count + metricRows.filter((metric) => snapshotValue(group, metric).value === null).length, 0);
-  const visibleMetricRows = metricRows;
+  const visibleMetricRows = metricRows.filter((metric) => showNullMetrics || snapshots.some((group) => snapshotValue(group, metric).value !== null));
   const allMetricsValid = snapshots.length > 0 && snapshots.every((group) => metricRows.every((metric) => snapshotValue(group, metric).quality?.state === 'VALID'));
   const originTimes = [...(evidence ?? []).filter((item) => item.source_type === 'METRIC_SNAPSHOT' && item.basis?.sourceSnapshotId).reduce((map, item) => map.set(String(item.basis?.sourceSnapshotId), typeof item.basis?.capturedAt === 'string' ? item.basis.capturedAt : null), new Map<string, string | null>())];
   const timeDelta = snapshotTimeDelta(originTimes.map(([, value]) => value));
   const metricRates = snapshots.map((group) => snapshotValue(group, 'engagement_rate'));
   const metricDelta = metricRates.length === 2 && metricRates.every((metric) => metric.value !== null && metric.quality?.state === 'VALID') ? Math.abs(metricRates[0].value! - metricRates[1].value!) * 100 : null;
-  const statement = result ? statementSegments(result.statement) : null
+  const statement = result ? statementSegments(result.statement) : null;
   const presentation = result && statement ? statement.segments.map((segment) => ({ layer: segment.layer, ...presentStatement(segment.text, contentNames) })) : null
   const checklist = comparison ? comparisonChecklist(comparison, byContent.size) : null;
   return <section className="hypothesis-detail" aria-label="Detail hipotesis" data-hypothesis-id={hypothesisId}>
     <button className="secondary review-back" type="button" onClick={onBack}>Kembali ke antrean</button>
     {error ? <div role="alert"><p className="error-state">{error}</p><button className="secondary" type="button" onClick={() => { setError(null); setVersion((value) => value + 1); }}>Coba lagi detail</button></div> : !result ? <p role="status">Memuat detail hipotesis…</p> : <>
       <div className="hypothesis-claim"><p className="eyebrow">Klaim asli, tanpa perubahan</p>{presentation && <div className="statement-presentation">{presentation.map((part, segmentIndex) => <span className="statement-segment" key={segmentIndex}>{part.layer && <span className="ontology-chip">{labelId(part.layer)}</span>}<span>{part.segments.map((segment) => segment.text).join('')}</span>{part.unknown.length > 0 && <span className="unknown-id-warning" role="status">⚠ ID tidak dikenal: {part.unknown.join(', ')}</span>}</span>)}</div>}<p className="hypothesis-confidence">Confidence {labelId(result.confidence)}</p><p className="muted">Confidence ditetapkan engine dari bukti dan batas yang berlaku; kualitas perbandingan ditampilkan terpisah.</p></div>
-      <section className="hypothesis-evidence" aria-labelledby="evidence-heading"><h3 id="evidence-heading">Bukti terhubung</h3>{snapshots.length === 0 ? <p className="muted">Snapshot metrik tidak dirujuk sebagai bukti hipotesis.</p> : <>{allMetricsValid && <p className="muted">Semua metrik valid.</p>}{missingMetrics > 0 && <p className="muted">{missingMetrics} field kosong disembunyikan. <button className="secondary" type="button" aria-expanded={showNullMetrics} onClick={() => setShowNullMetrics((current) => !current)}>{showNullMetrics ? 'Sembunyikan field kosong' : 'Lihat field kosong'}</button></p>}<table className="snapshot-table"><thead><tr><th scope="col">Metrik</th>{snapshots.map((group) => <th scope="col" key={group.snapshotId}>{contentNames.get(group.contentId) ?? `TikTok ${group.contentId.slice(0, 8)}`}</th>)}</tr></thead><tbody>{visibleMetricRows.map((metric) => <tr key={metric}><th scope="row">{metricNames[metric]}</th>{snapshots.map((group) => { const metricValue = snapshotValue(group, metric); const label = contentNames.get(group.contentId) ?? `TikTok ${group.contentId.slice(0, 8)}`; const hideNull = metricValue.value === null && !showNullMetrics; return <td key={group.snapshotId} data-label={label}>{hideNull ? 'Disembunyikan' : metricValue.value === null ? 'Belum tersedia' : formatMetricId(metricValue.value, metric)} {!hideNull && <><span className="ontology-chip">{labelId(metricValue.layer)}</span>{metricValue.quality?.state === 'VALID' && metricValue.value !== null ? null : <span>{labelId(metricValue.quality?.state ?? 'UNAVAILABLE')}{metricValue.quality?.reason ? ` · ${labelId(metricValue.quality.reason)}` : ''}</span>}</>}</td>; })}</tr>)}{metricDelta !== null && <tr><th scope="row">Selisih engagement rate</th><td colSpan={2} data-label="Delta dari snapshot beku">{formatMetricId(metricDelta, 'number')} poin persentase · dihitung dari nilai snapshot sebelum pembulatan</td></tr>}<tr><th scope="row">Sumber & waktu</th>{snapshots.map((group) => { const { basis, observed, derived } = snapshotEvidence(group); const source = String(basis.source ?? 'Sumber tidak tersedia'); const label = contentNames.get(group.contentId) ?? `TikTok ${group.contentId.slice(0, 8)}`; return <td key={group.snapshotId} data-label={label}>TikTok · {labelId(String(basis.distribution ?? 'Distribusi tidak tersedia'))} · {formatDateTimeId(typeof basis.capturedAt === 'string' ? basis.capturedAt : null)} {/(?:demo|unverified|asumsi|belum diverifikasi)/i.test(source) && <strong className="source-warning">Belum diverifikasi</strong>}<br />{[observed, derived].filter((item) => item?.link).map((item) => <a className="source-link" href={item!.link!} key={item!.id}>Buka {labelId(item!.layer)} exact</a>)}</td>; })}</tr></tbody></table></>}{timeDelta !== null && timeDelta > 3_600_000 && <p className="snapshot-time-warning">Selisih waktu snapshot lebih dari 1 jam: {formatMetricId(timeDelta / 3_600_000, 'awt_seconds').replace(' dtk', ' jam')}</p>}{(evidence ?? []).some((item) => item.source_type !== 'METRIC_SNAPSHOT') && <details className="evidence-features"><summary>Ekstraksi AI · {(evidence ?? []).filter((item) => item.source_type !== 'METRIC_SNAPSHOT').length} bukti</summary>{(evidence ?? []).filter((item) => item.source_type !== 'METRIC_SNAPSHOT').map((item) => <article className="evidence-source" key={item.id}><strong>{labelId(item.layer)} · {contentNames.get(item.content_id) ?? 'Konten tidak dikenal'} · {labelId(item.role)}</strong><p>{statementSegments(item.statement).statement}</p>{item.currentSource && <p>Nilai sumber saat ini: AI {item.currentSource.aiValue ?? 'Belum tersedia'}; hasil review {item.currentSource.reviewedValue ?? 'Belum tersedia'} ({labelId(item.currentSource.reviewState ?? 'UNAVAILABLE')}). Evidence tersimpan tetap menjadi basis hipotesis.</p>}{item.link && <a href={item.link}>Buka sumber exact</a>}<details><summary>Basis bukti</summary><KeyValueView value={item.basis ?? item} /></details></article>)}</details>}</section>
+      <section className="hypothesis-evidence" aria-labelledby="evidence-heading">
+        <h3 id="evidence-heading">Bukti terhubung</h3>
+        {snapshots.length === 0 ? <p className="muted">Snapshot metrik tidak dirujuk sebagai bukti hipotesis.</p> : <>
+          {allMetricsValid && <p className="muted">Semua metrik valid.</p>}
+          {missingMetrics > 0 && <p className="muted">{missingMetrics} field kosong disembunyikan. <button className="secondary" type="button" aria-expanded={showNullMetrics} onClick={() => setShowNullMetrics((current) => !current)}>{showNullMetrics ? 'Sembunyikan field kosong' : 'Lihat field kosong'}</button></p>}
+          <table className="snapshot-table">
+            <thead><tr><th scope="col">Metrik</th>{snapshots.map((group) => <th scope="col" key={group.snapshotId}>{contentNames.get(group.contentId) ?? `TikTok ${group.contentId.slice(0, 8)}`}</th>)}</tr></thead>
+            <tbody>
+              {visibleMetricRows.map((metric) => <tr className="metric-data-row" key={metric}>
+                <th scope="row"><span className="snapshot-metric-name">{metricNames[metric]}</span><span className="snapshot-mobile-values">{snapshots.map((group, index) => {
+                  const metricValue = snapshotValue(group, metric);
+                  const label = contentNames.get(group.contentId) ?? `TikTok ${group.contentId.slice(0, 8)}`;
+                  const hideNull = metricValue.value === null && !showNullMetrics;
+                  return <span key={group.snapshotId}>{index > 0 && ' · '}{label}: {hideNull ? null : metricValue.value === null ? 'Belum tersedia' : <>{formatMetricId(metricValue.value, metric)} <span className="ontology-chip">{labelId(metricValue.layer)}</span></>}</span>;
+                })}</span></th>
+                {snapshots.map((group) => {
+                  const metricValue = snapshotValue(group, metric);
+                  const label = contentNames.get(group.contentId) ?? `TikTok ${group.contentId.slice(0, 8)}`;
+                  const hideNull = metricValue.value === null && !showNullMetrics;
+                  return <td key={group.snapshotId} data-label={label}>
+                    {!hideNull && (metricValue.value === null ? 'Belum tersedia' : formatMetricId(metricValue.value, metric))}
+                    {!hideNull && <><span className="ontology-chip">{labelId(metricValue.layer)}</span>{metricValue.quality?.state === 'VALID' && metricValue.value !== null ? null : <span>{labelId(metricValue.quality?.state ?? 'UNAVAILABLE')}{metricValue.quality?.reason ? ` · ${labelId(metricValue.quality.reason)}` : ''}</span>}{metric === 'engagement_rate' && metricValue.calculation && <p>Rumus metrics-v2: {metricValue.calculation.interactions} ÷ {metricValue.calculation.views} = {formatMetricId(metricValue.calculation.value, metric)}</p>}</>}
+                  </td>;
+                })}
+              </tr>)}
+              {metricDelta !== null && <tr><th scope="row">Selisih engagement rate</th><td colSpan={2} data-label="Delta dari snapshot beku">{formatMetricId(metricDelta, 'number')} poin persentase · dihitung dari nilai snapshot sebelum pembulatan</td></tr>}
+              <tr><th scope="row">Sumber & waktu</th>{snapshots.map((group) => {
+                const { basis, observed, derived } = snapshotEvidence(group);
+                const source = String(basis.source ?? 'Sumber tidak tersedia');
+                const label = contentNames.get(group.contentId) ?? `TikTok ${group.contentId.slice(0, 8)}`;
+                return <td key={group.snapshotId} data-label={label}>TikTok · {labelId(String(basis.distribution ?? 'Distribusi tidak tersedia'))} · {formatDateTimeId(typeof basis.capturedAt === 'string' ? basis.capturedAt : null)} {/(?:demo|unverified|asumsi|belum diverifikasi)/i.test(source) && <strong className="source-warning">Belum diverifikasi</strong>}<br />{[observed, derived].filter((item) => item?.link).map((item) => <a className="source-link" href={item!.link!} key={item!.id}>Buka {labelId(item!.layer)} exact</a>)}</td>;
+              })}</tr>
+            </tbody>
+          </table>
+        </>}
+        {timeDelta !== null && timeDelta > 3_600_000 && <p className="snapshot-time-warning">Selisih waktu snapshot lebih dari 1 jam: {formatMetricId(timeDelta / 3_600_000, 'awt_seconds').replace(' dtk', ' jam')}</p>}
+        {(evidence ?? []).some((item) => item.source_type !== 'METRIC_SNAPSHOT') && <details className="evidence-features">
+          <summary>Ekstraksi AI · {(evidence ?? []).filter((item) => item.source_type !== 'METRIC_SNAPSHOT').length} bukti</summary>
+          {(evidence ?? []).filter((item) => item.source_type !== 'METRIC_SNAPSHOT' && item.source_type !== 'CONTENT_FEATURE').map((item) => <article className="evidence-source" key={item.id}><strong>{labelId(item.layer)} · {contentNames.get(item.content_id) ?? 'Konten tidak dikenal'} · {labelId(item.role)}</strong><p>{statementSegments(item.statement).statement}</p>{item.link && <a href={item.link}>Buka sumber exact</a>}<details><summary>Basis bukti</summary><KeyValueView value={item.basis ?? item} /></details></article>)}
+          {groupFeatureEvidence((evidence ?? []).filter((item) => item.source_type === 'CONTENT_FEATURE')).map((group) => {
+            const first = group[0];
+            const label = contentNames.get(first.content_id) ?? 'Konten tidak dikenal';
+            const field = String(first.basis?.fieldName ?? first.source_id);
+            const currentValues = [...new Set(group.map((item) => JSON.stringify(item.currentSource)).filter((value) => value !== 'null' && value !== undefined))].map((value) => JSON.parse(value!)) as NonNullable<Evidence['currentSource']>[];
+            const frozenValues = [...new Set(group.map((item) => String(item.basis?.aiValue ?? statementSegments(item.statement).statement)))];
+            return <article className="evidence-source" key={`${first.content_id}:${field}`}>
+              <strong>{labelId(first.layer)} · {label} · {labelId(first.role)} · {labelId(field)}</strong>
+              {frozenValues.map((value) => <p key={value}>Basis saat hipotesis dibuat: {value}</p>)}
+              {currentValues.map((value) => value.aiValue === value.reviewedValue ? <p key={JSON.stringify(value)}>Nilai sumber terkini: {value.aiValue ?? 'Belum tersedia'} ({labelId(value.reviewState ?? 'UNAVAILABLE')})</p> : <p key={JSON.stringify(value)}>Nilai sumber terkini: AI {value.aiValue ?? 'Belum tersedia'}; hasil review {value.reviewedValue ?? 'Belum tersedia'} ({labelId(value.reviewState ?? 'UNAVAILABLE')})</p>)}
+              <p>Evidence tersimpan tetap menjadi basis hipotesis.</p>
+              {group.map((item) => item.link && <a key={item.id} href={item.link}>Buka sumber exact</a>)}
+              <details><summary>Basis bukti dan provenance</summary><KeyValueView value={group.map((item) => ({ id: item.id, layer: item.layer, source_type: item.source_type, source_id: item.source_id, statement: item.statement, basis: item.basis, currentSource: item.currentSource, role: item.role }))} /></details>
+            </article>;
+          })}
+        </details>}
+      </section>
       {checklist && <section className="comparison-checks"><h3>Kriteria perbandingan</h3><ul>{checklist.checks.map((item) => <li key={item.label}><strong>{item.label}:</strong> {item.value}</li>)}</ul>{checklist.reasons.length > 0 && <details><summary>Alasan engine</summary><ul>{checklist.reasons.map((reason) => <li key={reason}>{reason}</li>)}</ul></details>}</section>}
       <details className="hypothesis-technical"><summary>Detail teknis</summary><p className="preserve-text">{result.statement}</p><KeyValueView value={{ id: result.id, batchId: result.batchId, state: result.state, confidence: result.confidence, confidenceCaps: result.confidenceCaps, comparisons: result.comparisons, provider: result.provider, model: result.model, promptVersion: result.promptVersion, schemaVersion: result.schemaVersion, ruleVersion: result.ruleVersion, inputHash: result.inputHash, rawOutput: result.rawOutput, evidence }} /><button className="secondary" type="button" onClick={async () => { try { await navigator.clipboard.writeText(JSON.stringify({ id: result.id, statement: result.statement, evidence }, null, 2)); setCopyMessage('Detail tersalin'); } catch { setCopyMessage('Gagal menyalin detail'); } }}>{copyMessage === 'Detail tersalin' ? 'Detail tersalin' : 'Salin detail teknis'}</button><p role="status">{copyMessage}</p></details>
       <details className="s10-disclosure"><summary>Catatan dan rencana uji</summary><p className="muted">ⓘ Catatan memberi konteks manusia; status rencana bukan hasil hipotesis.</p><S10Panel hypothesisId={result.id} targetBatchId={result.batchId} /></details>

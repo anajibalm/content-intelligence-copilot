@@ -1,4 +1,25 @@
 export type QueueHypothesis = { id: string; batchId: string; statement: string; confidence: string; reviewDecision: string | null; reviewedStatement: string | null; reviewedAt?: string | null; createdAt: string; contentIds: string[]; evidenceCount: number };
+export function engagementCalculation(raw: Record<string, number | null>, qualities: Record<string, { state?: string }>, derivedValue: number | null, formulaVersion: unknown) {
+  const inputs = ['likes', 'comments', 'shares', 'saves', 'views'] as const;
+  if (formulaVersion !== 'metrics-v2' || inputs.some((key) => qualities[key]?.state !== 'VALID' || typeof raw[key] !== 'number') || raw.views! <= 0) return null;
+  const interactions = raw.likes! + raw.comments! + raw.shares! + raw.saves!;
+  const value = interactions / raw.views!;
+  return value === derivedValue ? { interactions, views: raw.views!, value } : null;
+}
+
+export function groupFeatureEvidence<T extends { content_id: string; source_id: string; statement?: string; basis?: Record<string, unknown> }>(items: T[]) {
+  const groups = new Map<string, T[]>();
+  for (const item of items) {
+    const statementField = /^EXTRACTED\s+([^:]+):/i.exec(item.statement ?? '')?.[1]?.trim();
+    const fieldName = typeof item.basis?.fieldName === 'string' ? item.basis.fieldName : statementField ?? item.source_id;
+    const key = `${item.content_id}:${fieldName}`;
+    const group = groups.get(key) ?? [];
+    group.push(item);
+    groups.set(key, group);
+  }
+  return [...groups.values()];
+}
+
 export type QueueGroup = { key: string; contentIds: string[]; representative: QueueHypothesis; variants: QueueHypothesis[]; hypothesisCount: number };
 
 const UUID_LIKE = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f-]{3,5}-[0-9a-f-]{8,14}/gi
