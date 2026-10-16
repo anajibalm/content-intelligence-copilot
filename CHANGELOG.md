@@ -25,6 +25,7 @@ dan proyek ini mengikuti [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 ### Changed
 - Batch, Library, Compare, dan Review memiliki tugas terpisah; hasil generation membuka Review tanpa menyalin form review.
 - Label Indonesia terpusat, fingerprint AI asli/hasil review berdampingan, history append-only ringkas, form Next Test terlipat, serta mobile tanpa page overflow.
+- Review hipotesis merangkum antrean per pasangan konten, menampilkan snapshot bukti berdampingan, metadata sumber/waktu, dan layout keputusan yang diuji pada desktop/mobile.
 - Notes dan draft review terikat hipotesis saat navigasi biasa; evidence mempertahankan exact source anchors dan artefak historis.
 - `.gitignore` — ignore `*.tsbuildinfo`, `_bmad/`, `_bmad-output/`
 

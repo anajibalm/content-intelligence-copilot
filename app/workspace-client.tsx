@@ -270,7 +270,7 @@ export default function WorkspaceClient() {
       <div hidden={view !== 'compare'}>
       <HypothesisPanel key={`${data.selectedBatch.id}:${comparisonId ?? "none"}`} batchId={data.selectedBatch.id} comparisonId={comparisonId} onReview={openReview} onGenerated={() => setQueueRevision((value) => value + 1)} />
       </div>
-      <div hidden={view !== 'review'}><HypothesisQueue key={batchId ?? data.selectedBatch.id} batchId={batchId ?? data.selectedBatch.id} hypothesisId={hypothesisId} onSelect={openReview} revision={queueRevision} /></div>
+      <div hidden={view !== 'review'}><HypothesisQueue key={batchId ?? data.selectedBatch.id} batchId={batchId ?? data.selectedBatch.id} hypothesisId={hypothesisId} onSelect={openReview} revision={queueRevision} contents={data.contents} /></div>
       <div className="workspace-columns" hidden={view !== 'library'}>
         <section className="content-list" aria-labelledby="contents-heading"><div className="section-heading"><h2 id="contents-heading">Daftar konten</h2><span className="status">{data.contents.length} anggota</span></div>{data.contents.length === 0 ? <p className="empty-state">Belum ada konten pada batch ini. Tambahkan URL dari Batch.</p> : <div className="content-rows">{data.contents.map((content) => <ContentRow key={content.id} content={content} selected={content.id === detail?.id} copiedContentId={copiedContentId} onSelect={() => setSelection(data.selectedBatch!.id, content.id)} onCopy={copyExternalId} />)}</div>}</section>
         <section className="content-detail" aria-labelledby="detail-heading">
