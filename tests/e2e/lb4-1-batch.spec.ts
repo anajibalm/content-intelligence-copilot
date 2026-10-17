@@ -3,12 +3,14 @@ import fixture from './fixtures/workspace.json';
 
 const batchA = fixture.batches[0];
 const batchB = fixture.batches[1];
-const baseA = fixture.contentsByBatch[batchA.id as keyof typeof fixture.contentsByBatch];
-const baseB = fixture.contentsByBatch[batchB.id as keyof typeof fixture.contentsByBatch];
+const baseA = fixture.contentsByBatch[batchA.id as keyof typeof fixture.contentsByBatch].map((content) => ({ ...content, hasFrameEvidence: false }));
+const baseB = fixture.contentsByBatch[batchB.id as keyof typeof fixture.contentsByBatch].map((content) => ({ ...content, hasFrameEvidence: false }));
 
 // Batches list keeps existing IDs/order; only batch A count is raised to the 12-member scenario.
 const batches = fixture.batches.map((batch) => batch.id === batchA.id ? { ...batch, contentCount: 12 } : batch);
 const emptyBatch = { ...batchA, id: '00000000-0000-4000-8000-0000000000ff', name: 'Synthetic E2E Batch Kosong', contentCount: 0, contractedVideoCount: 0 };
+const organicBatch = { ...batchA, id: '00000000-0000-4000-8000-0000000000fe', name: 'Synthetic E2E Batch Organik', contentCount: 2, contractedVideoCount: 2 };
+const organicOnlyContents = [{ ...structuredClone(baseA[0]), snapshots: structuredClone(baseA[0].snapshots.filter((snapshot) => snapshot.distribution === 'ORGANIC')), hasFrameEvidence: true }, { ...structuredClone(baseA[1]), id: '10000000-0000-4000-8000-0000000000fd', externalId: 'e2e-frame-missing', snapshots: structuredClone(baseA[1].snapshots.filter((snapshot) => snapshot.distribution === 'ORGANIC')), hasFrameEvidence: false }];
 
 const ids = {
   failed: baseA[0].id,
@@ -137,11 +139,11 @@ async function installApi(page: Page) {
     const url = new URL(route.request().url());
     if (url.pathname === '/api/workspace') {
       const batchId = url.searchParams.get('batchId');
-      const batch = [emptyBatch, ...batches].find((item) => item.id === batchId) ?? batchA;
-      const contents = batch.id === emptyBatch.id ? [] : batch.id === batchB.id ? buildContentsB() : buildContentsA();
+      const batch = [emptyBatch, organicBatch, ...batches].find((item) => item.id === batchId) ?? batchA;
+      const contents = batch.id === emptyBatch.id ? [] : batch.id === organicBatch.id ? organicOnlyContents : batch.id === batchB.id ? buildContentsB() : buildContentsA();
       const content = contents.find((item) => item.id === url.searchParams.get('contentId')) ?? contents[0];
       return route.fulfill({ json: {
-        batches: [emptyBatch, ...batches],
+        batches: [emptyBatch, organicBatch, ...batches],
         selectedBatch: batch,
         contents,
         synthetic: true,
@@ -191,13 +193,13 @@ test('AC-02 membership counts differ from job ledger and stay honest on load/err
   await expect(summary).toContainText('1 aktif');
   await expect(summary).toContainText('1 gagal');
   await expect(members.locator('.content-row')).toHaveCount(12);
-  await expect(page.getByLabel('Status processing batch')).toContainText('8 job pada ledger processing');
+  await expect(page.locator('.processing-drawer > summary')).toContainText('8 job · 1 aktif · 1 gagal');
   await page.getByLabel('Pilih batch').selectOption(emptyBatch.id);
   await expect(summary).toContainText('0 anggota konten');
   await expect(summary).toContainText('0 job');
   api.failStatus();
   await page.getByLabel('Pilih batch').selectOption(batchA.id);
-  await expect(page.getByText(/attempt 1\/3/)).toBeVisible();
+  await expect(page.locator('.processing-drawer [role="alert"]')).toContainText(/attempt 1\/3/);
   await expect(summary).not.toContainText('job processing');
   await expect(summary).toContainText('status job gagal dimuat');
 });
@@ -210,12 +212,16 @@ test('AC-03 null-title identity, mono IDs, copy, and open in Library', async ({ 
   const first = members.locator('.content-row').first();
   await expect(first.getByRole('button').first()).toContainText(FULL_A);
   await expect(first.locator('code')).toHaveCount(0);
-  await expect(first).toContainText('Frame belum tersedia');
+  await expect(first).toContainText('Cek');
   const second = members.locator('.content-row').nth(1);
   await expect(second.getByRole('button').first()).toContainText(FULL_B);
   await expect(second.locator('code')).toHaveCount(0);
+  await expect(first.getByRole('button', { name: `Salin ID ${FULL_A}` })).toBeHidden();
+  await first.hover();
+  await expect(first.getByRole('button', { name: `Salin ID ${FULL_A}` })).toBeVisible();
   await first.getByRole('button', { name: `Salin ID ${FULL_A}` }).click();
-  await expect(first.getByText('ID disalin', { exact: true })).toBeVisible();
+  await first.locator('.content-row-select').focus();
+  await expect(first.getByRole('button', { name: `Salin ID ${FULL_A}` })).toBeVisible();
   await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe(FULL_A);
   await expect(page).toHaveURL(new RegExp(`contentId=${ids.failed}`));
   await second.locator('.content-row-select').click();
@@ -229,9 +235,29 @@ test('AC-03b clipboard failure never claims success', async ({ page }) => {
   await installApi(page);
   await page.goto(`/?batchId=${batchA.id}&contentId=${ids.failed}&view=batch`);
   const first = page.getByRole('region', { name: 'Anggota batch' }).locator('.content-row').first();
+  await first.hover();
   await first.getByRole('button', { name: `Salin ID ${FULL_A}` }).click();
   await expect(first.getByText('ID gagal disalin', { exact: true })).toBeVisible();
   await expect(first.getByText('ID disalin', { exact: true })).toHaveCount(0);
+});
+
+test('AC-03c optional columns reflect batch evidence and anomaly badge remains explicit', async ({ page }) => {
+  await installApi(page);
+  await page.goto(`/?batchId=${batchA.id}&view=batch`);
+  const table = page.getByRole('region', { name: 'Anggota batch' }).locator('table');
+  await expect(table.getByRole('columnheader', { name: 'Iklan' })).toBeVisible();
+  await expect(table.getByRole('columnheader', { name: 'Frame' })).toHaveCount(0);
+  await expect(table.getByText('Cek').first()).toBeVisible();
+  await page.getByLabel('Pilih batch').selectOption(organicBatch.id);
+  const organicTable = page.getByRole('region', { name: 'Anggota batch' }).getByRole('table');
+  await expect(organicTable.getByRole('columnheader', { name: 'Iklan' })).toHaveCount(0);
+  await expect(organicTable.getByRole('columnheader', { name: 'Frame' })).toBeVisible();
+  const rows = organicTable.locator('tbody tr');
+  await expect(rows.nth(0)).toContainText('Frame tersedia');
+  await expect(rows.nth(1).locator('.dash')).toHaveAttribute('aria-label', 'Frame belum tersedia');
+  await expect(rows.nth(1)).not.toContainText('Frame tersedia');
+  await page.getByLabel('Pilih batch').selectOption(emptyBatch.id);
+  await expect(page.getByRole('region', { name: 'Anggota batch' }).getByRole('table')).toHaveCount(0);
 });
 
 test('AC-04 metric quality states and separate distributions', async ({ page }) => {
@@ -249,6 +275,10 @@ test('AC-04 metric quality states and separate distributions', async ({ page }) 
   await expect(zero).toContainText('Iklan: Tayangan 1100');
   await expect(zero).not.toContainText('Nilai nol belum memiliki penjelasan');
   await expect(zero).toContainText('Akuisisi Berhasil · Processing Berhasil');
+  const drawer = page.locator('.processing-drawer');
+  await expect(drawer.locator(':scope > summary')).toContainText('8 job · 1 aktif · 1 gagal');
+  await expect(drawer.locator('.processing-drawer-content')).toBeVisible();
+  expect(await drawer.locator('.processing-drawer-content').evaluate((node) => getComputedStyle(node).overflowY)).not.toBe('auto');
 });
 
 test('AC-05 failure detail without drill-in and retry POST', async ({ page }) => {
@@ -307,6 +337,7 @@ test('AC-07 readability floors and no horizontal overflow', async ({ page }) => 
     expect(metrics.every((size) => size >= 13), `metrics ${metrics.join(', ')}`).toBe(true);
     const controls = await page.locator('.copy-id, .ingest-form > .form-row button, .batch-processing button, .batch-picker select').evaluateAll((nodes) => nodes.filter((node) => node.checkVisibility()).map((node) => Number.parseFloat(getComputedStyle(node).fontSize)));
     expect(controls.every((size) => size >= 13), `controls ${controls.join(', ')}`).toBe(true);
+    await members.locator('.content-row').first().hover();
     const select = members.locator('.content-row-select').first();
     const copy = members.getByRole('button', { name: `Salin ID ${FULL_A}` });
     expect((await select.boundingBox())?.height).toBeGreaterThanOrEqual(44);
