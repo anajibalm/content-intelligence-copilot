@@ -193,7 +193,7 @@ test('AC-02 membership counts differ from job ledger and stay honest on load/err
   await expect(summary).toContainText('1 aktif');
   await expect(summary).toContainText('1 gagal');
   await expect(members.locator('.content-row')).toHaveCount(12);
-  await expect(page.locator('.processing-drawer > summary')).toContainText('8 job · 1 aktif · 1 gagal');
+  await expect(page.locator('.processing-drawer > summary')).toContainText('8 job pada ledger processing · 1 aktif · 1 gagal');
   await page.getByLabel('Pilih batch').selectOption(emptyBatch.id);
   await expect(summary).toContainText('0 anggota konten');
   await expect(summary).toContainText('0 job');
@@ -276,7 +276,7 @@ test('AC-04 metric quality states and separate distributions', async ({ page }) 
   await expect(zero).not.toContainText('Nilai nol belum memiliki penjelasan');
   await expect(zero).toContainText('Akuisisi Berhasil · Processing Berhasil');
   const drawer = page.locator('.processing-drawer');
-  await expect(drawer.locator(':scope > summary')).toContainText('8 job · 1 aktif · 1 gagal');
+  await expect(drawer.locator(':scope > summary')).toContainText('8 job pada ledger processing · 1 aktif · 1 gagal');
   await expect(drawer.locator('.processing-drawer-content')).toBeVisible();
   expect(await drawer.locator('.processing-drawer-content').evaluate((node) => getComputedStyle(node).overflowY)).not.toBe('auto');
 });
