@@ -1,20 +1,30 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import { labelId } from '../lib/workspace/labels-id.ts';
 
 type Batch = { id: string; name: string; brandId: string };
 type Note = { id: string; body: string; author: string; updatedAt: string };
 type NextTest = { id: string; variableToTest: string; variantA: string; variantB: string; controls: string; expectedResult: string; owner: string; successMetric: string; measurementWindow: string; targetBatchId: string; status: string; updatedAt: string };
 const EMPTY_TEST = { variableToTest: "", variantA: "", variantB: "", controls: "", expectedResult: "", owner: "", successMetric: "", measurementWindow: "", targetBatchId: "" };
-
 export function S10Panel({ hypothesisId, targetBatchId }: { hypothesisId: string; targetBatchId: string }) {
   const [batches, setBatches] = useState<Batch[]>([]);
   const [notes, setNotes] = useState<Note[]>([]);
   const [tests, setTests] = useState<NextTest[]>([]);
-  const [noteBody, setNoteBody] = useState("");
-  const [author, setAuthor] = useState("");
-  const [test, setTest] = useState({ ...EMPTY_TEST, targetBatchId });
+  const [draft] = useState(() => {
+    if (typeof window === 'undefined') return null;
+    try {
+      const value = JSON.parse(window.sessionStorage.getItem(`cic:s10-draft:${hypothesisId}`) ?? 'null') as { noteBody?: unknown; author?: unknown; test?: Record<string, unknown> } | null;
+      if (!value || typeof value !== 'object') return null;
+      const test = { ...EMPTY_TEST, targetBatchId };
+      for (const key of Object.keys(EMPTY_TEST) as Array<keyof typeof EMPTY_TEST>) if (key !== 'targetBatchId' && typeof value.test?.[key] === 'string') test[key] = value.test[key] as string;
+      if (typeof value.test?.targetBatchId === 'string') test.targetBatchId = value.test.targetBatchId;
+      return { noteBody: typeof value.noteBody === 'string' ? value.noteBody : '', author: typeof value.author === 'string' ? value.author : '', test };
+    } catch { return null; }
+  });
+  const [noteBody, setNoteBody] = useState(draft?.noteBody ?? '');
+  const [author, setAuthor] = useState(draft?.author ?? '');
+  const [test, setTest] = useState(draft?.test ?? { ...EMPTY_TEST, targetBatchId });
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [editingNote, setEditingNote] = useState<string | null>(null);
@@ -27,6 +37,10 @@ export function S10Panel({ hypothesisId, targetBatchId }: { hypothesisId: string
     if (!response.ok) throw new Error(body.error ?? "S10 data unavailable");
     setBatches(body.batches ?? []); setNotes(body.notes ?? []); setTests(body.nextTests ?? []);
   }
+  useLayoutEffect(() => {
+    try { window.sessionStorage.setItem(`cic:s10-draft:${hypothesisId}`, JSON.stringify({ noteBody, author, test })); }
+    catch { console.error('S10 draft could not be saved to sessionStorage'); }
+  }, [author, hypothesisId, noteBody, test]);
   useEffect(() => {
     let active = true;
     fetch(`/api/hypotheses/${hypothesisId}/s10`).then(async (response) => {
@@ -43,7 +57,7 @@ export function S10Panel({ hypothesisId, targetBatchId }: { hypothesisId: string
       const response = await fetch(url, { method: editingNote ? "PATCH" : "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(editingNote ? { body: noteBody, author } : { kind: "NOTE", body: noteBody, author }) });
       const body = await response.json() as { error?: string };
       if (!response.ok) throw new Error(body.error ?? "note save failed");
-      setNoteBody(""); setEditingNote(null); await load();
+      setNoteBody(''); setEditingNote(null); window.sessionStorage.removeItem(`cic:s10-draft:${hypothesisId}`); await load();
     } catch (reason) { setError(reason instanceof Error ? reason.message : "note save failed"); } finally { setPending(false); }
   }
   async function saveTest() {
@@ -54,7 +68,7 @@ export function S10Panel({ hypothesisId, targetBatchId }: { hypothesisId: string
       const response = await fetch(url, { method: editingTest ? "PATCH" : "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload) });
       const body = await response.json() as { error?: string };
       if (!response.ok) throw new Error(body.error ?? "Next Test save failed");
-      setTest({ ...EMPTY_TEST, targetBatchId }); setEditingTest(null); await load();
+      setTest({ ...EMPTY_TEST, targetBatchId }); setEditingTest(null); window.sessionStorage.removeItem(`cic:s10-draft:${hypothesisId}`); await load();
     } catch (reason) { setError(reason instanceof Error ? reason.message : "Next Test save failed"); } finally { setPending(false); }
   }
   function editNote(note: Note) { setEditingNote(note.id); setNoteBody(note.body); setAuthor(note.author); }
