@@ -73,6 +73,16 @@ test('keeps original statement and separates every ontology prefix without guess
   ]);
   assert.deepEqual(statementSegments('Narrative without ontology prefix').segments, [{ layer: null, text: 'Narrative without ontology prefix' }]);
 });
+test('keeps three typed ontology segments in source order and preserves original statement', () => {
+  const original = 'OBSERVED: A. DERIVED: B. INFERRED: C.';
+  const parsed = statementSegments(original);
+  assert.equal(parsed.statement, original);
+  assert.deepEqual(parsed.segments, [
+    { layer: 'OBSERVED', text: 'A. ' },
+    { layer: 'DERIVED', text: 'B. ' },
+    { layer: 'INFERRED', text: 'C.' },
+  ]);
+});
 
 test('flags malformed UUID-like reference without rewriting token', () => {
   const malformed = '99962fb3-edd3-4448-8cc4-999b4c06ce87';

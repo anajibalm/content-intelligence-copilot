@@ -8,6 +8,7 @@ import { S10Panel } from './s10-panel';
 import { KeyValueView } from './key-value-view';
 import { labelId } from '../lib/workspace/labels-id.ts';
 import { classifyHypothesisNote, comparisonChecklist, engagementCalculation, formatDateTimeId, formatMetricId, groupFeatureEvidence, groupHypotheses, parseSnapshotStatement, presentStatement, snapshotTimeDelta, statementSegments, summarizeStatement, type QueueHypothesis } from '../lib/hypothesis/presentation.ts';
+import { ClaimSummary } from './claim-summary';
 
 type QueueItem = QueueHypothesis & { comparisons?: Array<{ comparison_id: string; role: string }> };
 type ContentSummary = { id: string; title: string | null; externalId: string; snapshots?: Array<{ id: string; distribution: string; capturedAt?: string; source?: string | null; rawMetrics: Record<string, number | null>; derivedMetrics?: { engagement_rate?: { value: number | null } }; qualityByMetric?: Record<string, { state: string; reason: string | null }> }> };
@@ -47,6 +48,7 @@ function snapshotValue(group: { rows: Evidence[] }, metric: string) {
   ) : null;
   return { value: typeof value === 'number' ? value : null, quality: quality && typeof quality.state === 'string' ? quality : null, layer: derived ? 'DERIVED' : 'OBSERVED', calculation, formulaVersion };
 }
+
 function QueueClaim({ statement, contentIds, contents }: { statement: string; contentIds: string[]; contents: ContentSummary[] }) {
   const names = new Map<string, string>();
   for (const id of contentIds) {
@@ -98,14 +100,14 @@ function HypothesisDetail({ batchId, hypothesisId, contents, onReviewed, onBack 
   const metricRates = snapshots.map((group) => snapshotValue(group, 'engagement_rate'));
   const metricDelta = metricRates.length === 2 && metricRates.every((metric) => metric.value !== null && metric.quality?.state === 'VALID') ? Math.abs(metricRates[0].value! - metricRates[1].value!) * 100 : null;
   const statement = result ? statementSegments(result.statement) : null;
-  const presentation = result && statement ? statement.segments.map((segment) => ({ layer: segment.layer, ...presentStatement(segment.text, contentNames) })) : null
+  const presentationSegments = statement?.segments;
   const checklist = comparison ? comparisonChecklist(comparison, byContent.size) : null;
   return <section className="hypothesis-detail" aria-label="Detail hipotesis" data-hypothesis-id={hypothesisId}>
     <button className="secondary review-back" type="button" onClick={onBack}>Kembali ke antrean</button>
     {error ? <div role="alert"><p className="error-state">{error}</p><button className="secondary" type="button" onClick={() => { setError(null); setVersion((value) => value + 1); }}>Coba lagi detail</button></div> : !result ? <p role="status">Memuat detail hipotesis…</p> : <>
-      <section className="hypothesis-claim" aria-label="Ringkasan klaim"><p className="eyebrow">Klaim asli, tanpa perubahan</p>{presentation && <div className="statement-presentation">{presentation.map((part, segmentIndex) => <span className="statement-segment" key={segmentIndex}>{part.layer && <span className="ontology-chip">{labelId(part.layer)}</span>}<span>{part.segments.map((segment) => segment.text).join('')}</span>{part.unknown.length > 0 && <span className="unknown-id-warning" role="status">⚠ ID tidak dikenal: {part.unknown.join(', ')}</span>}</span>)}</div>}<p className="hypothesis-confidence">Confidence {labelId(result.confidence)}</p><p className="muted">Confidence ditetapkan engine dari bukti dan batas yang berlaku; kualitas perbandingan ditampilkan terpisah.</p></section>
-      <div className="review-detail-tabs" role="group" aria-label="Bagian detail hipotesis">
-        {[{ id: 'metrics', label: 'Metrik' }, { id: 'extraction', label: 'Ekstraksi AI' }, { id: 'criteria', label: 'Kriteria' }, { id: 'technical', label: 'Teknis' }].map((tab) => <button key={tab.id} type="button" aria-pressed={activeDetailTab === tab.id} aria-controls={`review-panel-${tab.id}`} onClick={() => setActiveDetailTab(tab.id as typeof activeDetailTab)}>{tab.label}</button>)}
+      <section className="hypothesis-claim" aria-label="Ringkasan klaim"><p className="eyebrow">Klaim asli, tanpa perubahan</p><div className="claim-status"><span className={`confidence-badge confidence-${result.confidence.toLowerCase()}`}>Confidence {labelId(result.confidence)}</span></div><h2>{statement?.segments.length ? statement.segments.map((part) => part.text).join('') : result.statement}</h2>{presentationSegments && <ClaimSummary segments={presentationSegments} contentNames={contentNames} />}<p className="muted claim-reason">Confidence ditetapkan engine dari bukti dan batas yang berlaku; kualitas perbandingan ditampilkan terpisah.</p></section>
+      <div className="review-detail-tabs" role="tablist" aria-label="Bagian detail hipotesis">
+        {[{ id: 'metrics', label: 'Metrik' }, { id: 'extraction', label: 'Ekstraksi AI' }, { id: 'criteria', label: 'Kriteria' }, { id: 'technical', label: 'Teknis' }].map((tab) => <button key={tab.id} id={`review-tab-${tab.id}`} role="tab" type="button" aria-selected={activeDetailTab === tab.id} aria-controls={`review-panel-${tab.id}`} tabIndex={activeDetailTab === tab.id ? 0 : -1} onClick={() => setActiveDetailTab(tab.id as typeof activeDetailTab)}>{tab.label}</button>)}
       </div>
       <section id="review-panel-metrics" hidden={activeDetailTab !== 'metrics'} className="hypothesis-evidence" aria-label="Bukti metrik">
         <h3 id="evidence-heading">Bukti terhubung</h3>

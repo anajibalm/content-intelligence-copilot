@@ -118,7 +118,7 @@ for (const width of [1440, 390]) test(`persisted review queue, draft isolation a
   await page.locator(`[data-hypothesis-id="${hypothesisId}"] details.s10-disclosure > summary`).click();
   await expect(page.getByText('Saved synthetic note', { exact: true })).toBeVisible();
   await expect(page.getByText('Synthetic Variabel yang diuji', { exact: true }).first()).toBeVisible();
-  await page.locator(`[data-hypothesis-id="${hypothesisId}"]`).getByRole('button', { name: 'Ekstraksi AI', exact: true }).click();
+  await page.locator(`[data-hypothesis-id="${hypothesisId}"]`).getByRole('tab', { name: 'Ekstraksi AI', exact: true }).click();
   await detail.getByRole('textbox', { name: 'Notes', exact: true }).fill('Draft survives source navigation');
   await detail.locator('a[href$="#video-frame-last-frame"]').click();
   await expect(page.locator('#video-frame-last-frame')).toBeVisible();
@@ -245,7 +245,7 @@ test('feature evidence groups same exact content and field while preserving hist
   await page.mouse.down();
   await page.mouse.up();
   const detail = page.getByRole('region', { name: 'Detail hipotesis' });
-  await detail.getByRole('button', { name: 'Ekstraksi AI', exact: true }).click();
+  await detail.getByRole('tab', { name: 'Ekstraksi AI', exact: true }).click();
   const features = detail.locator('#review-panel-extraction');
   const featureGroups = features.locator('article.evidence-source');
   const format = featureGroups.filter({ hasText: 'format' });
@@ -264,7 +264,7 @@ test('exact frozen metric snapshots render side by side with raw delta and sourc
   const queue = page.getByRole('region', { name: 'Antrean hipotesis' });
   await queue.getByRole('button', { name: /Synthetic original hypothesis/ }).click();
   const detail = page.getByRole('region', { name: 'Detail hipotesis' });
-  await detail.getByRole('button', { name: 'Metrik', exact: true }).click();
+  await detail.getByRole('tab', { name: 'Metrik', exact: true }).click();
   const table = detail.getByRole('table').first();
   await expect(table).toContainText('Alpha creative');
   await expect(table).toContainText('Beta creative');
@@ -282,7 +282,7 @@ test('null metric cells are hidden with exact count and toggle while valid zero 
   const queue = page.getByRole('region', { name: 'Antrean hipotesis' });
   await queue.getByRole('button', { name: /Synthetic original hypothesis/ }).click();
   const detail = page.getByRole('region', { name: 'Detail hipotesis' });
-  await detail.getByRole('button', { name: 'Metrik', exact: true }).click();
+  await detail.getByRole('tab', { name: 'Metrik', exact: true }).click();
   const table = detail.getByRole('table').first();
   await expect(detail.getByText('2 field kosong disembunyikan.')).toBeVisible();
   const commentsRow = table.getByRole('row').filter({ hasText: 'Komentar' });
@@ -304,7 +304,7 @@ test('review detail tabs keep claim visible and scope exact evidence to selected
   const detail = page.getByRole('region', { name: 'Detail hipotesis' });
   await expect(detail.locator('.hypothesis-claim')).toBeVisible();
   await expect(detail.locator('#review-panel-metrics')).toBeVisible();
-  const technicalTab = detail.getByRole('button', { name: 'Teknis', exact: true });
+  const technicalTab = detail.getByRole('tab', { name: 'Teknis', exact: true });
   const box = await technicalTab.boundingBox();
   expect(box).not.toBeNull();
   await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2);
@@ -312,8 +312,8 @@ test('review detail tabs keep claim visible and scope exact evidence to selected
   await page.mouse.up();
   await expect(detail.locator('#review-panel-technical')).toBeVisible();
   await expect(detail.locator('#review-panel-metrics')).toBeHidden();
-  await expect(detail.locator('.hypothesis-claim').getByText('Synthetic original hypothesis', { exact: true })).toBeVisible();
-  await detail.getByRole('button', { name: 'Kriteria', exact: true }).click();
+  await expect(detail.getByRole('heading', { name: 'Synthetic original hypothesis', exact: true })).toBeVisible();
+  await detail.getByRole('tab', { name: 'Kriteria', exact: true }).click();
   await expect(detail.locator('#review-panel-criteria')).toBeVisible();
   await expect(detail.locator('#review-panel-technical')).toBeHidden();
 });
@@ -332,13 +332,13 @@ for (const viewport of [{ width: 1280, height: 900 }, { width: 1440, height: 900
   await page.mouse.down();
   await page.mouse.up();
   const detail = page.getByRole('region', { name: 'Detail hipotesis' });
-  const technicalTab = page.getByRole('button', { name: 'Teknis', exact: true });
+  const technicalTab = detail.getByRole('tab', { name: 'Teknis', exact: true });
   const technicalBox = await technicalTab.boundingBox();
   expect(technicalBox).not.toBeNull();
   await technicalTab.click();
   await expect(detail.locator('#review-panel-technical')).toBeVisible();
   await expect(detail.locator('#review-panel-metrics')).toBeHidden();
-  await detail.getByRole('button', { name: 'Metrik', exact: true }).click();
+  await detail.getByRole('tab', { name: 'Metrik', exact: true }).click();
   const decision = detail.getByRole('button', { name: 'Setujui', exact: true });
   await expect(detail.getByRole('table')).toBeVisible();
   await expect(decision).toBeVisible();
@@ -368,7 +368,7 @@ for (const viewport of [{ width: 1280, height: 900 }, { width: 1440, height: 900
   await expect(group).toContainText('12,71%');
   await expect(group).toContainText('9,90%');
   await expect(group).toContainText('2,82 poin persentase');
-  await detail.getByRole('button', { name: 'Ekstraksi AI', exact: true }).click();
+  await detail.getByRole('tab', { name: 'Ekstraksi AI', exact: true }).click();
   await expect(detail.locator('article.evidence-source')).toHaveCount(2);
   const extracted = detail.locator('article.evidence-source').filter({ hasText: 'cta_type' });
   await expect(extracted).toContainText('Nilai sumber terkini: AI soft sell; hasil review direct pitch (Dikoreksi)');
