@@ -105,7 +105,7 @@ function HypothesisDetail({ batchId, hypothesisId, contents, onReviewed, onBack 
   return <section className="hypothesis-detail" aria-label="Detail hipotesis" data-hypothesis-id={hypothesisId}>
     <button className="secondary review-back" type="button" onClick={onBack}>Kembali ke antrean</button>
     {error ? <div role="alert"><p className="error-state">{error}</p><button className="secondary" type="button" onClick={() => { setError(null); setVersion((value) => value + 1); }}>Coba lagi detail</button></div> : !result ? <p role="status">Memuat detail hipotesis…</p> : <>
-      <section className="hypothesis-claim" aria-label="Ringkasan klaim"><p className="eyebrow">Klaim asli, tanpa perubahan</p><div className="claim-status"><span className={`confidence-badge confidence-${result.confidence.toLowerCase()}`}>Confidence {labelId(result.confidence)}</span></div><h2>{statement?.segments.length ? statement.segments.map((part) => part.text).join('') : result.statement}</h2>{presentationSegments && <ClaimSummary segments={presentationSegments} contentNames={contentNames} />}<p className="muted claim-reason">Confidence ditetapkan engine dari bukti dan batas yang berlaku; kualitas perbandingan ditampilkan terpisah.</p></section>
+      <section className="hypothesis-claim" aria-label="Ringkasan klaim"><p className="eyebrow">Klaim asli, tanpa perubahan</p><div className="claim-status"><span className={`confidence-badge confidence-${result.confidence.toLowerCase()}`}>Confidence {labelId(result.confidence)}</span></div><h2>{statement?.segments.length ? statement.segments.map((part) => part.text).join('') : result.statement}</h2>{presentationSegments && <ClaimSummary segments={presentationSegments} contentNames={contentNames} />}{result.confidenceCaps.length > 0 ? result.confidenceCaps.map((cap) => <p className="muted claim-reason" key={cap.rule}>Alasan confidence: {cap.reason}</p>) : <p className="muted claim-reason">Confidence ditetapkan engine dari bukti dan batas yang berlaku; kualitas perbandingan ditampilkan terpisah.</p>}</section>
       <div className="review-detail-tabs" role="tablist" aria-label="Bagian detail hipotesis">
         {[{ id: 'metrics', label: 'Metrik' }, { id: 'extraction', label: 'Ekstraksi AI' }, { id: 'criteria', label: 'Kriteria' }, { id: 'technical', label: 'Teknis' }].map((tab) => <button key={tab.id} id={`review-tab-${tab.id}`} role="tab" type="button" aria-selected={activeDetailTab === tab.id} aria-controls={`review-panel-${tab.id}`} tabIndex={activeDetailTab === tab.id ? 0 : -1} onClick={() => setActiveDetailTab(tab.id as typeof activeDetailTab)}>{tab.label}</button>)}
       </div>
@@ -136,14 +136,15 @@ function HypothesisDetail({ batchId, hypothesisId, contents, onReviewed, onBack 
                 })}
               </tr>)}
               {metricDelta !== null && <tr><th scope="row">Selisih engagement rate</th><td colSpan={2} data-label="Delta dari snapshot beku">{formatMetricId(metricDelta, 'number')} poin persentase · dihitung dari nilai snapshot sebelum pembulatan</td></tr>}
-              <tr><th scope="row">Sumber & waktu</th>{snapshots.map((group) => {
-                const { basis, observed, derived } = snapshotEvidence(group);
-                const source = String(basis.source ?? 'Sumber tidak tersedia');
-                const label = contentNames.get(group.contentId) ?? `TikTok ${group.contentId.slice(0, 8)}`;
-                return <td key={group.snapshotId} data-label={label}>TikTok · {labelId(String(basis.distribution ?? 'Distribusi tidak tersedia'))} · {formatDateTimeId(typeof basis.capturedAt === 'string' ? basis.capturedAt : null)} {/(?:demo|unverified|asumsi|belum diverifikasi)/i.test(source) && <strong className="source-warning">Belum diverifikasi</strong>}<br />{[observed, derived].filter((item) => item?.link).map((item) => <a className="source-link" href={item!.link!} key={item!.id}>Buka {labelId(item!.layer)} exact</a>)}</td>;
-              })}</tr>
+
             </tbody>
           </table>
+          <section className="snapshot-sources" aria-label="Sumber snapshot">{snapshots.map((group) => {
+            const { basis, observed, derived } = snapshotEvidence(group);
+            const source = String(basis.source ?? 'Sumber tidak tersedia');
+            const label = contentNames.get(group.contentId) ?? `TikTok ${group.contentId.slice(0, 8)}`;
+            return <article key={group.snapshotId}><h4>Sumber · {label}</h4><p>TikTok · {labelId(String(basis.distribution ?? 'Distribusi tidak tersedia'))} · {formatDateTimeId(typeof basis.capturedAt === 'string' ? basis.capturedAt : null)} {/(?:demo|unverified|asumsi|belum diverifikasi)/i.test(source) && <strong className="source-warning">Belum diverifikasi</strong>}</p>{[observed, derived].filter((item) => item?.link).map((item) => <a className="source-link" href={item!.link!} key={item!.id}>Buka {labelId(item!.layer)} exact</a>)}</article>;
+          })}</section>
         </>}
       </section>
       <section id="review-panel-extraction" hidden={activeDetailTab !== 'extraction'} className="hypothesis-evidence" aria-label="Ekstraksi AI">

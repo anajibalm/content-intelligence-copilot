@@ -27,7 +27,7 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
     const request = route.request();
     const url = new URL(request.url());
     if (url.pathname === '/api/workspace') return route.fulfill({ json: { batches: fixture.batches, selectedBatch: batch, contents, selectedContent: { ...source, frames: [], audio: { available: false, url: null }, transcript: [], anchors: [], extraction: [] }, analysis: null, synthetic: true } });
-    if (url.pathname === '/api/hypotheses' && url.searchParams.has('hypothesisId')) return route.fulfill({ json: { id: hypothesisId, batchId: batch.id, statement: 'OBSERVED: Synthetic fixture hypothesis claim.', confidence: 'LOW', confidenceCaps: [], suggestedNextTest: { action: 'Repeat with a controlled sample' }, comparisons: [{ comparison_id: comparisonId, role: 'ORIGIN' }], provider: 'synthetic-fixture', model: 'synthetic-fixture', promptVersion: 'fixture', schemaVersion: 'fixture', ruleVersion: 'fixture', inputHash: 'fixture-hash', rawOutput: {}, evidence } });
+    if (url.pathname === '/api/hypotheses' && url.searchParams.has('hypothesisId')) return route.fulfill({ json: { id: hypothesisId, batchId: batch.id, statement: 'OBSERVED: Synthetic fixture hypothesis claim.', confidence: 'LOW', confidenceCaps: [{ rule: 'INSUFFICIENT_SAMPLE', reason: 'sample size 2 is below high-confidence threshold 3' }], suggestedNextTest: { action: 'Repeat with a controlled sample' }, comparisons: [{ comparison_id: comparisonId, role: 'ORIGIN' }], provider: 'synthetic-fixture', model: 'synthetic-fixture', promptVersion: 'fixture', schemaVersion: 'fixture', ruleVersion: 'fixture', inputHash: 'fixture-hash', rawOutput: {}, evidence } });
     if (url.pathname === '/api/hypotheses') return route.fulfill({ json: { items: [{ id: hypothesisId, batchId: batch.id, statement: 'OBSERVED: Synthetic fixture hypothesis claim.', confidence: 'LOW', reviewDecision: null, reviewedStatement: null, createdAt: '2026-10-06T08:14:06.531Z', contentIds: contents.slice(0, 2).map((content) => content.id), evidenceCount: evidence.length }] } });
     if (url.pathname === '/api/comparisons') return route.fulfill({ json: { id: comparisonId, mode: 'CONTROLLED', scope: 'PAIR', distribution: 'ORGANIC', quality: 'LOW', qualityReasons: ['INSUFFICIENT_SAMPLE'], controlledVariables: { same_format: null }, items: contents.slice(0, 2).map((content) => ({ contentId: content.id })), metric: 'engagement_rate', basis: 'FROZEN', direction: 'DESC', tiePolicy: 'KEEP_ALL' } });
     if (url.pathname === '/api/hypotheses/review') return route.fulfill({ json: { hypothesisId, reviews: [] } });
@@ -39,6 +39,12 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
   const queue = page.getByRole('region', { name: 'Antrean hipotesis' });
   await expect(queue.getByText('Synthetic fixture hypothesis claim.')).toBeVisible();
   await page.screenshot({ path: `/tmp/cic-review-MOCK-queue-${viewport.width}x${viewport.height}.png` });
+  if (viewport.width === 390) {
+    const navigation = page.getByRole('navigation', { name: 'Workspace analyst' });
+    const navigationBoxes = await navigation.getByRole('link').evaluateAll((links) => links.map((link) => link.getBoundingClientRect()));
+    expect(navigationBoxes.every((box) => Math.round(box.y) === Math.round(navigationBoxes[0]!.y))).toBe(true);
+    expect(await navigation.evaluate((element) => element.getBoundingClientRect().height)).toBeLessThanOrEqual(52);
+  }
   const item = queue.getByRole('button', { name: /Synthetic fixture hypothesis claim/ });
   const box = await item.boundingBox();
   expect(box).not.toBeNull();
@@ -50,6 +56,22 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
   await expect(detail.getByRole('heading', { name: 'Synthetic fixture hypothesis claim.' })).toBeVisible();
   await expect(detail.getByText('Confidence Rendah')).toBeVisible();
   await expect(detail.getByRole('table')).toBeVisible();
+  await expect(detail.getByText('Alasan confidence: sample size 2 is below high-confidence threshold 3')).toBeVisible();
+  await expect(detail.getByText('Confidence ditetapkan engine dari bukti dan batas yang berlaku; kualitas perbandingan ditampilkan terpisah.')).toBeHidden();
+  const backToQueue = detail.getByRole('button', { name: 'Kembali ke antrean' });
+  if (viewport.width === 1440) await expect(backToQueue).toBeHidden();
+  else await expect(backToQueue).toBeVisible();
+  const tabBoxes = await detail.getByRole('tab').evaluateAll((tabs) => tabs.map((tab) => tab.getBoundingClientRect()));
+  expect(tabBoxes.every((box) => Math.round(box.y) === Math.round(tabBoxes[0]!.y))).toBe(true);
+  const tabStyles = await detail.getByRole('tab').evaluateAll((tabs) => tabs.map((tab) => {
+    const style = getComputedStyle(tab);
+    return { backgroundColor: style.backgroundColor, borderBottomWidth: style.borderBottomWidth };
+  }));
+  expect(tabStyles.every((style) => style.backgroundColor === 'rgba(0, 0, 0, 0)')).toBe(true);
+  expect(tabStyles[0]!.borderBottomWidth).toBe('2px');
+  const metricFontSize = await detail.getByRole('table').evaluate((table) => getComputedStyle(table).fontSize);
+  expect(Number.parseFloat(metricFontSize)).toBeGreaterThanOrEqual(13);
+  await expect(detail.getByRole('region', { name: 'Sumber snapshot' })).toBeVisible();
   const bar = detail.locator('.decision-region');
   await expect(bar.getByRole('button', { name: 'Setujui', exact: true })).toBeVisible();
   for (const label of ['Setujui', 'Edit', 'Tolak']) {
@@ -69,10 +91,20 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
   expect(height).toBeLessThanOrEqual(viewport.width === 1440 ? 64 : 152);
   if (viewport.width === 1440) {
     const rows = await detail.getByRole('table').first().locator('tbody tr').count();
-    expect(rows).toBeGreaterThanOrEqual(4);
+    expect(rows).toBeGreaterThanOrEqual(3);
     await expect(detail.locator('.hypothesis-claim')).toBeInViewport();
     await expect(detail.getByRole('table')).toBeInViewport();
+    await expect(detail.getByRole('region', { name: 'Sumber snapshot' })).toBeInViewport();
+  }
+  await page.screenshot({ path: `/tmp/cic-review-MOCK-detail-${viewport.width}x${viewport.height}.png` });
+  await page.mouse.wheel(0, 600);
+  const stickyBox = await bar.boundingBox();
+  expect(stickyBox).not.toBeNull();
+  expect(Math.round(stickyBox!.y + stickyBox!.height)).toBeLessThanOrEqual(viewport.height);
+  if (viewport.width === 390) {
+    const actionHeights = await bar.getByRole('button').evaluateAll((buttons) => buttons.map((button) => button.getBoundingClientRect().height));
+    expect(actionHeights.every((height) => height >= 44)).toBe(true);
   }
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-  await page.screenshot({ path: `/tmp/cic-review-MOCK-detail-${viewport.width}x${viewport.height}.png` });
+  await page.screenshot({ path: `/tmp/cic-review-MOCK-sticky-${viewport.width}x${viewport.height}.png` });
 });

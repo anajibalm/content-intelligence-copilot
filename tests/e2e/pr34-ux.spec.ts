@@ -107,7 +107,8 @@ for (const width of [1440, 390]) test(`persisted review queue, draft isolation a
   for (const label of ['Variabel yang diuji', 'Varian A', 'Varian B', 'Kontrol', 'Hasil yang diharapkan', 'Penanggung jawab', 'Metrik keberhasilan', 'Periode pengukuran']) await detail.getByLabel(label, { exact: true }).fill(`Synthetic ${label}`);
   await detail.getByRole('button', { name: 'Buat Next Test', exact: true }).click();
   await detail.getByLabel('Notes', { exact: true }).fill('Draft for first hypothesis');
-  await detail.getByRole('button', { name: 'Kembali ke antrean', exact: true }).click();
+  if (width === 390) await detail.getByRole('button', { name: 'Kembali ke antrean', exact: true }).click();
+  else await page.goBack();
   await expect(queue.getByRole('button', { name: /^Semua/ })).toContainText('3');
   await queue.getByRole('button', { name: /^Semua/ }).click();
   await queue.getByRole('button', { name: /Synthetic original hypothesis/ }).click();
@@ -190,7 +191,7 @@ test('queue failure has working retry and detail survives queue refresh', async 
   await detail.getByLabel('Reviewer', { exact: true }).fill('synthetic analyst');
   await detail.getByRole('button', { name: 'Setujui', exact: true }).click();
   state.failQueue();
-  await detail.getByRole('button', { name: 'Kembali ke antrean', exact: true }).click();
+  await page.goBack();
   await expect(page.getByText('Synthetic queue read failed')).toBeVisible();
   await queue.getByRole('button', { name: 'Coba lagi', exact: true }).click();
   await queue.getByRole('button', { name: /^Semua/ }).click();
@@ -271,7 +272,7 @@ test('exact frozen metric snapshots render side by side with raw delta and sourc
   await expect(table).toContainText('27');
   await expect(table).toContainText('19');
   await expect(table).toContainText('2,82 poin persentase');
-  await expect(table).toContainText('6 Okt 2026, 15.14 WIB');
+  await expect(detail.getByRole('region', { name: 'Sumber snapshot' })).toContainText('6 Okt 2026, 15.14 WIB');
   await expect(detail.getByText('Selisih waktu snapshot lebih dari 1 jam: 6,15 jam', { exact: true })).toBeVisible();
   await expect(detail.locator('details').evaluateAll((elements) => elements.every((element) => element instanceof HTMLDetailsElement && !element.open))).resolves.toBe(true);
 });
@@ -349,7 +350,7 @@ for (const viewport of [{ width: 1280, height: 900 }, { width: 1440, height: 900
   expect(decisionBox!.y + decisionBox!.height).toBeLessThanOrEqual(viewport.height);
   if (viewport.width >= 1280) {
     await expect(detail.locator('.hypothesis-claim')).toBeInViewport();
-    await expect(detail.getByRole('row', { name: /Sumber & waktu/ })).toBeInViewport();
+    await expect(detail.getByRole('region', { name: 'Sumber snapshot' })).toBeInViewport();
   }
   await page.screenshot({ path: `/tmp/cic-pr34-review-detail-${viewport.width}.png` });
   await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));

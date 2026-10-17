@@ -29,6 +29,7 @@ dan proyek ini mengikuti [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 - Review detail menampilkan klaim asli ringkas dan ontology terpisah, dengan keputusan sticky yang seluruh kontrolnya terbukti terlihat pada desktop dan mobile.
 - Tabel metrik Review menampilkan setiap nilai satu kali di desktop dan ringkasan A/B per metrik di mobile; null tetap tersembunyi sampai toggle dan chip ontology tetap terlihat.
 - Evidence Review memakai tab terpilih, ringkasan klaim tampil terpisah dari detail bukti, nilai metrik hilang memakai tanda pisah, dan baris anggota Batch mempertahankan interaksi Library existing.
+- Review memakai tab garis bawah, filter antrean tersegmentasi, sumber snapshot terpisah dari tabel metrik, alasan confidence dari cap engine, serta nav satu baris dan tombol kembali sesuai viewport.
 - Notes dan draft review terikat hipotesis saat navigasi biasa; evidence mempertahankan exact source anchors dan artefak historis.
 - `.gitignore` — ignore `*.tsbuildinfo`, `_bmad/`, `_bmad-output/`
 
