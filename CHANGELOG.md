@@ -23,6 +23,7 @@ dan proyek ini mengikuti [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 - `.editorconfig` — konfigurasi editor konsisten
 
 ### Changed
+- Batch: tabel anggota responsif; KPI/ranking di atas tabel; data hilang tetap dash, ID konten tanpa judul tampil sebagai judul, serta status akuisisi/processing eksplisit.
 - Batch, Library, Compare, dan Review memiliki tugas terpisah; hasil generation membuka Review tanpa menyalin form review.
 - Label Indonesia terpusat, fingerprint AI asli/hasil review berdampingan, history append-only ringkas, form Next Test terlipat, serta mobile tanpa page overflow.
 - Notes dan draft review terikat hipotesis saat navigasi biasa; evidence mempertahankan exact source anchors dan artefak historis.
