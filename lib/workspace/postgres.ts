@@ -27,6 +27,7 @@ interface DbContent {
   duration_ms: number | null;
   width: number | null;
   height: number | null;
+  has_frame_evidence: boolean;
   acquisition_status: string | null;
   acquisition_error: string | null;
   acquisition_attempt_count: number | null;
@@ -92,6 +93,7 @@ function contentView(row: DbContent, snapshots: ReturnType<typeof adaptSnapshot>
     processingError: row.processing_error ?? row.error_message,
     attemptCount: row.acquisition_attempt_count ?? row.attempt_count ?? 0,
     error: row.processing_error ?? row.error_message,
+    hasFrameEvidence: row.has_frame_evidence,
     dimensions: row.width && row.height ? `${row.width}×${row.height}` : null,
     durationSeconds: row.duration_ms == null ? null : Number(row.duration_ms) / 1000,
     snapshots,
@@ -138,6 +140,7 @@ export function createWorkspaceRepository(config: WorkspaceRepositoryConfig) {
 
     const contents = await pool.query<DbContent>(
       `SELECT c.id, c.external_id, c.permalink, c.title, c.processing_state, c.duration_ms, c.width, c.height,
+              EXISTS (SELECT 1 FROM video_frame vf WHERE vf.workspace_id = c.workspace_id AND vf.content_id = c.id) AS has_frame_evidence,
               acquisition.status AS acquisition_status, acquisition.error_message AS acquisition_error,
               acquisition.attempt_count AS acquisition_attempt_count,
               job.status AS job_status, job.attempt_count, job.error_message,
@@ -205,6 +208,7 @@ export function createWorkspaceRepository(config: WorkspaceRepositoryConfig) {
 async function contentDetail(client: Pool | PoolClient, config: WorkspaceRepositoryConfig, contentId: string) {
   const content = await client.query<DbContent>(
     `SELECT c.id, c.external_id, c.permalink, c.title, c.processing_state, c.duration_ms, c.width, c.height,
+            EXISTS (SELECT 1 FROM video_frame vf WHERE vf.workspace_id = c.workspace_id AND vf.content_id = c.id) AS has_frame_evidence,
             acquisition.status AS acquisition_status, acquisition.error_message AS acquisition_error,
             acquisition.attempt_count AS acquisition_attempt_count,
             job.status AS job_status, job.attempt_count, job.error_message,
