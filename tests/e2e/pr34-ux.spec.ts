@@ -347,8 +347,10 @@ for (const viewport of [{ width: 1280, height: 900 }, { width: 1440, height: 900
   expect(decisionBox).not.toBeNull();
   expect(decisionBox!.height).toBeGreaterThanOrEqual(44);
   expect(decisionBox!.y + decisionBox!.height).toBeLessThanOrEqual(viewport.height);
-  await expect(decision).toBeInViewport();
-  await expect(detail.getByRole('heading', { name: 'Bukti terhubung' })).toBeInViewport();
+  if (viewport.width >= 1280) {
+    await expect(detail.locator('.hypothesis-claim')).toBeInViewport();
+    await expect(detail.getByRole('row', { name: /Sumber & waktu/ })).toBeInViewport();
+  }
   await page.screenshot({ path: `/tmp/cic-pr34-review-detail-${viewport.width}.png` });
   await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
   await expect(decision).toBeInViewport();
