@@ -17,7 +17,7 @@ async function installApi(page: Page) {
   await page.route('**/api/processing?batchId=*', async (route: Route) => {
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ items: [] }) });
   });
-  await page.route('**/api/hypotheses?**', async (route: Route) => route.fulfill({ json: new URL(route.request().url()).searchParams.has('hypothesisId') ? { id: hypothesisId, batchId, statement: 'Synthetic insight', confidence: 'LOW', confidenceCaps: [], suggestedNextTest: null, evidence: [] } : { items: [] } }));
+  await page.route('**/api/hypotheses?**', async (route: Route) => route.fulfill({ json: new URL(route.request().url()).searchParams.has('hypothesisId') ? { id: hypothesisId, batchId, statement: 'Synthetic insight', confidence: 'LOW', confidenceCaps: [], comparisons: [], suggestedNextTest: null, evidence: [] } : { items: [] } }));
   await page.route(`**/api/hypotheses/${hypothesisId}/s10`, async (route: Route) => {
     if (route.request().method() === 'GET') return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ hypothesisId, batches, notes: state.notes, nextTests: state.nextTests }) });
     const body = route.request().postDataJSON() as RecordValue;
@@ -36,6 +36,7 @@ test('S10 notes and Next Test create edit status reload', async ({ page }) => {
   await installApi(page);
   await page.goto(`/?batchId=${batchId}&hypothesisId=${hypothesisId}`);
   const panel = page.getByRole('region', { name: 'Notes & Next Test' });
+  await page.locator('.s10-disclosure > summary').click();
   await expect(panel.getByRole('heading', { name: 'Notes & Next Test', exact: true })).toBeVisible();
   await panel.getByLabel('Penulis').fill('synthetic_analyst');
   await panel.getByRole('textbox', { name: 'Notes', exact: true }).fill('Synthetic human context');
@@ -63,6 +64,7 @@ test('S10 notes and Next Test create edit status reload', async ({ page }) => {
   await panel.getByLabel('Status s10-test-1').selectOption('COMPLETED');
   await expect(panel.getByLabel('Status s10-test-1')).toHaveValue('COMPLETED');
   await page.reload();
+  await page.locator('.s10-disclosure > summary').click();
   await expect(page.getByText('Synthetic human context edited', { exact: true })).toBeVisible();
   await expect(page.locator('.s10-next-test article strong')).toHaveText('opening style edited');
   await expect(page.getByLabel('Status s10-test-1')).toHaveValue('COMPLETED');

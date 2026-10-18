@@ -25,7 +25,7 @@ const comparison = (body: Body) => {
   if (!Array.isArray(ids) || !ids.every((id): id is string => typeof id === 'string')) throw new Error('fixture comparison request has invalid contentIds');
   return { id: `comparison-${String(body.mode).toLowerCase()}-${String(body.distribution).toLowerCase()}`, ruleVersion: 'compare-v1', mode: body.mode, scope: body.scope, distribution: body.distribution, quality: 'VALID', qualityReasons: [], snapshotIds: ids.map((id) => `snapshot-${id}`), controlledVariables: { distribution: body.distribution }, uncontrolledVariables: {}, items: ids.map((contentId, position) => ({ contentId, position, metricSnapshotId: `snapshot-${contentId}` })), metricRows: ids.map((contentId, position) => ({ contentId, metricSnapshotId: `snapshot-${contentId}`, metrics: [{ name: 'views', value: 1000 - position * 100, state: 'VALID', reason: null }] })) };
 };
-const hypothesis = (comparisonId: string) => ({ id: `hypothesis-${comparisonId}`, batchId: batchA, statement: 'Synthetic working insight for repeatable browser test.', confidence: 'LOW', confidenceCaps: [{ rule: 'SYNTHETIC_TEST', reason: 'Fixture response' }], suggestedNextTest: { action: 'Repeat with another synthetic sample.' }, evidence: [{ id: 'evidence-1', layer: 'OBSERVED', statement: 'OBSERVED views 1000', source_type: 'METRIC_SNAPSHOT', role: 'SUPPORTING', link: `/?batchId=${batchA}&contentId=${contentsA[0].id}#metric-snapshot-${contentsA[0].snapshots[0].id}` }] });
+const hypothesis = (comparisonId: string) => ({ id: `hypothesis-${comparisonId}`, batchId: batchA, statement: 'Synthetic working insight for repeatable browser test.', confidence: 'LOW', confidenceCaps: [{ rule: 'SYNTHETIC_TEST', reason: 'Fixture response' }], comparisons: [{ comparison_id: comparisonId, role: 'ORIGIN' }], suggestedNextTest: { action: 'Repeat with another synthetic sample.' }, evidence: [{ id: 'evidence-1', layer: 'OBSERVED', statement: 'OBSERVED views 1000', source_type: 'METRIC_SNAPSHOT', source_id: contentsA[0].snapshots[0].id, content_id: contentsA[0].id, basis: { rawObservations: contentsA[0].snapshots[0].rawMetrics, qualityJson: contentsA[0].snapshots[0].qualityByMetric, capturedAt: '2026-10-07T00:00:00.000Z', distribution: 'ORGANIC' }, role: 'SUPPORTING', link: `/?batchId=${batchA}&contentId=${contentsA[0].id}#metric-snapshot-${contentsA[0].snapshots[0].id}` }] });
 
 function detail(content: typeof contentsA[number]) {
   return { ...content, frames: [], audio: { url: null, available: false }, transcript: [], anchors: [], extraction: [] };
@@ -38,7 +38,7 @@ async function installFixtureApi(page: Page, options: { hypothesisDelay?: () => 
   const seen: Body[] = [];
   const generated: Hypothesis[] = [];
   await page.route('**/api/**', (route) => route.fulfill({ status: 500, json: { error: 'Unmapped fixture API' } }));
-  await page.route('**/api/hypotheses?**', (route) => { const id = new URL(route.request().url()).searchParams.get('hypothesisId'); return route.fulfill({ json: id ? hypothesis(id.replace('hypothesis-', '')) : { items: generated.map((item) => ({ ...item, reviewDecision: null, reviewedStatement: null })) } }); });
+  await page.route('**/api/hypotheses?**', (route) => { const id = new URL(route.request().url()).searchParams.get('hypothesisId'); return route.fulfill({ json: id ? hypothesis(id.replace('hypothesis-', '')) : { items: generated.map((item) => ({ ...item, createdAt: '2026-10-07T00:00:00.000Z', contentIds: [contentsA[0].id], evidenceCount: item.evidence.length, reviewDecision: null, reviewedStatement: null })) } }); });
   await page.route('**/api/workspace**', async (route: Route) => {
     const url = new URL(route.request().url());
     const batchId = url.searchParams.get('batchId') ?? batchA;
@@ -53,8 +53,9 @@ async function installFixtureApi(page: Page, options: { hypothesisDelay?: () => 
   await page.route('**/api/hypotheses/*/s10', async (route: Route) => {
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ hypothesisId: new URL(route.request().url()).pathname.split('/')[3], notes: [], nextTests: [] }) });
   });
-  await page.route('**/api/comparisons', async (route: Route) => {
-    if (route.request().method() !== 'POST') return route.continue();
+  await page.route('**/api/comparisons**', async (route: Route) => {
+    const url = new URL(route.request().url());
+    if (route.request().method() === 'GET') return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(comparison({ mode: 'CONTROLLED', scope: 'PAIR', distribution: url.searchParams.get('comparisonId')?.includes('paid') ? 'PAID' : 'ORGANIC', contentIds: [contentsA[0].id, contentsA[1].id] })) });
     const body = postBody(route);
     seen.push(body);
     await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify(comparison(body)) });
@@ -123,8 +124,7 @@ test('happy path renders artifact and exact source link', async ({ page }) => {
   await createHypothesis(page);
   await page.getByRole('link', { name: 'Buka review' }).click();
   await expect(page.getByRole('region', { name: 'Antrean hipotesis' }).getByRole('button', { name: /Synthetic working insight/ })).toBeVisible();
-  await expect(page.getByText('Saran AI untuk uji berikutnya')).toBeVisible();
-  await page.getByRole('link', { name: 'Buka sumber exact' }).click();
+  await page.getByRole('link', { name: 'Buka Observasi exact' }).click();
   await expect(page).toHaveURL(new RegExp(`batchId=${batchA}.*contentId=${contentsA[0].id}.*metric-snapshot`));
   await expect(page.locator(`#metric-snapshot-${contentsA[0].snapshots[0].id}`)).toBeVisible();
 });
