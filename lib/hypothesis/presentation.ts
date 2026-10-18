@@ -29,6 +29,21 @@ const ASSERTION = /\b(?:lebih tinggi|lebih rendah|selisih|meningkat|menurun|ungg
 const TIME = new Intl.DateTimeFormat('id-ID', { timeZone: 'Asia/Jakarta', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
 const PERCENT = new Intl.NumberFormat('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const NUMBER = new Intl.NumberFormat('id-ID', { maximumFractionDigits: 2 });
+const CONFIDENCE_CAP_SUMMARIES: Record<string, string> = {
+  INSUFFICIENT_SAMPLE: 'Sampel kurang',
+  ONE_COMPARISON: 'Satu perbandingan',
+  LEGACY_ONLY: 'Bukti lama',
+  COMPARISON_QUALITY: 'Kualitas perbandingan',
+  SUSPECT_PRIMARY_METRIC: 'Metrik perlu diperiksa',
+  UNAVAILABLE_PERFORMANCE: 'Bukti performa belum tersedia',
+  UNREVIEWED_EXTRACTED: 'Ekstraksi belum direview',
+};
+
+export function confidenceCapSummary(caps: Array<{ rule: string }>) {
+  if (!caps.length) return 'Batas confidence berlaku';
+  const first = CONFIDENCE_CAP_SUMMARIES[caps[0]!.rule] ?? 'Batas confidence berlaku';
+  return caps.length === 1 ? first : `${first} · +${caps.length - 1} batas`;
+}
 
 export function summarizeStatement(statement: string, max = 105) {
   const sentence = statement.replace(/^\s*(?:OBSERVED|DERIVED|EXTRACTED|INFERRED)\s*:\s*/i, '').trim().split(/(?<=[.!?])\s+/u)[0]?.trim() ?? '';

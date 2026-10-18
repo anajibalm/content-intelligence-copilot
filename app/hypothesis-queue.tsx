@@ -7,7 +7,7 @@ import { HypothesisReviewControls } from './review-panel';
 import { S10Panel } from './s10-panel';
 import { KeyValueView } from './key-value-view';
 import { labelId } from '../lib/workspace/labels-id.ts';
-import { classifyHypothesisNote, comparisonChecklist, engagementCalculation, formatDateTimeId, formatMetricId, groupFeatureEvidence, groupHypotheses, parseSnapshotStatement, presentStatement, snapshotTimeDelta, statementSegments, summarizeStatement, type QueueHypothesis } from '../lib/hypothesis/presentation.ts';
+import { classifyHypothesisNote, comparisonChecklist, confidenceCapSummary, engagementCalculation, formatDateTimeId, formatMetricId, groupFeatureEvidence, groupHypotheses, parseSnapshotStatement, presentStatement, snapshotTimeDelta, statementSegments, summarizeStatement, type QueueHypothesis } from '../lib/hypothesis/presentation.ts';
 import { ClaimSummary } from './claim-summary';
 
 type QueueItem = QueueHypothesis & { comparisons?: Array<{ comparison_id: string; role: string }> };
@@ -105,7 +105,7 @@ function HypothesisDetail({ batchId, hypothesisId, contents, onReviewed, onBack 
   return <section className="hypothesis-detail" aria-label="Detail hipotesis" data-hypothesis-id={hypothesisId}>
     <button className="secondary review-back" type="button" onClick={onBack}>Kembali ke antrean</button>
     {error ? <div role="alert"><p className="error-state">{error}</p><button className="secondary" type="button" onClick={() => { setError(null); setVersion((value) => value + 1); }}>Coba lagi detail</button></div> : !result ? <p role="status">Memuat detail hipotesis…</p> : <>
-      <section className="hypothesis-claim" aria-label="Ringkasan klaim"><p className="eyebrow">Klaim asli, tanpa perubahan</p><div className="claim-status"><span className={`confidence-badge confidence-${result.confidence.toLowerCase()}`}>Confidence {labelId(result.confidence)}</span></div><h2>{statement?.segments.length ? statement.segments.map((part) => part.text).join('') : result.statement}</h2>{presentationSegments && <ClaimSummary segments={presentationSegments} contentNames={contentNames} />}{result.confidenceCaps.length > 0 ? result.confidenceCaps.map((cap) => <p className="muted claim-reason" key={cap.rule}>Alasan confidence: {cap.reason}</p>) : <p className="muted claim-reason">Confidence ditetapkan engine dari bukti dan batas yang berlaku; kualitas perbandingan ditampilkan terpisah.</p>}</section>
+      <section className="hypothesis-claim" aria-label="Ringkasan klaim"><p className="eyebrow">Klaim asli, tanpa perubahan</p><div className="claim-status"><span className={`confidence-badge confidence-${result.confidence.toLowerCase()}`}>Confidence {labelId(result.confidence)}</span></div><h2>{statement?.segments.length ? statement.segments.map((part) => part.text).join('') : result.statement}</h2>{presentationSegments && <ClaimSummary segments={presentationSegments} contentNames={contentNames} />}<p className="muted claim-reason">Alasan confidence: {confidenceCapSummary(result.confidenceCaps)}</p></section>
       <div className="review-detail-tabs" role="tablist" aria-label="Bagian detail hipotesis">
         {[{ id: 'metrics', label: 'Metrik' }, { id: 'extraction', label: 'Ekstraksi AI' }, { id: 'criteria', label: 'Kriteria' }, { id: 'technical', label: 'Teknis' }].map((tab) => <button key={tab.id} id={`review-tab-${tab.id}`} role="tab" type="button" aria-selected={activeDetailTab === tab.id} aria-controls={`review-panel-${tab.id}`} tabIndex={activeDetailTab === tab.id ? 0 : -1} onClick={() => setActiveDetailTab(tab.id as typeof activeDetailTab)}>{tab.label}</button>)}
       </div>
@@ -116,7 +116,7 @@ function HypothesisDetail({ batchId, hypothesisId, contents, onReviewed, onBack 
           {missingMetrics > 0 && <p className="muted">{missingMetrics} field kosong disembunyikan. <button className="secondary" type="button" aria-expanded={showNullMetrics} onClick={() => setShowNullMetrics((current) => !current)}>{showNullMetrics ? 'Sembunyikan field kosong' : 'Lihat field kosong'}</button></p>}
           {timeDelta !== null && timeDelta > 3_600_000 && <p className="snapshot-time-warning">Selisih waktu snapshot lebih dari 1 jam: {formatMetricId(timeDelta / 3_600_000, 'awt_seconds').replace(' dtk', ' jam')}</p>}
           <table className="snapshot-table">
-            <thead><tr><th scope="col">Metrik</th>{snapshots.map((group) => <th scope="col" key={group.snapshotId}>{contentNames.get(group.contentId) ?? `TikTok ${group.contentId.slice(0, 8)}`}</th>)}</tr></thead>
+            <thead><tr><th scope="col">Metrik</th>{snapshots.map((group) => <th scope="col" key={group.snapshotId}>{contentNames.get(group.contentId) ?? `TikTok ${group.contentId.slice(0, 8)}`}</th>)}<th scope="col">Sumber</th></tr></thead>
             <tbody>
               {visibleMetricRows.map((metric) => <tr className="metric-data-row" key={metric}>
                 <th scope="row"><span className="snapshot-metric-name">{metricNames[metric]}</span><span className="snapshot-mobile-values">{snapshots.map((group, index) => {
@@ -129,14 +129,14 @@ function HypothesisDetail({ batchId, hypothesisId, contents, onReviewed, onBack 
                   const metricValue = snapshotValue(group, metric);
                   const label = contentNames.get(group.contentId) ?? `TikTok ${group.contentId.slice(0, 8)}`;
                   const hideNull = metricValue.value === null && !showNullMetrics;
-                  return <td key={group.snapshotId} data-label={label}>
+                  return <td className="snapshot-value" key={group.snapshotId} data-label={label}>
                     {!hideNull && (metricValue.value === null ? '–' : formatMetricId(metricValue.value, metric))}
                     {!hideNull && <><span className="ontology-chip">{labelId(metricValue.layer)}</span>{metricValue.quality?.state === 'VALID' && metricValue.value !== null ? null : <span>{labelId(metricValue.quality?.state ?? 'UNAVAILABLE')}{metricValue.quality?.reason ? ` · ${labelId(metricValue.quality.reason)}` : ''}</span>}{metric === 'engagement_rate' && metricValue.calculation && <p>Rumus metrics-v2: {metricValue.calculation.interactions} ÷ {metricValue.calculation.views} = {formatMetricId(metricValue.calculation.value, metric)}</p>}</>}
                   </td>;
                 })}
+                <td className="snapshot-metric-source" data-label="Sumber"><span className="ontology-chip">{labelId(metric === 'engagement_rate' ? 'DERIVED' : 'OBSERVED')}</span></td>
               </tr>)}
-              {metricDelta !== null && <tr><th scope="row">Selisih engagement rate</th><td colSpan={2} data-label="Delta dari snapshot beku">{formatMetricId(metricDelta, 'number')} poin persentase · dihitung dari nilai snapshot sebelum pembulatan</td></tr>}
-
+              {metricDelta !== null && <tr><th scope="row">Selisih engagement rate</th><td colSpan={snapshots.length + 1} data-label="Delta dari snapshot beku">{formatMetricId(metricDelta, 'number')} poin persentase · dihitung dari nilai snapshot sebelum pembulatan</td></tr>}
             </tbody>
           </table>
           <section className="snapshot-sources" aria-label="Sumber snapshot">{snapshots.map((group) => {

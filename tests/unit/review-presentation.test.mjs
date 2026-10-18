@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { classifyHypothesisNote, comparisonChecklist, engagementCalculation, groupFeatureEvidence, groupHypotheses, formatMetricId, formatDateTimeId, presentStatement, statementSegments, summarizeStatement } from '../../lib/hypothesis/presentation.ts';
+import { classifyHypothesisNote, comparisonChecklist, confidenceCapSummary, engagementCalculation, groupFeatureEvidence, groupHypotheses, formatMetricId, formatDateTimeId, presentStatement, statementSegments, summarizeStatement } from '../../lib/hypothesis/presentation.ts';
 
 const make = (id, contentIds, statement, createdAt = '2026-10-01T00:00:00Z') => ({ id, batchId: 'batch', contentIds, statement, confidence: 'LOW', reviewDecision: null, reviewedStatement: null, createdAt, evidenceCount: 2 });
 
@@ -51,6 +51,11 @@ test('summary keeps one-line text, checklist preserves unknown controls and orig
   assert.equal(summarizeStatement('DERIVED: Format lebih tinggi. Detail lanjutan.'), 'Format lebih tinggi.');
   const result = comparisonChecklist({ items: [{ contentId: 'a' }, { contentId: 'b' }], controlledVariables: { same_format: null }, roles: ['ORIGIN'], qualityReasons: [] }, 2);
   assert.deepEqual(result.checks, [{ label: 'Sampel', value: '2 konten' }, { label: 'Format', value: 'tidak diketahui' }, { label: 'Peran', value: 'Perbandingan asal hipotesis' }]);
+});
+test('summarizes confidence caps for one-line review display without changing raw caps', () => {
+  assert.equal(confidenceCapSummary([{ rule: 'INSUFFICIENT_SAMPLE', reason: 'sample size 2 is below high-confidence threshold 3' }]), 'Sampel kurang');
+  assert.equal(confidenceCapSummary([{ rule: 'ONE_COMPARISON', reason: 'one comparison cannot establish durable hypothesis confidence' }, { rule: 'COMPARISON_QUALITY', reason: 'comparison quality is LOW' }]), 'Satu perbandingan · +1 batas');
+  assert.equal(confidenceCapSummary([]), 'Batas confidence berlaku');
 });
 
 test('unknown and malformed UUID-like tokens remain visible and warned', () => {
