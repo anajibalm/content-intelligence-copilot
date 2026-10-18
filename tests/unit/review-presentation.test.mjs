@@ -52,9 +52,9 @@ test('summary keeps one-line text, checklist preserves unknown controls and orig
   const result = comparisonChecklist({ items: [{ contentId: 'a' }, { contentId: 'b' }], controlledVariables: { same_format: null }, roles: ['ORIGIN'], qualityReasons: [] }, 2);
   assert.deepEqual(result.checks, [{ label: 'Sampel', value: '2 konten' }, { label: 'Format', value: 'tidak diketahui' }, { label: 'Peran', value: 'Perbandingan asal hipotesis' }]);
 });
-test('summarizes confidence caps for one-line review display without changing raw caps', () => {
-  assert.equal(confidenceCapSummary([{ rule: 'INSUFFICIENT_SAMPLE', reason: 'sample size 2 is below high-confidence threshold 3' }]), 'Sampel kurang');
-  assert.equal(confidenceCapSummary([{ rule: 'ONE_COMPARISON', reason: 'one comparison cannot establish durable hypothesis confidence' }, { rule: 'COMPARISON_QUALITY', reason: 'comparison quality is LOW' }]), 'Satu perbandingan · +1 batas');
+test('shows stored engine confidence reason without changing raw caps', () => {
+  assert.equal(confidenceCapSummary([{ rule: 'INSUFFICIENT_SAMPLE', reason: 'sample size 2 is below high-confidence threshold 3' }]), 'sample size 2 is below high-confidence threshold 3');
+  assert.equal(confidenceCapSummary([{ rule: 'ONE_COMPARISON', reason: 'one comparison cannot establish durable hypothesis confidence' }, { rule: 'COMPARISON_QUALITY', reason: 'comparison quality is LOW' }]), 'one comparison cannot establish durable hypothesis confidence');
   assert.equal(confidenceCapSummary([]), 'Batas confidence berlaku');
 });
 

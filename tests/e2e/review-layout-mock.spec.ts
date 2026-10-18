@@ -53,12 +53,12 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
   await page.mouse.up();
 
   const detail = page.locator(`[data-hypothesis-id="${hypothesisId}"]`);
-  await expect(detail.getByRole('heading', { name: 'Synthetic fixture hypothesis claim.' })).toBeVisible();
+  await expect(detail.getByText('Synthetic fixture hypothesis claim.', { exact: true })).toBeVisible();
   await expect(detail.getByText('Confidence Rendah')).toBeVisible();
   await expect(detail.getByRole('table')).toBeVisible();
-  const confidenceReason = detail.getByText('Alasan confidence: Sampel kurang');
+  const confidenceReason = detail.getByText('Alasan confidence: sample size 2 is below high-confidence threshold 3');
   await expect(confidenceReason).toBeVisible();
-  expect(await confidenceReason.evaluate((element) => { const style = getComputedStyle(element); return element.getBoundingClientRect().height <= (Number.parseFloat(style.fontSize) * 1.5); })).toBe(true);
+  expect(await confidenceReason.evaluate((element) => { const style = getComputedStyle(element); return style.color === 'rgb(102, 112, 133)' && Number.parseFloat(style.fontSize) === 12; })).toBe(true);
   const backToQueue = detail.getByRole('button', { name: 'Kembali ke antrean' });
   if (viewport.width === 1440) await expect(backToQueue).toBeHidden();
   else await expect(backToQueue).toBeVisible();
@@ -73,10 +73,29 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
   const metricTable = detail.getByRole('table');
   const metricFontSize = await metricTable.evaluate((table) => getComputedStyle(table).fontSize);
   expect(Number.parseFloat(metricFontSize)).toBeGreaterThanOrEqual(13);
+  await expect(detail.getByRole('heading', { name: 'Klaim', exact: true })).toBeVisible();
+  await expect(detail.getByText('Synthetic fixture hypothesis claim.', { exact: true })).toHaveCount(1);
+  if (viewport.width === 1440) {
+    const queueTitle = await queue.getByRole('heading', { name: 'Antrean hipotesis', exact: true }).evaluate((element) => { const style = getComputedStyle(element); return { fontSize: Number.parseFloat(style.fontSize), fontWeight: style.fontWeight }; });
+    expect(queueTitle).toEqual({ fontSize: 15, fontWeight: '600' });
+    const queueStyle = await item.evaluate((element) => { const style = getComputedStyle(element); return { background: style.backgroundColor, borderWidth: style.borderTopWidth, borderColor: style.borderTopColor, borderRadius: style.borderTopLeftRadius, fontSize: Number.parseFloat(style.fontSize), fontWeight: style.fontWeight }; });
+    expect(queueStyle.background).toBe('rgb(234, 241, 255)');
+    expect(queueStyle.borderWidth).toBe('1px');
+    expect(queueStyle.borderColor).toBe('rgb(227, 230, 235)');
+    expect(queueStyle.borderRadius).toBe('6px');
+    expect(queueStyle.fontSize).toBe(13);
+    expect(queueStyle.fontWeight).toBe('500');
+    await expect(queue.getByText('Rendah', { exact: true })).toBeVisible();
+    await expect(queue.getByText('Menunggu review', { exact: true })).toBeVisible();
+    const filterStyles = await queue.locator('.queue-filters button').evaluateAll((buttons) => buttons.map((button) => { const style = getComputedStyle(button); return { fontSize: Number.parseFloat(style.fontSize), whiteSpace: style.whiteSpace }; }));
+    expect(filterStyles).toEqual([{ fontSize: 13, whiteSpace: 'nowrap' }, { fontSize: 13, whiteSpace: 'nowrap' }]);
+  }
+  expect(await detail.locator('.snapshot-value .ontology-chip').count()).toBe(0);
   if (viewport.width === 1440) {
     await expect(metricTable.getByRole('columnheader', { name: 'Sumber', exact: true })).toBeVisible();
     const alignments = await metricTable.locator('tbody .metric-data-row td.snapshot-value').evaluateAll((cells) => cells.map((cell) => getComputedStyle(cell).textAlign));
     expect(alignments.every((alignment) => alignment === 'right')).toBe(true);
+    await expect(metricTable.locator('tbody .metric-data-row td.snapshot-value')).toHaveText(['1.000', '900', '10,00%', '9,00%']);
   }
   await expect(detail.getByRole('region', { name: 'Sumber snapshot' })).toBeVisible();
   const heavyText = await page.locator('.view-review').locator('h2, h3, h4, h5, h6, button, th, td, p, span, strong, summary, label').evaluateAll((elements) => elements.filter((element) => getComputedStyle(element).display !== 'none' && element.getClientRects().length > 0 && !element.matches('h1, .hypothesis-claim h2') && Number.parseInt(getComputedStyle(element).fontWeight, 10) >= 700).map((element) => element.textContent?.trim()));
@@ -113,6 +132,10 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
   if (viewport.width === 390) {
     const actionHeights = await bar.getByRole('button').evaluateAll((buttons) => buttons.map((button) => button.getBoundingClientRect().height));
     expect(actionHeights.every((height) => height >= 44)).toBe(true);
+  }
+  if (viewport.width === 390) {
+    await expect(page.locator('.app-brand')).toBeHidden();
+    expect((await backToQueue.boundingBox())?.height).toBeLessThanOrEqual(36);
   }
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.screenshot({ path: `/tmp/cic-review-MOCK-sticky-${viewport.width}x${viewport.height}.png` });
