@@ -490,3 +490,30 @@ summary { min-height: 44px; cursor: pointer; font-weight: 700; display: list-ite
 button.primary { border-color: var(--accent); background: var(--accent); color: white; }
 .app-shell .review-detail-tabs button { border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: transparent; color: var(--muted); }
 .app-shell .review-detail-tabs button[aria-selected="true"] { background: transparent; color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+
+/* Review polish: compact queue state and metric provenance stay legible during review. */
+.view-review .review-workspace { grid-template-columns: minmax(320px, .7fr) minmax(0, 2fr); }
+.view-review .queue-filters { border: 0; border-radius: 6px; background: #eef0f3; }
+.view-review .queue-filters .secondary { min-height: 30px; padding: 6px 10px; color: var(--muted); }
+.view-review .queue-filters .secondary[aria-pressed='true'] { background: var(--surface); box-shadow: 0 1px 2px rgb(16 24 40 / 12%); color: var(--ink); }
+.view-review .queue-choice .queue-meta { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; color: var(--muted); font-size: 12px; line-height: 18px; }
+.view-review .claim-status { gap: 6px; }
+.view-review .snapshot-table thead th { border-bottom: 1px solid #e3e6eb; }
+.view-review .snapshot-table thead th:not(:first-child) { text-align: right; }
+.view-review .snapshot-table thead th:last-child, .view-review .snapshot-table .snapshot-metric-source { text-align: left; }
+.view-review .snapshot-table .metric-data-row th, .view-review .snapshot-table .metric-data-row td { padding-top: 10px; padding-bottom: 10px; }
+.view-review .snapshot-table .metric-data-row th { color: var(--muted); font-size: 13px; font-weight: 500; }
+.view-review .snapshot-metric-source .ontology-chip { border: 0; }
+.view-review .snapshot-source-observed { background: #eef0f3; color: var(--muted); }
+.view-review .snapshot-source-derived { background: #eff8ff; color: #175cd3; }
+.view-review .snapshot-sources { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.view-review .snapshot-sources .snapshot-source-card { min-width: 0; padding: 12px; border: 1px solid var(--line); border-radius: 8px; }
+.view-review .snapshot-source-card h4, .view-review .snapshot-source-card p { margin: 0; font-size: 12px; font-weight: 500; line-height: 18px; }
+.view-review .snapshot-source-card h4 { color: var(--muted); }
+.view-review .snapshot-source-card p { display: flex; flex-wrap: wrap; gap: 0; color: var(--ink); }
+.view-review .snapshot-source-card .source-warning { margin-left: 6px; padding: 0 4px; border-radius: 4px; font-weight: 500; }
+@media (max-width: 1100px) { .view-review .review-workspace { grid-template-columns: 1fr; } }
+@media (max-width: 850px) { .view-review .snapshot-sources { grid-template-columns: 1fr; } }
+.view-review .workspace-context .batch-picker, .view-review .decision-region .review-panel > .review-meta > label { color: var(--muted); font-size: 12px; font-weight: 500; }
+.view-review .hypothesis-evidence > h3, .view-review .s10-disclosure > summary { font-size: 15px; font-weight: 600; }
+@media (min-width: 851px) { .view-review .decision-region .review-panel > .review-meta { min-width: 160px; } .view-review .decision-region .review-panel > .review-meta input { min-width: 160px; } }
