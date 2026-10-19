@@ -230,7 +230,7 @@ test('snapshot detail displays exact formula and hides complete-null rows withou
   await detail.getByRole('button', { name: 'Lihat field kosong' }).click();
   await expect(commentsRow.locator('td[data-label="Alpha creative"]')).toContainText('Belum tersedia');
   await expect(commentsRow.locator('td[data-label="Alpha creative"]')).toContainText('MISSING_METRIC');
-  await expect(commentsRow.locator('td[data-label="Beta creative"]')).toContainText('0Observasi');
+  await expect(commentsRow.locator('td[data-label="Beta creative"]')).toHaveText('0');
   await expect(table.getByText('Rumus metrics-v2: 19 ÷ 192 = 9,90%')).toBeVisible();
 });
 
@@ -290,11 +290,11 @@ test('null metric cells are hidden with exact count and toggle while valid zero 
   const alphaCell = commentsRow.locator('td[data-label="Alpha creative"]');
   const betaCell = commentsRow.locator('td[data-label="Beta creative"]');
   await expect(alphaCell).toHaveText('');
-  await expect(betaCell).toContainText('0Observasi');
+  await expect(betaCell).toHaveText('0');
   await detail.getByRole('button', { name: 'Lihat field kosong' }).click();
   await expect(alphaCell).toContainText('Belum tersedia');
   await expect(alphaCell).toContainText('MISSING_METRIC');
-  await expect(betaCell).toContainText('0Observasi');
+  await expect(betaCell).toHaveText('0');
 });
 test('review detail tabs keep claim visible and scope exact evidence to selected panel', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
@@ -313,7 +313,7 @@ test('review detail tabs keep claim visible and scope exact evidence to selected
   await page.mouse.up();
   await expect(detail.locator('#review-panel-technical')).toBeVisible();
   await expect(detail.locator('#review-panel-metrics')).toBeHidden();
-  await expect(detail.getByRole('heading', { name: 'Synthetic original hypothesis', exact: true })).toBeVisible();
+  await expect(detail.getByRole('heading', { name: 'Klaim', exact: true })).toBeVisible();
   await detail.getByRole('tab', { name: 'Kriteria', exact: true }).click();
   await expect(detail.locator('#review-panel-criteria')).toBeVisible();
   await expect(detail.locator('#review-panel-technical')).toBeHidden();
@@ -362,7 +362,7 @@ for (const viewport of [{ width: 1280, height: 900 }, { width: 1440, height: 900
     await expect(group.locator('.snapshot-metric-name').first()).toHaveCSS('white-space', 'nowrap');
     await expect(group.locator('.snapshot-metric-name').first()).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(viewport.width);
-    await expect(group.locator('.metric-data-row').first().locator('.snapshot-mobile-values')).toContainText('Alpha creative: 236 Observasi · Beta creative: 192 Observasi');
+    await expect(group.locator('.metric-data-row').first().locator('.snapshot-mobile-values')).toHaveText('Alpha creative: 236 · Beta creative: 192');
     await expect(group.locator('.metric-data-row').first().locator('td').first()).toBeHidden();
     await expect(group.locator('.metric-data-row').first().locator('td').nth(1)).toBeHidden();
   }

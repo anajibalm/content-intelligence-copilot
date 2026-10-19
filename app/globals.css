@@ -95,7 +95,7 @@ dd { margin: 5px 0 0; font-size: 15px; font-weight: 700; overflow-wrap: anywhere
 .ingest-form label { display: block; margin-bottom: 8px; color: var(--muted); font-size: 12px; font-weight: 700; }
 .form-row { display: flex; gap: 10px; }
 .form-row input { min-width: 0; flex: 1; padding: 12px; border: 1px solid var(--control-border); border-radius: 6px; font: inherit; }
-button { padding: 12px 16px; border: 0; border-radius: 6px; background: var(--accent); color: white; font: inherit; font-weight: 700; cursor: pointer; }
+button { min-height: 34px; padding: 7px 12px; border: 1px solid var(--button-border, #e3e6eb); border-radius: 6px; background: var(--surface); color: var(--ink); font: inherit; font-size: 13px; font-weight: 500; line-height: 18px; cursor: pointer; }
 button:disabled { cursor: wait; opacity: .6; }
 .form-message { min-height: 18px; margin: 10px 0 0; color: var(--muted); font-size: 13px; }
 .results { display: grid; gap: 18px; }
@@ -451,3 +451,42 @@ summary { min-height: 44px; cursor: pointer; font-weight: 700; display: list-ite
   .view-review .snapshot-table th:first-child { width: auto; }
   .view-review .snapshot-sources { grid-template-columns: 1fr; }
 }
+
+/* Shared presentation base: calm analyst controls, state only uses accent color. */
+:root { --button-border: #e3e6eb; --button-danger: #b42318; --button-danger-soft: #fef3f2; --queue-active: #eaf1ff; }
+.app-shell button { min-height: 34px; padding: 7px 12px; border: 1px solid var(--button-border); border-radius: 6px; background: var(--surface); color: var(--ink); font-size: 13px; font-weight: 500; line-height: 18px; }
+.app-shell button.primary { border-color: var(--accent); background: var(--accent); color: white; }
+.app-shell button.destructive { border-color: #fecdca; background: var(--button-danger-soft); color: var(--button-danger); }
+.app-shell button.secondary, .app-shell .synthetic-chip, .app-shell .copy-id { border-color: var(--button-border) !important; background: var(--surface); color: var(--ink); }
+.app-shell button:disabled { cursor: not-allowed; }
+.app-sidebar nav { gap: 4px; }
+.app-sidebar nav a { min-height: 36px; padding: 8px 10px; border-radius: 6px; font-size: 14px; }
+.review-queue h2, .hypothesis-evidence > h3 { font-size: 15px; font-weight: 600; }
+.queue-filters { display: inline-flex; flex-wrap: nowrap; gap: 0; padding: 3px; border: 1px solid var(--button-border); border-radius: 6px; background: var(--surface); }
+.queue-filters button, .view-review .queue-filters .secondary { min-height: 30px; border: 0; border-radius: 4px; white-space: nowrap; }
+.queue-filters [aria-pressed='true'], .view-review .queue-filters .secondary[aria-pressed='true'] { border-color: transparent; background: var(--paper); color: var(--ink); }
+.queue-choice { min-height: 0; padding: 10px 12px; border-color: var(--button-border) !important; font-weight: 500 !important; }
+.queue-choice[aria-pressed='true'] { border-color: var(--button-border) !important; background: var(--queue-active) !important; }
+.queue-choice .queue-meta { color: var(--muted); font-size: 12px; font-weight: 400; }
+.view-review .confidence-badge, .view-review .review-state-badge, .view-review .ontology-chip { border-radius: 4px; font-size: 12px; font-weight: 500; }
+.view-review .confidence-low { border-color: #fecdca; background: var(--button-danger-soft); color: var(--button-danger); }
+.view-review .confidence-medium { border-color: #b2ddff; background: #eff8ff; color: #175cd3; }
+.view-review .confidence-high { border-color: #abefc6; background: #ecfdf3; color: #067647; }
+.view-review .hypothesis-claim { border-left: 0; padding: 14px 0; }
+.claim-heading { display: flex; align-items: center; gap: 8px; }
+.view-review .hypothesis-claim h2 { font-size: 15px; font-weight: 600; }
+.view-review .statement-presentation { gap: 0; }
+.view-review .claim-reason { color: var(--muted); font-size: 12px; line-height: 18px; }
+.snapshot-table .snapshot-value .ontology-chip { display: none; }
+@media (max-width: 900px) {
+  .app-brand { display: none; }
+  .app-sidebar { padding: 4px 10px; }
+  .app-sidebar nav { min-height: 44px; max-height: 52px; }
+  .app-sidebar nav a { min-height: 44px; }
+  .app-shell button { min-height: 44px; }
+  .view-review .review-back, .view-review .review-detail-open .review-back { min-height: 34px !important; padding: 7px 10px; font-size: 13px; }
+}
+
+button.primary { border-color: var(--accent); background: var(--accent); color: white; }
+.app-shell .review-detail-tabs button { border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: transparent; color: var(--muted); }
+.app-shell .review-detail-tabs button[aria-selected="true"] { background: transparent; color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }

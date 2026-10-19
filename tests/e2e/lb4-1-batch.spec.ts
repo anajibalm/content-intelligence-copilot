@@ -348,6 +348,8 @@ test('R40 ledger state ignores delayed prior batch and control borders stay dist
   await page.goBack();
   await expect(summary).toContainText('memuat status job');
   releaseBatchA?.();
-  const controls = await page.locator('.batch-picker select, .form-row input, .copy-id').evaluateAll((nodes) => nodes.filter((node) => node.checkVisibility()).map((node) => getComputedStyle(node).borderTopColor));
-  expect(controls.every((color) => color === 'rgb(118, 133, 139)'), controls.join(', ')).toBe(true);
+  const fields = await page.locator('.batch-picker select, .form-row input').evaluateAll((nodes) => nodes.filter((node) => node.checkVisibility()).map((node) => getComputedStyle(node).borderTopColor));
+  expect(fields.every((color) => color === 'rgb(118, 133, 139)'), fields.join(', ')).toBe(true);
+  const copyControls = await page.locator('.copy-id').evaluateAll((nodes) => nodes.filter((node) => node.checkVisibility()).map((node) => getComputedStyle(node).borderTopColor));
+  expect(copyControls.every((color) => color === 'rgb(227, 230, 235)'), copyControls.join(', ')).toBe(true);
 });
