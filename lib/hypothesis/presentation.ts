@@ -39,10 +39,12 @@ const CONFIDENCE_CAP_SUMMARIES: Record<string, string> = {
   UNREVIEWED_EXTRACTED: 'Ekstraksi belum direview',
 };
 
-export function confidenceCapSummary(caps: Array<{ rule: string; reason?: string }>) {
-  if (!caps.length) return 'Batas confidence berlaku';
-  const first = caps[0]!;
-  return first.reason?.trim() || CONFIDENCE_CAP_SUMMARIES[first.rule] || 'Batas confidence berlaku';
+export function confidenceCapSummary(caps: Array<{ rule: string; sampleSize?: unknown; minimum?: unknown }>) {
+  const known = caps.filter((cap) => CONFIDENCE_CAP_SUMMARIES[cap.rule]);
+  const first = known[0];
+  if (!first) return 'Batas confidence berlaku';
+  const detail = typeof first.sampleSize === 'number' && typeof first.minimum === 'number' ? ` · Sampel ${NUMBER.format(first.sampleSize)}, minimum ${NUMBER.format(first.minimum)}` : '';
+  return `${CONFIDENCE_CAP_SUMMARIES[first.rule]}${caps.length > 1 ? ` · +${caps.length - 1} batas` : ''}${detail}`;
 }
 
 export function summarizeStatement(statement: string, max = 105) {

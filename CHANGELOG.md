@@ -31,6 +31,7 @@ dan proyek ini mengikuti [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 - Evidence Review memakai tab terpilih, ringkasan klaim tampil terpisah dari detail bukti, nilai metrik hilang memakai tanda pisah, dan baris anggota Batch mempertahankan interaksi Library existing.
 - Review memakai tab garis bawah, filter antrean tersegmentasi, kolom sumber per metrik dan nilai rata kanan pada desktop, ringkasan alasan confidence satu baris dari cap engine, serta nav satu baris dan tombol kembali sesuai viewport.
 - Kontrol dasar Batch, Library, Compare, dan Review kini konsisten: tombol 13 px / weight 500, border 1 px `#e3e6eb`, radius 6 px, varian primary/danger eksplisit, serta navigasi mobile bersama.
+- Ringkasan confidence Review kini memakai label Indonesia dan jumlah batas; reason engine mentah tetap tersedia lewat title dan tab Kriteria tanpa mengubah cap tersimpan.
 - Notes dan draft review terikat hipotesis saat navigasi biasa; evidence mempertahankan exact source anchors dan artefak historis.
 - `.gitignore` — ignore `*.tsbuildinfo`, `_bmad/`, `_bmad-output/`
 

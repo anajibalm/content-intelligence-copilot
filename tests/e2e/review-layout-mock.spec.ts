@@ -27,7 +27,7 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
     const request = route.request();
     const url = new URL(request.url());
     if (url.pathname === '/api/workspace') return route.fulfill({ json: { batches: fixture.batches, selectedBatch: batch, contents, selectedContent: { ...source, frames: [], audio: { available: false, url: null }, transcript: [], anchors: [], extraction: [] }, analysis: null, synthetic: true } });
-    if (url.pathname === '/api/hypotheses' && url.searchParams.has('hypothesisId')) return route.fulfill({ json: { id: hypothesisId, batchId: batch.id, statement: 'OBSERVED: Synthetic fixture hypothesis claim.', confidence: 'LOW', confidenceCaps: [{ rule: 'INSUFFICIENT_SAMPLE', reason: 'sample size 2 is below high-confidence threshold 3' }], suggestedNextTest: { action: 'Repeat with a controlled sample' }, comparisons: [{ comparison_id: comparisonId, role: 'ORIGIN' }], provider: 'synthetic-fixture', model: 'synthetic-fixture', promptVersion: 'fixture', schemaVersion: 'fixture', ruleVersion: 'fixture', inputHash: 'fixture-hash', rawOutput: {}, evidence } });
+    if (url.pathname === '/api/hypotheses' && url.searchParams.has('hypothesisId')) return route.fulfill({ json: { id: hypothesisId, batchId: batch.id, statement: 'OBSERVED: Synthetic fixture hypothesis claim.', confidence: 'LOW', confidenceCaps: [{ rule: 'INSUFFICIENT_SAMPLE', reason: 'sample size 2 is below high-confidence threshold 3' }, { rule: 'ONE_COMPARISON', reason: 'one comparison cannot establish durable hypothesis confidence' }], suggestedNextTest: { action: 'Repeat with a controlled sample' }, comparisons: [{ comparison_id: comparisonId, role: 'ORIGIN' }], provider: 'synthetic-fixture', model: 'synthetic-fixture', promptVersion: 'fixture', schemaVersion: 'fixture', ruleVersion: 'fixture', inputHash: 'fixture-hash', rawOutput: {}, evidence } });
     if (url.pathname === '/api/hypotheses') return route.fulfill({ json: { items: [{ id: hypothesisId, batchId: batch.id, statement: 'OBSERVED: Synthetic fixture hypothesis claim.', confidence: 'LOW', reviewDecision: null, reviewedStatement: null, createdAt: '2026-10-06T08:14:06.531Z', contentIds: contents.slice(0, 2).map((content) => content.id), evidenceCount: evidence.length }] } });
     if (url.pathname === '/api/comparisons') return route.fulfill({ json: { id: comparisonId, mode: 'CONTROLLED', scope: 'PAIR', distribution: 'ORGANIC', quality: 'LOW', qualityReasons: ['INSUFFICIENT_SAMPLE'], controlledVariables: { same_format: null }, items: contents.slice(0, 2).map((content) => ({ contentId: content.id })), metric: 'engagement_rate', basis: 'FROZEN', direction: 'DESC', tiePolicy: 'KEEP_ALL' } });
     if (url.pathname === '/api/hypotheses/review') return route.fulfill({ json: { hypothesisId, reviews: [] } });
@@ -56,9 +56,17 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
   await expect(detail.getByText('Synthetic fixture hypothesis claim.', { exact: true })).toBeVisible();
   await expect(detail.getByText('Confidence Rendah')).toBeVisible();
   await expect(detail.getByRole('table')).toBeVisible();
-  const confidenceReason = detail.getByText('Alasan confidence: sample size 2 is below high-confidence threshold 3');
+  const confidenceReason = detail.getByText('Alasan confidence: Sampel kurang · +1 batas');
   await expect(confidenceReason).toBeVisible();
+  await expect(confidenceReason).toHaveAttribute('title', 'sample size 2 is below high-confidence threshold 3\none comparison cannot establish durable hypothesis confidence');
   expect(await confidenceReason.evaluate((element) => { const style = getComputedStyle(element); return style.color === 'rgb(102, 112, 133)' && Number.parseFloat(style.fontSize) === 12; })).toBe(true);
+  await detail.getByRole('tab', { name: 'Kriteria' }).click();
+  const criteria = detail.getByRole('region', { name: 'Kriteria perbandingan' });
+  const engineReasons = criteria.getByText('Alasan engine');
+  await engineReasons.click();
+  await expect(criteria.getByText('sample size 2 is below high-confidence threshold 3', { exact: true })).toBeVisible();
+  await expect(criteria.getByText('one comparison cannot establish durable hypothesis confidence', { exact: true })).toBeVisible();
+  await detail.getByRole('tab', { name: 'Metrik' }).click();
   const backToQueue = detail.getByRole('button', { name: 'Kembali ke antrean' });
   if (viewport.width === 1440) await expect(backToQueue).toBeHidden();
   else await expect(backToQueue).toBeVisible();
