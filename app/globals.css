@@ -443,15 +443,15 @@ summary { min-height: 44px; cursor: pointer; font-weight: 700; display: list-ite
 .hypothesis-technical .key-values, .hypothesis-technical pre { max-height: none; overflow-wrap: anywhere; }
 @media (max-width: 900px) { .library-workspace { grid-template-columns: 1fr; } .library-list { display: none; } .review-workspace { grid-template-columns: 1fr; } }
 @media (max-width: 720px) { .batch-table th:nth-last-child(2), .batch-table td:nth-last-child(2) { display: none; } .batch-table td:first-child { min-width: 150px; } }
-.app-shell .workspace-columns { grid-template-columns: 280px minmax(0, 1fr); gap: 16px; }
-.app-shell .content-list, .app-shell .content-detail { padding: 16px; border-radius: 8px; }
-.app-shell .content-row { grid-template-columns: 1fr; gap: 8px; min-height: 44px; padding: 8px 4px; }
-.app-shell .content-status { display: none; }
-.app-shell .content-row-select { min-height: 44px; }
-.app-shell .content-name strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.app-shell .content-id .copy-id { opacity: 0; }
-.app-shell .content-row:hover .copy-id, .app-shell .content-row:focus-within .copy-id { opacity: 1; }
-@media (max-width: 900px) { .app-shell .workspace-columns { grid-template-columns: 1fr; } .app-shell .workspace-columns .content-list { display: none; } }
+.view-library .workspace-columns { grid-template-columns: 280px minmax(0, 1fr); gap: 16px; }
+.view-library .content-list, .view-library .content-detail { padding: 16px; border-radius: 8px; }
+.view-library .content-row { grid-template-columns: 1fr; gap: 8px; min-height: 44px; padding: 8px 4px; }
+.view-library .content-status { display: none; }
+.view-library .content-row-select { min-height: 44px; }
+.view-library .content-name strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.view-library .content-id .copy-id { opacity: 0; }
+.view-library .content-row:hover .copy-id, .view-library .content-row:focus-within .copy-id { opacity: 1; }
+@media (max-width: 900px) { .view-library .workspace-columns { grid-template-columns: 1fr; } .view-library .workspace-columns .content-list { display: none; } }
 .decision-region .decision-options { margin: 0; }
 .decision-region .decision-options > summary { min-height: 32px; padding: 6px 0; color: var(--muted); font-size: 12px; cursor: pointer; }
 .decision-region .decision-options[open] { max-height: 36vh; overflow-y: auto; }
