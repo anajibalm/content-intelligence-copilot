@@ -121,11 +121,11 @@ function HypothesisDetail({ batchId, hypothesisId, contents, onReviewed, onBack 
             <thead><tr><th scope="col">Metrik</th>{snapshots.map((group) => <th scope="col" key={group.snapshotId}>{contentNames.get(group.contentId) ?? `TikTok ${group.contentId.slice(0, 8)}`}</th>)}<th scope="col">Sumber</th></tr></thead>
             <tbody>
               {visibleMetricRows.map((metric) => <tr className="metric-data-row" key={metric}>
-                <th scope="row"><span className="snapshot-metric-name">{metricNames[metric]}</span><span className="snapshot-mobile-values">{snapshots.map((group, index) => {
+                <th scope="row"><span className="snapshot-metric-name">{metricNames[metric]}</span><span className="snapshot-mobile-values">{snapshots.map((group) => {
                   const metricValue = snapshotValue(group, metric);
                   const label = contentNames.get(group.contentId) ?? `TikTok ${group.contentId.slice(0, 8)}`;
                   const hideNull = metricValue.value === null && !showNullMetrics;
-                  return <span key={group.snapshotId}>{index > 0 && ' · '}{label}: {hideNull ? null : metricValue.value === null ? '–' : formatMetricId(metricValue.value, metric)}</span>;
+                  return <span key={group.snapshotId}>{label}: {hideNull ? null : metricValue.value === null ? '–' : formatMetricId(metricValue.value, metric)}</span>;
                 })}</span></th>
                 {snapshots.map((group) => {
                   const metricValue = snapshotValue(group, metric);
@@ -147,7 +147,7 @@ function HypothesisDetail({ batchId, hypothesisId, contents, onReviewed, onBack 
             const label = contentNames.get(group.contentId);
             const links = [observed, derived].filter((item) => item?.link);
             if (!source && !capturedAt && links.length === 0) return null;
-            return <article className="snapshot-source-card" key={group.snapshotId}>{label && <h4>{label}</h4>}<p>{source && <span>{source}</span>}{capturedAt && <time dateTime={capturedAt}>{source ? ' · ' : ''}{formatDateTimeId(capturedAt)}</time>} {source && /(?:demo|unverified|asumsi|belum diverifikasi)/i.test(source) && <strong className="source-warning">Belum diverifikasi</strong>}</p>{links.map((item) => <a className="source-link" href={item!.link!} key={item!.id}>Buka {labelId(item!.layer)} exact</a>)}</article>;
+            return <article className="snapshot-source-card" key={group.snapshotId}>{label && <h4>{label}</h4>}<p>{source && <span>{source}</span>}{capturedAt && <time className="source-time" dateTime={capturedAt}>· {formatDateTimeId(capturedAt)}</time>} {source && /(?:demo|unverified|asumsi|belum diverifikasi)/i.test(source) && <strong className="source-warning">Belum diverifikasi</strong>}</p>{links.map((item) => <a className="source-link" href={item!.link!} key={item!.id}>Buka {labelId(item!.layer)} exact</a>)}</article>;
           })}</section>
         </>}
       </section>

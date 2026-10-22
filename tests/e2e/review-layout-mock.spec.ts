@@ -39,10 +39,14 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
   const queue = page.getByRole('region', { name: 'Antrean hipotesis' });
   await expect(queue.getByText('Synthetic fixture hypothesis claim.')).toBeVisible();
   await page.screenshot({ path: `/tmp/cic-review-MOCK-queue-${viewport.width}x${viewport.height}.png` });
+  const queueProgress = queue.locator('.queue-progress');
+  expect(await queueProgress.evaluate((element) => { const style = getComputedStyle(element); return { color: style.color, fontSize: Number.parseFloat(style.fontSize) }; })).toEqual({ color: 'rgb(102, 112, 133)', fontSize: 12 });
   if (viewport.width === 390) {
+    const sidebar = page.locator('.app-sidebar');
     const navigation = page.getByRole('navigation', { name: 'Workspace analyst' });
     const navigationBoxes = await navigation.getByRole('link').evaluateAll((links) => links.map((link) => link.getBoundingClientRect()));
     expect(navigationBoxes.every((box) => Math.round(box.y) === Math.round(navigationBoxes[0]!.y))).toBe(true);
+    expect(await sidebar.evaluate((element) => element.getBoundingClientRect().height)).toBeLessThanOrEqual(52);
     expect(await navigation.evaluate((element) => element.getBoundingClientRect().height)).toBeLessThanOrEqual(52);
   }
   const item = queue.getByRole('button', { name: /Synthetic fixture hypothesis claim/ });
@@ -83,6 +87,18 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
   expect(Number.parseFloat(metricFontSize)).toBeGreaterThanOrEqual(13);
   await expect(detail.getByRole('heading', { name: 'Klaim', exact: true })).toBeVisible();
   await expect(detail.getByText('Synthetic fixture hypothesis claim.', { exact: true })).toHaveCount(1);
+  const claimHeading = detail.locator('.claim-heading');
+  const claimTitle = claimHeading.getByRole('heading', { name: 'Klaim', exact: true });
+  const claimLayer = claimHeading.locator('.ontology-chip');
+  await expect(claimLayer).toHaveCount(1);
+  const claimTitleStyle = await claimTitle.evaluate((element) => { const style = getComputedStyle(element); return { color: style.color, fontSize: Number.parseFloat(style.fontSize), fontWeight: style.fontWeight }; });
+  expect(claimTitleStyle).toEqual({ color: 'rgb(16, 24, 40)', fontSize: viewport.width === 1440 ? 18 : 16, fontWeight: '600' });
+  expect(await claimHeading.evaluate((element) => getComputedStyle(element).gap)).toBe('8px');
+  const badgeStyles = await detail.locator('.claim-status .confidence-badge, .claim-status .review-state-badge').evaluateAll((badges) => badges.map((badge) => { const style = getComputedStyle(badge); const box = badge.getBoundingClientRect(); return { backgroundColor: style.backgroundColor, borderWidth: style.borderTopWidth, borderRadius: style.borderTopLeftRadius, color: style.color, fontSize: Number.parseFloat(style.fontSize), fontWeight: style.fontWeight, height: box.height }; }));
+  expect(badgeStyles).toEqual([
+    { backgroundColor: 'rgb(253, 236, 236)', borderWidth: '0px', borderRadius: '999px', color: 'rgb(185, 28, 28)', fontSize: 12, fontWeight: '500', height: 20 },
+    { backgroundColor: 'rgb(254, 246, 221)', borderWidth: '0px', borderRadius: '999px', color: 'rgb(161, 98, 7)', fontSize: 12, fontWeight: '500', height: 20 },
+  ]);
   if (viewport.width === 1440) {
     const queueTitle = await queue.getByRole('heading', { name: 'Antrean hipotesis', exact: true }).evaluate((element) => { const style = getComputedStyle(element); return { fontSize: Number.parseFloat(style.fontSize), fontWeight: style.fontWeight }; });
     expect(queueTitle).toEqual({ fontSize: 15, fontWeight: '600' });
@@ -95,6 +111,11 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
     expect(queueStyle.fontWeight).toBe('500');
     await expect(queue.getByText('Rendah', { exact: true })).toBeVisible();
     await expect(queue.getByText('Menunggu review', { exact: true })).toBeVisible();
+    const queueBadgeStyles = await item.locator('.confidence-badge, .review-state-badge').evaluateAll((badges) => badges.map((badge) => { const style = getComputedStyle(badge); const box = badge.getBoundingClientRect(); return { backgroundColor: style.backgroundColor, borderWidth: style.borderTopWidth, borderRadius: style.borderTopLeftRadius, color: style.color, fontSize: Number.parseFloat(style.fontSize), fontWeight: style.fontWeight, height: box.height }; }));
+    expect(queueBadgeStyles).toEqual([
+      { backgroundColor: 'rgb(253, 236, 236)', borderWidth: '0px', borderRadius: '999px', color: 'rgb(185, 28, 28)', fontSize: 12, fontWeight: '500', height: 20 },
+      { backgroundColor: 'rgb(254, 246, 221)', borderWidth: '0px', borderRadius: '999px', color: 'rgb(161, 98, 7)', fontSize: 12, fontWeight: '500', height: 20 },
+    ]);
     const filter = queue.locator('.queue-filters');
     const filterStyle = await filter.evaluate((element) => { const style = getComputedStyle(element); return { backgroundColor: style.backgroundColor, borderRadius: style.borderTopLeftRadius }; });
     expect(filterStyle).toEqual({ backgroundColor: 'rgb(238, 240, 243)', borderRadius: '6px' });
@@ -132,8 +153,13 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
   expect(typedLabels.every((label) => label.color === 'rgb(102, 112, 133)' && label.fontSize === 12 && label.fontWeight === '500')).toBe(true);
   const reviewerInput = detail.locator('.decision-region').getByLabel('Reviewer');
   expect((await reviewerInput.boundingBox())?.width).toBeGreaterThanOrEqual(viewport.width === 1440 ? 160 : 0);
+  expect(await reviewerInput.evaluate((element) => getComputedStyle(element, '::placeholder').fontWeight)).toBe('400');
   const evidenceHeading = detail.getByRole('heading', { name: 'Bukti terhubung', exact: true });
   expect(await evidenceHeading.evaluate((heading) => { const style = getComputedStyle(heading); return { fontSize: Number.parseFloat(style.fontSize), fontWeight: style.fontWeight }; })).toEqual({ fontSize: 15, fontWeight: '600' });
+  const notesHeading = detail.getByText('Catatan dan rencana uji', { exact: true });
+  expect(await notesHeading.evaluate((heading) => { const style = getComputedStyle(heading); return { fontSize: Number.parseFloat(style.fontSize), fontWeight: style.fontWeight }; })).toEqual({ fontSize: 15, fontWeight: '600' });
+  const tableHeaderStyles = await metricTable.locator('thead th').evaluateAll((headers) => headers.map((header) => { const style = getComputedStyle(header); return { color: style.color, fontSize: Number.parseFloat(style.fontSize), fontWeight: style.fontWeight }; }));
+  expect(tableHeaderStyles.every((header) => header.color === 'rgb(102, 112, 133)' && header.fontSize === 12 && header.fontWeight === '500')).toBe(true);
   await expect(detail.getByRole('region', { name: 'Sumber snapshot' })).toBeVisible();
   const heavyText = await page.locator('.view-review').locator('h2, h3, h4, h5, h6, button, th, td, p, span, strong, summary, label').evaluateAll((elements) => elements.filter((element) => getComputedStyle(element).display !== 'none' && element.getClientRects().length > 0 && !element.matches('h1, .hypothesis-claim h2') && Number.parseInt(getComputedStyle(element).fontWeight, 10) >= 700).map((element) => element.textContent?.trim()));
   expect(heavyText).toEqual([]);
@@ -173,6 +199,13 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
   if (viewport.width === 390) {
     await expect(page.locator('.app-brand')).toBeHidden();
     expect((await backToQueue.boundingBox())?.height).toBeLessThanOrEqual(36);
+    const mobileMetricValues = detail.locator('.snapshot-mobile-values > span');
+    const mobileMetricText = await mobileMetricValues.allTextContents();
+    expect(mobileMetricText.every((value) => !value.trimStart().startsWith('·'))).toBe(true);
+    const mobileMetricBoxes = await mobileMetricValues.evaluateAll((values) => values.map((value) => value.getBoundingClientRect()));
+    expect(mobileMetricBoxes.every((box, index) => index % 2 === 0 || box.y > mobileMetricBoxes[index - 1]!.y)).toBe(true);
+    const sourceTime = sourceCards.first().locator('time');
+    expect(await sourceTime.evaluate((element) => getComputedStyle(element).marginLeft)).toBe('4px');
   }
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.screenshot({ path: `/tmp/cic-review-MOCK-sticky-${viewport.width}x${viewport.height}.png` });
