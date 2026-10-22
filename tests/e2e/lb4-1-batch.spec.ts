@@ -211,11 +211,11 @@ test('AC-03 null-title identity, mono IDs, copy, and open in Library', async ({ 
   const members = page.getByRole('region', { name: 'Anggota batch' });
   const first = members.locator('.content-row').first();
   await expect(first.getByRole('button').first()).toContainText(FULL_A);
-  await expect(first.locator('code')).toHaveCount(0);
+  await expect(first.locator('code')).toHaveText(FULL_A);
   await expect(first).toContainText('Cek');
   const second = members.locator('.content-row').nth(1);
   await expect(second.getByRole('button').first()).toContainText(FULL_B);
-  await expect(second.locator('code')).toHaveCount(0);
+  await expect(second.locator('code')).toHaveText(FULL_B);
   await expect(first.getByRole('button', { name: `Salin ID ${FULL_A}` })).toBeHidden();
   await first.hover();
   await expect(first.getByRole('button', { name: `Salin ID ${FULL_A}` })).toBeVisible();
@@ -265,14 +265,14 @@ test('AC-04 metric quality states and separate distributions', async ({ page }) 
   await page.goto(`/?batchId=${batchA.id}&view=batch`);
   const members = page.getByRole('region', { name: 'Anggota batch' });
   const failed = members.locator('.content-row').first();
-  await expect(failed).toContainText('Organik: Tayangan –');
-  await expect(failed).toContainText('Organik · Tayangan: Belum tersedia · Nilai belum diberikan.');
+  await expect(failed.locator('.batch-metric[data-label="Organik"]')).toContainText('Tayangan–Engagement rate10.0%Cek Tayangan: Belum tersedia · Nilai belum diberikan.');
+  await expect(failed.locator('.batch-metric[data-label="Iklan"]')).toContainText('Tayangan1100Engagement rate11.0%');
   const suspect = members.locator('.content-row').filter({ hasText: 'e2e-a-suspect' });
-  await expect(suspect).toContainText('Tayangan –');
-  await expect(suspect).toContainText('Organik · Tayangan: Perlu diperiksa · Nilai belum diberikan.');
+  await expect(suspect.locator('.batch-metric[data-label="Organik"]')).toContainText('Tayangan–Engagement rate–Cek Tayangan: Perlu diperiksa · Nilai belum diberikan.');
+  await expect(suspect.locator('.batch-metric[data-label="Organik"] .quality-reason')).toContainText('Tayangan: Perlu diperiksa · Nilai belum diberikan.');
   const zero = members.locator('.content-row').filter({ hasText: 'e2e-a-zero' });
-  await expect(zero).toContainText('Organik: Tayangan 0');
-  await expect(zero).toContainText('Iklan: Tayangan 1100');
+  await expect(zero.locator('.batch-metric[data-label="Organik"]')).toContainText('Tayangan0');
+  await expect(zero.locator('.batch-metric[data-label="Iklan"]')).toContainText('Tayangan1100');
   await expect(zero).not.toContainText('Nilai nol belum memiliki penjelasan');
   await expect(zero).toContainText('Akuisisi Berhasil · Processing Berhasil');
   const drawer = page.locator('.processing-drawer');
@@ -328,8 +328,8 @@ test('AC-07 readability floors and no horizontal overflow', async ({ page }) => 
     await page.goto(`/?batchId=${batchA.id}&contentId=${ids.failed}&view=batch`);
     const members = page.getByRole('region', { name: 'Anggota batch' });
     await expect(members.locator('.content-row-select').first()).toContainText(FULL_A);
-    await expect(members.locator('.content-row-select').first().locator('code')).toHaveCount(0);
-    await expect(members).toContainText('Organik: Tayangan –');
+  await expect(members.locator('.content-row-select').first().locator('code')).toHaveText(FULL_A);
+  await expect(members.locator('.content-row').first().locator('.batch-metric[data-label="Organik"]')).toContainText('Tayangan–');
     const metadata = await page.locator('.batch-members code, .batch-members .quality-reason, .batch-members .content-status small').evaluateAll((nodes) => nodes.filter((node) => node.checkVisibility()).map((node) => Number.parseFloat(getComputedStyle(node).fontSize)));
     expect(metadata.length).toBeGreaterThan(0);
     expect(metadata.every((size) => size >= 12), `metadata ${metadata.join(', ')}`).toBe(true);
@@ -340,10 +340,10 @@ test('AC-07 readability floors and no horizontal overflow', async ({ page }) => 
     await members.locator('.content-row').first().hover();
     const select = members.locator('.content-row-select').first();
     const copy = members.getByRole('button', { name: `Salin ID ${FULL_A}` });
-    expect((await select.boundingBox())?.height).toBeGreaterThanOrEqual(44);
-    expect((await copy.boundingBox())?.height).toBeGreaterThanOrEqual(44);
+    expect((await select.boundingBox())?.height).toBeGreaterThanOrEqual(32);
+    expect((await copy.boundingBox())?.height).toBeGreaterThanOrEqual(32);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-    await page.screenshot({ path: `/tmp/cic-lb4-1-after-${viewport.width}.png`, fullPage: true });
+    if (!process.env.CIC_BATCH_EVIDENCE_DIR || viewport.width === 1440 || viewport.width === 390) await page.screenshot({ path: process.env.CIC_BATCH_EVIDENCE_DIR ? `${process.env.CIC_BATCH_EVIDENCE_DIR}/BATCH_PRESENTATION_${viewport.width}x${viewport.height}.png` : `/tmp/cic-lb4-1-after-${viewport.width}.png`, fullPage: true });
   }
 });
 
@@ -382,4 +382,54 @@ test('R40 ledger state ignores delayed prior batch and control borders stay dist
   expect(fields.every((color) => color === 'rgb(118, 133, 139)'), fields.join(', ')).toBe(true);
   const copyControls = await page.locator('.copy-id').evaluateAll((nodes) => nodes.filter((node) => node.checkVisibility()).map((node) => getComputedStyle(node).borderTopColor));
   expect(copyControls.every((color) => color === 'rgb(227, 230, 235)'), copyControls.join(', ')).toBe(true);
+});
+
+test('AC-08 Batch panels and member cards use Review presentation scale without overlap', async ({ page }) => {
+  await installApi(page);
+  for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 }]) {
+    await page.setViewportSize(viewport);
+    await page.goto(`/?batchId=${batchA.id}&view=batch`);
+    const members = page.getByRole('region', { name: 'Anggota batch' });
+    const headings = page.locator('.view-batch .workspace-summary h2, .view-batch .batch-members h2, .view-batch .processing-drawer > summary > span:first-child');
+    const headingStyles = await headings.evaluateAll((nodes) => nodes.map((node) => {
+      const style = getComputedStyle(node);
+      return [Number.parseFloat(style.fontSize), Number.parseInt(style.fontWeight, 10), style.color];
+    }));
+    expect(headingStyles.every(([size, weight, color]) => size === 15 && weight === 600 && color === 'rgb(16, 24, 40)'), JSON.stringify(headingStyles)).toBe(true);
+    const check = members.getByText('Cek', { exact: true }).first();
+    const checkStyle = await check.evaluate((node) => {
+      const style = getComputedStyle(node);
+      return { height: Number.parseFloat(style.height), fontSize: Number.parseFloat(style.fontSize), fontWeight: Number.parseInt(style.fontWeight, 10), radius: style.borderRadius, border: style.borderTopWidth, background: style.backgroundColor, color: style.color };
+    });
+    expect(checkStyle).toEqual({ height: 20, fontSize: 12, fontWeight: 500, radius: '999px', border: '0px', background: 'rgb(254, 246, 221)', color: 'rgb(161, 98, 7)' });
+    const drawerDetail = page.locator('.processing-drawer-content details').first();
+    await expect(drawerDetail).not.toHaveAttribute('open', '');
+    expect((await drawerDetail.boundingBox())?.height).toBeLessThanOrEqual(48);
+    if (viewport.width === 1440) {
+      const header = members.getByRole('columnheader', { name: 'Konten', exact: true });
+      const style = await header.evaluate((node) => {
+        const computed = getComputedStyle(node);
+        return { height: Number.parseFloat(computed.height), fontSize: Number.parseFloat(computed.fontSize), fontWeight: Number.parseInt(computed.fontWeight, 10), verticalAlign: computed.verticalAlign };
+      });
+      expect(style).toEqual({ height: 32, fontSize: 12, fontWeight: 500, verticalAlign: 'middle' });
+    } else {
+      const first = members.locator('.content-row').first();
+      await expect(first.locator('.batch-content-link')).toContainText('Konten TikTok');
+      await expect(first.locator('code')).toHaveText(FULL_A);
+      await expect(first.locator('.batch-metric-line')).toHaveCount(4);
+      await expect(first.getByRole('button', { name: `Salin ID ${FULL_A}` })).toHaveCSS('min-height', '32px');
+      const box = await first.locator('.content-row-select').boundingBox();
+      const identifier = await first.locator('code').boundingBox();
+      expect(identifier!.y).toBeGreaterThan(box!.y);
+    }
+    const geometry = await members.locator('.content-row').first().evaluate((row) => {
+      const blocks = [...row.querySelectorAll<HTMLElement>('.batch-cell')].filter((node) => node.checkVisibility());
+      const overlap = (left: DOMRect, right: DOMRect) => Math.max(0, Math.min(left.right, right.right) - Math.max(left.left, right.left)) * Math.max(0, Math.min(left.bottom, right.bottom) - Math.max(left.top, right.top));
+      const rects = blocks.map((node) => node.getBoundingClientRect());
+      return { overflow: [...row.querySelectorAll<HTMLElement>('.batch-cell, .batch-metric-line, .quality-reason')].every((node) => node.scrollWidth <= node.clientWidth), intersections: rects.flatMap((rect, index) => rects.slice(index + 1).map((other) => overlap(rect, other))).filter((area) => area > 0) };
+    });
+    expect(geometry.overflow).toBe(true);
+    expect(geometry.intersections).toEqual([]);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  }
 });

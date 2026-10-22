@@ -24,6 +24,7 @@ dan proyek ini mengikuti [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ### Changed
 - Batch: tabel anggota responsif; KPI/ranking di atas tabel; data hilang tetap dash, ID konten tanpa judul tampil sebagai judul, serta status akuisisi/processing eksplisit.
+- Batch menyetarakan tabel/kartu anggota ke skala panel 15 px, body 13 px, meta 12 px; reason kualitas engine dan badge status eksplisit; kartu mobile satu kolom tanpa overflow atau tumpang tindih.
 - Batch, Library, Compare, dan Review memiliki tugas terpisah; hasil generation membuka Review tanpa menyalin form review.
 - Label Indonesia terpusat, fingerprint AI asli/hasil review berdampingan, history append-only ringkas, form Next Test terlipat, serta mobile tanpa page overflow.
 - Review hipotesis merangkum antrean per pasangan konten, menampilkan snapshot bukti berdampingan, metadata sumber/waktu, dan layout keputusan yang diuji pada desktop/mobile.
