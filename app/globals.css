@@ -543,8 +543,8 @@ button.primary { border-color: var(--accent); background: var(--accent); color: 
 }
 @media (max-width: 850px) {
   .app-shell { grid-template-rows: auto 1fr; align-content: start; }
-  .view-review .topbar { padding-bottom: 0; }
-  .view-review .workspace-context { padding-top: 0; }
+  .view-review .topbar { padding-bottom: 8px; }
+  .view-review .workspace-context { padding-top: 8px; }
   .view-review .workspace-context h2 { font-size: 1rem; }
   .view-review .workspace-context .muted { font-size: 12px; }
   .view-review .workspace-context .batch-picker select { min-height: 36px; }
@@ -562,10 +562,11 @@ button.primary { border-color: var(--accent); background: var(--accent); color: 
   .view-review .decision-region .decision-options[open] { padding: 8px; border: 1px solid var(--line); border-radius: 6px; }
   .view-review .decision-region .decision-options[open] > summary { margin: -8px -8px 8px; }
   .view-review .hypothesis-detail { padding-top: 0; }
-  .view-review .missing-metrics-notice { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; color: var(--muted); font-size: 12px; font-weight: 400; }
-  .view-review .missing-metrics-notice button { min-height: 28px; height: 28px; padding: 4px 8px; font-size: 12px; font-weight: 500; line-height: 18px; }
 }
-.view-review .snapshot-source-card .source-warning { flex-basis: 100%; width: fit-content; margin-left: 0; }
+.view-review .missing-metrics-notice { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; color: var(--muted); font-size: 12px; font-weight: 400; }
+.view-review .missing-metrics-notice button { min-height: 28px; height: 28px; padding: 4px 8px; border: 0; background: transparent; color: var(--accent); font-size: 12px; font-weight: 500; line-height: 18px; }
+.view-review .snapshot-source-card p, .view-review .snapshot-source-card .source-details { display: block; }
+.view-review .snapshot-source-card .source-warning { display: inline-flex; box-sizing: border-box; width: fit-content; height: 20px; margin-left: 0; padding: 2px 8px; border: 0; border-radius: 999px; font-size: 12px; font-weight: 500; line-height: 16px; }
 .view-review .s10-disclosure { padding: 0; }
 .view-review .decision-region .review-panel > .review-meta input, .view-review .decision-region .decision-note input { border-color: var(--line); }
 .view-review .s10-disclosure > summary { min-height: 44px; padding: 12px; }

@@ -147,7 +147,7 @@ function HypothesisDetail({ batchId, hypothesisId, contents, onReviewed, onBack 
             const label = contentNames.get(group.contentId);
             const links = [observed, derived].filter((item) => item?.link);
             if (!source && !capturedAt && links.length === 0) return null;
-            return <article className="snapshot-source-card" key={group.snapshotId}>{label && <h4>{label}</h4>}<p>{source && <span>{source}</span>}{capturedAt && <time className="source-time" dateTime={capturedAt}>· {formatDateTimeId(capturedAt)}</time>} {source && /(?:demo|unverified|asumsi|belum diverifikasi)/i.test(source) && <strong className="source-warning">Belum diverifikasi</strong>}</p>{links.map((item) => <a className="source-link" href={item!.link!} key={item!.id}>Buka {labelId(item!.layer)} exact</a>)}</article>;
+            return <article className="snapshot-source-card" key={group.snapshotId}>{label && <h4>{label}</h4>}<p><span className="source-details">{source && <span>{source}</span>}{capturedAt && <time className="source-time" dateTime={capturedAt}>· {formatDateTimeId(capturedAt)}</time>}</span>{source && /(?:demo|unverified|asumsi|belum diverifikasi)/i.test(source) && <strong className="source-warning">Belum diverifikasi</strong>}</p>{links.map((item) => <a className="source-link" href={item!.link!} key={item!.id}>Buka {labelId(item!.layer)} exact</a>)}</article>;
           })}</section>
         </>}
       </section>
