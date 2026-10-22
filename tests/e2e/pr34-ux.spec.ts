@@ -362,7 +362,9 @@ for (const viewport of [{ width: 1280, height: 900 }, { width: 1440, height: 900
     await expect(group.locator('.snapshot-metric-name').first()).toHaveCSS('white-space', 'nowrap');
     await expect(group.locator('.snapshot-metric-name').first()).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(viewport.width);
-    await expect(group.locator('.metric-data-row').first().locator('.snapshot-mobile-values')).toHaveText('Alpha creative: 236 · Beta creative: 192');
+    const mobileValues = group.locator('.metric-data-row').first().locator('.snapshot-mobile-values > span');
+    await expect(mobileValues).toHaveText(['Alpha creative: 236', 'Beta creative: 192']);
+    expect(await mobileValues.evaluateAll((values) => values.every((value) => !value.textContent?.trimStart().startsWith('·')))).toBe(true);
     await expect(group.locator('.metric-data-row').first().locator('td').first()).toBeHidden();
     await expect(group.locator('.metric-data-row').first().locator('td').nth(1)).toBeHidden();
   }

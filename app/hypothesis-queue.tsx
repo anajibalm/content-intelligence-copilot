@@ -115,17 +115,17 @@ function HypothesisDetail({ batchId, hypothesisId, contents, onReviewed, onBack 
         <h3 id="evidence-heading">Bukti terhubung</h3>
         {snapshots.length === 0 ? <p className="muted">Snapshot metrik tidak dirujuk sebagai bukti hipotesis.</p> : <>
           {allMetricsValid && <p className="muted">Semua metrik valid.</p>}
-          {missingMetrics > 0 && <p className="muted">{missingMetrics} field kosong disembunyikan. <button className="secondary" type="button" aria-expanded={showNullMetrics} onClick={() => setShowNullMetrics((current) => !current)}>{showNullMetrics ? 'Sembunyikan field kosong' : 'Lihat field kosong'}</button></p>}
+          {missingMetrics > 0 && <p className="muted missing-metrics-notice"><span>{missingMetrics} field kosong disembunyikan.</span> <button className="secondary" type="button" aria-expanded={showNullMetrics} onClick={() => setShowNullMetrics((current) => !current)}>{showNullMetrics ? 'Sembunyikan field kosong' : 'Lihat field kosong'}</button></p>}
           {timeDelta !== null && timeDelta > 3_600_000 && <p className="snapshot-time-warning">Selisih waktu snapshot lebih dari 1 jam: {formatMetricId(timeDelta / 3_600_000, 'awt_seconds').replace(' dtk', ' jam')}</p>}
           <table className="snapshot-table">
             <thead><tr><th scope="col">Metrik</th>{snapshots.map((group) => <th scope="col" key={group.snapshotId}>{contentNames.get(group.contentId) ?? `TikTok ${group.contentId.slice(0, 8)}`}</th>)}<th scope="col">Sumber</th></tr></thead>
             <tbody>
               {visibleMetricRows.map((metric) => <tr className="metric-data-row" key={metric}>
-                <th scope="row"><span className="snapshot-metric-name">{metricNames[metric]}</span><span className="snapshot-mobile-values">{snapshots.map((group, index) => {
+                <th scope="row"><span className="snapshot-metric-name">{metricNames[metric]}</span><span className="snapshot-mobile-values">{snapshots.map((group) => {
                   const metricValue = snapshotValue(group, metric);
                   const label = contentNames.get(group.contentId) ?? `TikTok ${group.contentId.slice(0, 8)}`;
                   const hideNull = metricValue.value === null && !showNullMetrics;
-                  return <span key={group.snapshotId}>{index > 0 && ' · '}{label}: {hideNull ? null : metricValue.value === null ? '–' : formatMetricId(metricValue.value, metric)}</span>;
+                  return <span key={group.snapshotId}>{label}: {hideNull ? null : metricValue.value === null ? '–' : formatMetricId(metricValue.value, metric)}</span>;
                 })}</span></th>
                 {snapshots.map((group) => {
                   const metricValue = snapshotValue(group, metric);
@@ -147,7 +147,7 @@ function HypothesisDetail({ batchId, hypothesisId, contents, onReviewed, onBack 
             const label = contentNames.get(group.contentId);
             const links = [observed, derived].filter((item) => item?.link);
             if (!source && !capturedAt && links.length === 0) return null;
-            return <article className="snapshot-source-card" key={group.snapshotId}>{label && <h4>{label}</h4>}<p>{source && <span>{source}</span>}{capturedAt && <time dateTime={capturedAt}>{source ? ' · ' : ''}{formatDateTimeId(capturedAt)}</time>} {source && /(?:demo|unverified|asumsi|belum diverifikasi)/i.test(source) && <strong className="source-warning">Belum diverifikasi</strong>}</p>{links.map((item) => <a className="source-link" href={item!.link!} key={item!.id}>Buka {labelId(item!.layer)} exact</a>)}</article>;
+            return <article className="snapshot-source-card" key={group.snapshotId}>{label && <h4>{label}</h4>}<p><span className="source-details">{source && <span>{source}</span>}{capturedAt && <time className="source-time" dateTime={capturedAt}>· {formatDateTimeId(capturedAt)}</time>}</span>{source && /(?:demo|unverified|asumsi|belum diverifikasi)/i.test(source) && <strong className="source-warning">Belum diverifikasi</strong>}</p>{links.map((item) => <a className="source-link" href={item!.link!} key={item!.id}>Buka {labelId(item!.layer)} exact</a>)}</article>;
           })}</section>
         </>}
       </section>

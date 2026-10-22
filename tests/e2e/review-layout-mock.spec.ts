@@ -39,11 +39,31 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
   const queue = page.getByRole('region', { name: 'Antrean hipotesis' });
   await expect(queue.getByText('Synthetic fixture hypothesis claim.')).toBeVisible();
   await page.screenshot({ path: `/tmp/cic-review-MOCK-queue-${viewport.width}x${viewport.height}.png` });
+  const syntheticChip = page.getByRole('button', { name: 'Data uji synthetic', exact: true });
+  await expect(syntheticChip).toBeVisible();
   if (viewport.width === 390) {
+    const [chipBox, topbarBox, batchTitleBox] = await Promise.all([syntheticChip.boundingBox(), page.locator('.view-review .topbar').boundingBox(), page.locator('#workspace-heading').boundingBox()]);
+    expect(chipBox).not.toBeNull();
+    expect(topbarBox).not.toBeNull();
+    expect(batchTitleBox).not.toBeNull();
+    expect(topbarBox!.y + topbarBox!.height - (chipBox!.y + chipBox!.height)).toBeGreaterThanOrEqual(8);
+    expect(batchTitleBox!.y - (chipBox!.y + chipBox!.height)).toBeGreaterThanOrEqual(8);
+  }
+  const queueProgress = queue.locator('.queue-progress');
+  expect(await queueProgress.evaluate((element) => { const style = getComputedStyle(element); return { color: style.color, fontSize: Number.parseFloat(style.fontSize) }; })).toEqual({ color: 'rgb(102, 112, 133)', fontSize: 12 });
+  if (viewport.width === 390) {
+    const sidebar = page.locator('.app-sidebar');
     const navigation = page.getByRole('navigation', { name: 'Workspace analyst' });
     const navigationBoxes = await navigation.getByRole('link').evaluateAll((links) => links.map((link) => link.getBoundingClientRect()));
     expect(navigationBoxes.every((box) => Math.round(box.y) === Math.round(navigationBoxes[0]!.y))).toBe(true);
+    expect(await sidebar.evaluate((element) => element.getBoundingClientRect().height)).toBeLessThanOrEqual(52);
     expect(await navigation.evaluate((element) => element.getBoundingClientRect().height)).toBeLessThanOrEqual(52);
+    const reviewTitle = page.getByRole('heading', { name: 'Review', exact: true });
+    const sidebarBox = await sidebar.boundingBox();
+    const reviewTitleBox = await reviewTitle.boundingBox();
+    expect(sidebarBox).not.toBeNull();
+    expect(reviewTitleBox).not.toBeNull();
+    expect(reviewTitleBox!.y - (sidebarBox!.y + sidebarBox!.height)).toBeLessThanOrEqual(24);
   }
   const item = queue.getByRole('button', { name: /Synthetic fixture hypothesis claim/ });
   const box = await item.boundingBox();
@@ -81,8 +101,27 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
   const metricTable = detail.getByRole('table');
   const metricFontSize = await metricTable.evaluate((table) => getComputedStyle(table).fontSize);
   expect(Number.parseFloat(metricFontSize)).toBeGreaterThanOrEqual(13);
+  const missingMetricsNotice = detail.locator('.missing-metrics-notice');
+  await expect(missingMetricsNotice).toBeVisible();
+  const missingMetricTextStyle = await missingMetricsNotice.locator('span').evaluate((element) => { const style = getComputedStyle(element); return { color: style.color, fontSize: Number.parseFloat(style.fontSize), fontWeight: style.fontWeight }; });
+  expect(missingMetricTextStyle).toEqual({ color: 'rgb(102, 112, 133)', fontSize: 12, fontWeight: '400' });
+  const emptyFieldsButton = missingMetricsNotice.getByRole('button', { name: 'Lihat field kosong' });
+  const emptyFieldsButtonStyle = await emptyFieldsButton.evaluate((element) => { const style = getComputedStyle(element); const box = element.getBoundingClientRect(); return { backgroundColor: style.backgroundColor, borderWidth: style.borderTopWidth, fontSize: Number.parseFloat(style.fontSize), fontWeight: style.fontWeight, height: box.height }; });
+  expect(emptyFieldsButtonStyle).toEqual({ backgroundColor: 'rgba(0, 0, 0, 0)', borderWidth: '0px', fontSize: 12, fontWeight: '500', height: 28 });
   await expect(detail.getByRole('heading', { name: 'Klaim', exact: true })).toBeVisible();
   await expect(detail.getByText('Synthetic fixture hypothesis claim.', { exact: true })).toHaveCount(1);
+  const claimHeading = detail.locator('.claim-heading');
+  const claimTitle = claimHeading.getByRole('heading', { name: 'Klaim', exact: true });
+  const claimLayer = claimHeading.locator('.ontology-chip');
+  await expect(claimLayer).toHaveCount(1);
+  const claimTitleStyle = await claimTitle.evaluate((element) => { const style = getComputedStyle(element); return { color: style.color, fontSize: Number.parseFloat(style.fontSize), fontWeight: style.fontWeight }; });
+  expect(claimTitleStyle).toEqual({ color: 'rgb(16, 24, 40)', fontSize: viewport.width === 1440 ? 18 : 16, fontWeight: '600' });
+  expect(await claimHeading.evaluate((element) => getComputedStyle(element).gap)).toBe('8px');
+  const badgeStyles = await detail.locator('.claim-status .confidence-badge, .claim-status .review-state-badge').evaluateAll((badges) => badges.map((badge) => { const style = getComputedStyle(badge); const box = badge.getBoundingClientRect(); return { backgroundColor: style.backgroundColor, borderWidth: style.borderTopWidth, borderRadius: style.borderTopLeftRadius, color: style.color, fontSize: Number.parseFloat(style.fontSize), fontWeight: style.fontWeight, height: box.height }; }));
+  expect(badgeStyles).toEqual([
+    { backgroundColor: 'rgb(253, 236, 236)', borderWidth: '0px', borderRadius: '999px', color: 'rgb(185, 28, 28)', fontSize: 12, fontWeight: '500', height: 20 },
+    { backgroundColor: 'rgb(254, 246, 221)', borderWidth: '0px', borderRadius: '999px', color: 'rgb(161, 98, 7)', fontSize: 12, fontWeight: '500', height: 20 },
+  ]);
   if (viewport.width === 1440) {
     const queueTitle = await queue.getByRole('heading', { name: 'Antrean hipotesis', exact: true }).evaluate((element) => { const style = getComputedStyle(element); return { fontSize: Number.parseFloat(style.fontSize), fontWeight: style.fontWeight }; });
     expect(queueTitle).toEqual({ fontSize: 15, fontWeight: '600' });
@@ -95,6 +134,11 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
     expect(queueStyle.fontWeight).toBe('500');
     await expect(queue.getByText('Rendah', { exact: true })).toBeVisible();
     await expect(queue.getByText('Menunggu review', { exact: true })).toBeVisible();
+    const queueBadgeStyles = await item.locator('.confidence-badge, .review-state-badge').evaluateAll((badges) => badges.map((badge) => { const style = getComputedStyle(badge); const box = badge.getBoundingClientRect(); return { backgroundColor: style.backgroundColor, borderWidth: style.borderTopWidth, borderRadius: style.borderTopLeftRadius, color: style.color, fontSize: Number.parseFloat(style.fontSize), fontWeight: style.fontWeight, height: box.height }; }));
+    expect(queueBadgeStyles).toEqual([
+      { backgroundColor: 'rgb(253, 236, 236)', borderWidth: '0px', borderRadius: '999px', color: 'rgb(185, 28, 28)', fontSize: 12, fontWeight: '500', height: 20 },
+      { backgroundColor: 'rgb(254, 246, 221)', borderWidth: '0px', borderRadius: '999px', color: 'rgb(161, 98, 7)', fontSize: 12, fontWeight: '500', height: 20 },
+    ]);
     const filter = queue.locator('.queue-filters');
     const filterStyle = await filter.evaluate((element) => { const style = getComputedStyle(element); return { backgroundColor: style.backgroundColor, borderRadius: style.borderTopLeftRadius }; });
     expect(filterStyle).toEqual({ backgroundColor: 'rgb(238, 240, 243)', borderRadius: '6px' });
@@ -118,6 +162,7 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
     const sourceBadgeStyles = await metricTable.locator('.snapshot-metric-source .ontology-chip').evaluateAll((badges) => badges.map((badge) => { const style = getComputedStyle(badge); return { backgroundColor: style.backgroundColor, borderWidth: style.borderTopWidth }; }));
     expect(sourceBadgeStyles).toEqual([{ backgroundColor: 'rgb(238, 240, 243)', borderWidth: '0px' }, { backgroundColor: 'rgb(239, 248, 255)', borderWidth: '0px' }]);
     await expect(metricTable.locator('tbody .metric-data-row td.snapshot-value')).toHaveText(['1.000', '900', '10,00%', '9,00%']);
+    expect(await metricTable.locator('.snapshot-mobile-values').evaluateAll((elements) => elements.every((element) => getComputedStyle(element).display === 'none'))).toBe(true);
   }
   const sourceCards = detail.locator('.snapshot-sources .snapshot-source-card');
   await expect(sourceCards).toHaveCount(2);
@@ -126,14 +171,25 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
   await expect(sourceCards.first().getByText('Alpha creative', { exact: true })).toBeVisible();
   await expect(sourceCards.first().getByText('Belum diverifikasi', { exact: true })).toBeVisible();
   await expect(sourceCards.locator('a')).toHaveCount(0);
+  const sourceWarning = sourceCards.first().getByText('Belum diverifikasi', { exact: true });
+  const sourceText = sourceCards.first().locator('p > span').first();
+  expect(await sourceWarning.evaluate((element) => Math.round(element.getBoundingClientRect().left))).toBe(await sourceText.evaluate((element) => Math.round(element.getBoundingClientRect().left)));
+  const sourceWarningStyle = await sourceWarning.evaluate((element) => { const style = getComputedStyle(element); const box = element.getBoundingClientRect(); const source = element.parentElement!.querySelector<HTMLElement>('.source-details')!.getBoundingClientRect(); const card = element.closest('.snapshot-source-card')!.getBoundingClientRect(); return { display: style.display, borderWidth: style.borderTopWidth, borderRadius: style.borderTopLeftRadius, fontSize: Number.parseFloat(style.fontSize), fontWeight: style.fontWeight, height: box.height, width: box.width, cardWidth: card.width, leftOffset: box.left - source.left }; });
+  expect(sourceWarningStyle).toEqual({ display: 'inline-flex', borderWidth: '0px', borderRadius: '999px', fontSize: 12, fontWeight: '500', height: 20, width: expect.any(Number), cardWidth: expect.any(Number), leftOffset: 0 });
+  expect(sourceWarningStyle.width).toBeLessThan(sourceWarningStyle.cardWidth / 2);
   await expect(detail.getByText('Menunggu review', { exact: true })).toHaveCount(1);
   await expect(detail.getByText('Alasan confidence: Sampel kurang · +1 batas', { exact: true })).toBeVisible();
   const typedLabels = await page.locator('.workspace-context .batch-picker, .decision-region .review-panel > .review-meta > label, .snapshot-source-card h4').evaluateAll((elements) => elements.map((element) => { const style = getComputedStyle(element); return { color: style.color, fontSize: Number.parseFloat(style.fontSize), fontWeight: style.fontWeight }; }));
   expect(typedLabels.every((label) => label.color === 'rgb(102, 112, 133)' && label.fontSize === 12 && label.fontWeight === '500')).toBe(true);
   const reviewerInput = detail.locator('.decision-region').getByLabel('Reviewer');
   expect((await reviewerInput.boundingBox())?.width).toBeGreaterThanOrEqual(viewport.width === 1440 ? 160 : 0);
+  expect(await reviewerInput.evaluate((element) => getComputedStyle(element, '::placeholder').fontWeight)).toBe('400');
   const evidenceHeading = detail.getByRole('heading', { name: 'Bukti terhubung', exact: true });
   expect(await evidenceHeading.evaluate((heading) => { const style = getComputedStyle(heading); return { fontSize: Number.parseFloat(style.fontSize), fontWeight: style.fontWeight }; })).toEqual({ fontSize: 15, fontWeight: '600' });
+  const notesHeading = detail.getByText('Catatan dan rencana uji', { exact: true });
+  expect(await notesHeading.evaluate((heading) => { const style = getComputedStyle(heading); return { fontSize: Number.parseFloat(style.fontSize), fontWeight: style.fontWeight }; })).toEqual({ fontSize: 15, fontWeight: '600' });
+  const tableHeaderStyles = await metricTable.locator('thead th').evaluateAll((headers) => headers.map((header) => { const style = getComputedStyle(header); return { color: style.color, fontSize: Number.parseFloat(style.fontSize), fontWeight: style.fontWeight }; }));
+  expect(tableHeaderStyles.every((header) => header.color === 'rgb(102, 112, 133)' && header.fontSize === 12 && header.fontWeight === '500')).toBe(true);
   await expect(detail.getByRole('region', { name: 'Sumber snapshot' })).toBeVisible();
   const heavyText = await page.locator('.view-review').locator('h2, h3, h4, h5, h6, button, th, td, p, span, strong, summary, label').evaluateAll((elements) => elements.filter((element) => getComputedStyle(element).display !== 'none' && element.getClientRects().length > 0 && !element.matches('h1, .hypothesis-claim h2') && Number.parseInt(getComputedStyle(element).fontWeight, 10) >= 700).map((element) => element.textContent?.trim()));
   expect(heavyText).toEqual([]);
@@ -153,7 +209,10 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
   await expect(bar.getByText('Opsi', { exact: true })).toBeVisible();
   await expect(bar.getByLabel('Tandai golden label (ground truth analyst)')).toBeHidden();
   const height = await bar.evaluate((element) => element.getBoundingClientRect().height);
-  expect(height).toBeLessThanOrEqual(viewport.width === 1440 ? 64 : 152);
+  expect(height).toBeLessThanOrEqual(viewport.width === 1440 ? 64 : 120);
+  const reviewerBorder = await reviewerInput.evaluate((element) => getComputedStyle(element).borderColor);
+  const noteInput = bar.getByLabel('Catatan');
+  expect(await noteInput.evaluate((element) => getComputedStyle(element).borderColor)).toBe(reviewerBorder);
   if (viewport.width === 1440) {
     const rows = await detail.getByRole('table').first().locator('tbody tr').count();
     expect(rows).toBeGreaterThanOrEqual(3);
@@ -169,10 +228,30 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
   if (viewport.width === 390) {
     const actionHeights = await bar.getByRole('button').evaluateAll((buttons) => buttons.map((button) => button.getBoundingClientRect().height));
     expect(actionHeights.every((height) => height >= 44)).toBe(true);
+    const decisionGrid = await bar.locator('.review-panel').evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(' ').map(Number));
+    expect(decisionGrid).toHaveLength(2);
+    expect(decisionGrid[0]).toBe(decisionGrid[1]);
+    const controls = await bar.locator('.review-meta, .decision-note, .review-actions').evaluateAll((elements) => elements.map((element) => { const box = element.getBoundingClientRect(); return { height: box.height, y: box.y }; }));
+    expect(controls[0]!.height).toBe(40);
+    expect(controls[1]!.height).toBe(40);
+    expect(controls[0]!.y).toBe(controls[1]!.y);
+    const actionWidths = await bar.locator('.review-actions button').evaluateAll((buttons) => buttons.map((button) => button.getBoundingClientRect().width));
+    expect(actionWidths).toHaveLength(3);
+    expect(actionWidths[0]).toBeGreaterThan(actionWidths[1]!);
+    const disclosure = detail.locator('.s10-disclosure');
+    expect(Math.abs(actionWidths[1]! - actionWidths[2]!)).toBeLessThanOrEqual(1);
+    expect(await disclosure.evaluate((element) => element.getBoundingClientRect().height)).toBeLessThanOrEqual(48);
   }
   if (viewport.width === 390) {
     await expect(page.locator('.app-brand')).toBeHidden();
     expect((await backToQueue.boundingBox())?.height).toBeLessThanOrEqual(36);
+    const mobileMetricValues = detail.locator('.snapshot-mobile-values > span');
+    const mobileMetricText = await mobileMetricValues.allTextContents();
+    expect(mobileMetricText.every((value) => !value.trimStart().startsWith('·'))).toBe(true);
+    const mobileMetricBoxes = await mobileMetricValues.evaluateAll((values) => values.map((value) => value.getBoundingClientRect()));
+    expect(mobileMetricBoxes.every((box, index) => index % 2 === 0 || box.y > mobileMetricBoxes[index - 1]!.y)).toBe(true);
+    const sourceTime = sourceCards.first().locator('time');
+    expect(await sourceTime.evaluate((element) => getComputedStyle(element).marginLeft)).toBe('4px');
   }
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.screenshot({ path: `/tmp/cic-review-MOCK-sticky-${viewport.width}x${viewport.height}.png` });
@@ -181,5 +260,13 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
   const controlHeights = await bar.getByRole('button').evaluateAll((buttons) => buttons.map((button) => button.getBoundingClientRect().height));
   const nav = page.getByRole('navigation', { name: 'Workspace analyst' });
   const navBoxes = await nav.getByRole('link').evaluateAll((links) => links.map((link) => link.getBoundingClientRect()));
-  console.info(`REVIEW_LAYOUT_MEASURE ${JSON.stringify({ viewport, viewportMeasured: { width: await page.evaluate(() => innerWidth), height: await page.evaluate(() => innerHeight) }, queuePointerSelected: await detail.isVisible(), backVisible: await backToQueue.isVisible(), tabsSingleRow: tabBoxes.every((tab) => Math.round(tab.y) === Math.round(tabBoxes[0]!.y)), metricFontPx: Number.parseFloat(metricFontSize), sourceColumn, numericAlignments, queueFilter: viewport.width === 1440 ? await queue.locator('.queue-filters').evaluate((element) => { const style = getComputedStyle(element); return { background: style.backgroundColor, radius: style.borderTopLeftRadius }; }) : null, queueFilterButtons: viewport.width === 1440 ? await queue.locator('.queue-filters button').evaluateAll((buttons) => buttons.map((button) => { const style = getComputedStyle(button); const box = button.getBoundingClientRect(); return { whiteSpace: style.whiteSpace, fontPx: Number.parseFloat(style.fontSize), selected: button.getAttribute('aria-pressed') === 'true', background: style.backgroundColor, shadow: style.boxShadow, top: box.top, left: box.left, right: box.right }; })) : [], metricHeader: viewport.width === 1440 ? await metricTable.locator('thead th').evaluateAll((headers) => headers.map((header) => { const style = getComputedStyle(header); return { align: style.textAlign, borderWidth: style.borderBottomWidth, borderColor: style.borderBottomColor }; })) : [], metricRow: viewport.width === 1440 ? await metricTable.locator('tbody .metric-data-row th').first().evaluate((element) => { const style = getComputedStyle(element); return { fontPx: Number.parseFloat(style.fontSize), fontWeight: style.fontWeight, color: style.color, verticalPadding: [style.paddingTop, style.paddingBottom] }; }) : null, sourceBadge: viewport.width === 1440 ? await metricTable.locator('.snapshot-metric-source .ontology-chip').evaluateAll((badges) => badges.map((badge) => { const style = getComputedStyle(badge); return { background: style.backgroundColor, borderWidth: style.borderTopWidth }; })) : [], sourceCards: await sourceCards.evaluateAll((cards) => cards.map((card) => { const style = getComputedStyle(card); return { borderWidth: style.borderTopWidth, radius: style.borderTopLeftRadius, padding: style.paddingTop }; })), heavyTextCount: heavyText.length, confidenceReasonHeightPx: await confidenceReason.evaluate((element) => element.getBoundingClientRect().height), confidenceReasonFontPx: await confidenceReason.evaluate((element) => Number.parseFloat(getComputedStyle(element).fontSize)), decisionHeightPx: height, controlHeights, stickyWithinViewport: Math.round(stickyBox!.y + stickyBox!.height) <= viewport.height, pageOverflow: await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), navSingleRow: navBoxes.every((navBox) => Math.round(navBox.y) === Math.round(navBoxes[0]!.y)), navHeightPx: await nav.evaluate((element) => element.getBoundingClientRect().height) })}`);
+  const navTitleGapPx = viewport.width === 390 ? await page.getByRole('heading', { name: 'Review', exact: true }).evaluate((element) => { const nav = document.querySelector<HTMLElement>('.app-sidebar nav')!; return element.getBoundingClientRect().top - nav.getBoundingClientRect().bottom; }) : null;
+  const syntheticChipClearancePx = viewport.width === 390 ? await syntheticChip.evaluate((element) => { const chip = element.getBoundingClientRect(); const topbar = element.closest<HTMLElement>('.topbar')!.getBoundingClientRect(); const batchTitle = document.querySelector<HTMLElement>('#workspace-heading')!.getBoundingClientRect(); return { divider: topbar.bottom - chip.bottom, batchTitle: batchTitle.top - chip.bottom }; }) : null;
+  const emptyFieldsControl = await emptyFieldsButton.evaluate((element) => { const style = getComputedStyle(element); const box = element.getBoundingClientRect(); return { textFontPx: Number.parseFloat(getComputedStyle(element.parentElement!.querySelector('span')!).fontSize), textFontWeight: getComputedStyle(element.parentElement!.querySelector('span')!).fontWeight, buttonHeightPx: box.height, buttonFontPx: Number.parseFloat(style.fontSize) }; });
+  const sourceWarningMeasure = await sourceWarning.evaluate((element) => { const badge = element.getBoundingClientRect(); const source = element.parentElement!.querySelector<HTMLElement>('.source-details')!.getBoundingClientRect(); const card = element.closest('.snapshot-source-card')!.getBoundingClientRect(); return { widthPx: badge.width, cardWidthPx: card.width, leftOffsetPx: badge.left - source.left, heightPx: badge.height }; });
+  const notesDisclosureHeightPx = await detail.locator('.s10-disclosure').evaluate((element) => element.getBoundingClientRect().height);
+  const decisionOptionTotalHeightPx = viewport.width === 390 ? await bar.getByText('Opsi', { exact: true }).evaluate((element) => { const option = element.getBoundingClientRect(); const region = element.closest<HTMLElement>('.decision-region')!.getBoundingClientRect(); return Math.max(option.bottom, region.bottom) - Math.min(option.top, region.top); }) : null;
+  const decisionControlBorders = await Promise.all([reviewerInput, noteInput].map((input) => input.evaluate((element) => getComputedStyle(element).borderColor)));
+  const desktopMetricDuplicateCount = viewport.width === 1440 ? await metricTable.locator('.snapshot-mobile-values').evaluateAll((elements) => elements.filter((element) => getComputedStyle(element).display !== 'none').length) : null;
+  console.info(`REVIEW_LAYOUT_MEASURE ${JSON.stringify({ viewport, viewportMeasured: { width: await page.evaluate(() => innerWidth), height: await page.evaluate(() => innerHeight) }, queuePointerSelected: await detail.isVisible(), backVisible: await backToQueue.isVisible(), tabsSingleRow: tabBoxes.every((tab) => Math.round(tab.y) === Math.round(tabBoxes[0]!.y)), metricFontPx: Number.parseFloat(metricFontSize), sourceColumn, numericAlignments, queueFilter: viewport.width === 1440 ? await queue.locator('.queue-filters').evaluate((element) => { const style = getComputedStyle(element); return { background: style.backgroundColor, radius: style.borderTopLeftRadius }; }) : null, queueFilterButtons: viewport.width === 1440 ? await queue.locator('.queue-filters button').evaluateAll((buttons) => buttons.map((button) => { const style = getComputedStyle(button); const box = button.getBoundingClientRect(); return { whiteSpace: style.whiteSpace, fontPx: Number.parseFloat(style.fontSize), selected: button.getAttribute('aria-pressed') === 'true', background: style.backgroundColor, shadow: style.boxShadow, top: box.top, left: box.left, right: box.right }; })) : [], metricHeader: viewport.width === 1440 ? await metricTable.locator('thead th').evaluateAll((headers) => headers.map((header) => { const style = getComputedStyle(header); return { align: style.textAlign, borderWidth: style.borderBottomWidth, borderColor: style.borderBottomColor }; })) : [], metricRow: viewport.width === 1440 ? await metricTable.locator('tbody .metric-data-row th').first().evaluate((element) => { const style = getComputedStyle(element); return { fontPx: Number.parseFloat(style.fontSize), fontWeight: style.fontWeight, color: style.color, verticalPadding: [style.paddingTop, style.paddingBottom] }; }) : null, sourceBadge: viewport.width === 1440 ? await metricTable.locator('.snapshot-metric-source .ontology-chip').evaluateAll((badges) => badges.map((badge) => { const style = getComputedStyle(badge); return { background: style.backgroundColor, borderWidth: style.borderTopWidth }; })) : [], sourceCards: await sourceCards.evaluateAll((cards) => cards.map((card) => { const style = getComputedStyle(card); return { borderWidth: style.borderTopWidth, radius: style.borderTopLeftRadius, padding: style.paddingTop }; })), heavyTextCount: heavyText.length, confidenceReasonHeightPx: await confidenceReason.evaluate((element) => element.getBoundingClientRect().height), confidenceReasonFontPx: await confidenceReason.evaluate((element) => Number.parseFloat(getComputedStyle(element).fontSize)), decisionHeightPx: height, decisionOptionTotalHeightPx, decisionControlBorders, controlHeights, stickyWithinViewport: Math.round(stickyBox!.y + stickyBox!.height) <= viewport.height, pageOverflow: await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), navSingleRow: navBoxes.every((navBox) => Math.round(navBox.y) === Math.round(navBoxes[0]!.y)), navHeightPx: await nav.evaluate((element) => element.getBoundingClientRect().height), navTitleGapPx, syntheticChipClearancePx, emptyFieldsControl, sourceWarningMeasure, notesDisclosureHeightPx, desktopMetricDuplicateCount })}`);
 });
