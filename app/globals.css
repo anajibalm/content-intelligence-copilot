@@ -536,3 +536,36 @@ button.primary { border-color: var(--accent); background: var(--accent); color: 
   .app-sidebar nav { height: 44px; }
   .view-review .hypothesis-claim h2 { font-size: 16px; }
 }
+
+/* Final Review mobile pass: compact decision controls without hiding available actions. */
+@media (min-width: 851px) {
+  .view-review .snapshot-table .metric-data-row .snapshot-mobile-values { display: none; }
+}
+@media (max-width: 850px) {
+  .app-shell { grid-template-rows: auto 1fr; align-content: start; }
+  .view-review .topbar { padding-bottom: 0; }
+  .view-review .workspace-context { padding-top: 0; }
+  .view-review .workspace-context h2 { font-size: 1rem; }
+  .view-review .workspace-context .muted { font-size: 12px; }
+  .view-review .workspace-context .batch-picker select { min-height: 36px; }
+  .view-review .review-workspace { margin-top: 0; }
+  .view-review .decision-region { max-height: 120px; padding: 4px 12px; overflow: visible; }
+  .view-review .decision-region .review-panel { grid-template-columns: 1fr 1fr; grid-template-rows: 40px 44px; gap: 4px 8px; }
+  .view-review .decision-region .review-meta { grid-column: 1; grid-row: 1; height: 40px; }
+  .view-review .decision-region .decision-note { grid-column: 2; grid-row: 1; grid-template-columns: 58px minmax(0, 1fr); height: 40px; }
+  .view-review .decision-region .review-panel > .review-meta > label { grid-template-columns: 58px minmax(0, 1fr); height: 40px; gap: 6px; }
+  .view-review .decision-region .review-panel > .review-meta input, .view-review .decision-region .decision-note input { min-height: 40px; height: 40px; padding: 6px 8px; border-color: var(--line); }
+  .view-review .decision-region .review-actions { display: grid; grid-column: 1 / -1; grid-row: 2; grid-template-columns: 1.4fr 1fr 1fr; gap: 8px; width: 100%; }
+  .view-review .decision-region .review-actions button { width: 100%; min-width: 0; min-height: 44px; height: 44px; padding-inline: 8px; }
+  .view-review .decision-region .decision-options { position: absolute; right: 12px; bottom: calc(100% + 4px); width: min(360px, calc(100vw - 24px)); margin: 0; padding: 0; background: var(--surface); }
+  .view-review .decision-region .decision-options > summary { min-height: 28px; padding: 5px 8px; }
+  .view-review .decision-region .decision-options[open] { padding: 8px; border: 1px solid var(--line); border-radius: 6px; }
+  .view-review .decision-region .decision-options[open] > summary { margin: -8px -8px 8px; }
+  .view-review .hypothesis-detail { padding-top: 0; }
+  .view-review .missing-metrics-notice { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; color: var(--muted); font-size: 12px; font-weight: 400; }
+  .view-review .missing-metrics-notice button { min-height: 28px; height: 28px; padding: 4px 8px; font-size: 12px; font-weight: 500; line-height: 18px; }
+}
+.view-review .snapshot-source-card .source-warning { flex-basis: 100%; width: fit-content; margin-left: 0; }
+.view-review .s10-disclosure { padding: 0; }
+.view-review .decision-region .review-panel > .review-meta input, .view-review .decision-region .decision-note input { border-color: var(--line); }
+.view-review .s10-disclosure > summary { min-height: 44px; padding: 12px; }

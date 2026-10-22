@@ -48,6 +48,12 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
     expect(navigationBoxes.every((box) => Math.round(box.y) === Math.round(navigationBoxes[0]!.y))).toBe(true);
     expect(await sidebar.evaluate((element) => element.getBoundingClientRect().height)).toBeLessThanOrEqual(52);
     expect(await navigation.evaluate((element) => element.getBoundingClientRect().height)).toBeLessThanOrEqual(52);
+    const reviewTitle = page.getByRole('heading', { name: 'Review', exact: true });
+    const sidebarBox = await sidebar.boundingBox();
+    const reviewTitleBox = await reviewTitle.boundingBox();
+    expect(sidebarBox).not.toBeNull();
+    expect(reviewTitleBox).not.toBeNull();
+    expect(reviewTitleBox!.y - (sidebarBox!.y + sidebarBox!.height)).toBeLessThanOrEqual(24);
   }
   const item = queue.getByRole('button', { name: /Synthetic fixture hypothesis claim/ });
   const box = await item.boundingBox();
@@ -139,6 +145,7 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
     const sourceBadgeStyles = await metricTable.locator('.snapshot-metric-source .ontology-chip').evaluateAll((badges) => badges.map((badge) => { const style = getComputedStyle(badge); return { backgroundColor: style.backgroundColor, borderWidth: style.borderTopWidth }; }));
     expect(sourceBadgeStyles).toEqual([{ backgroundColor: 'rgb(238, 240, 243)', borderWidth: '0px' }, { backgroundColor: 'rgb(239, 248, 255)', borderWidth: '0px' }]);
     await expect(metricTable.locator('tbody .metric-data-row td.snapshot-value')).toHaveText(['1.000', '900', '10,00%', '9,00%']);
+    expect(await metricTable.locator('.snapshot-mobile-values').evaluateAll((elements) => elements.every((element) => getComputedStyle(element).display === 'none'))).toBe(true);
   }
   const sourceCards = detail.locator('.snapshot-sources .snapshot-source-card');
   await expect(sourceCards).toHaveCount(2);
@@ -147,6 +154,9 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
   await expect(sourceCards.first().getByText('Alpha creative', { exact: true })).toBeVisible();
   await expect(sourceCards.first().getByText('Belum diverifikasi', { exact: true })).toBeVisible();
   await expect(sourceCards.locator('a')).toHaveCount(0);
+  const sourceWarning = sourceCards.first().getByText('Belum diverifikasi', { exact: true });
+  const sourceText = sourceCards.first().locator('p > span').first();
+  expect(await sourceWarning.evaluate((element) => Math.round(element.getBoundingClientRect().left))).toBe(await sourceText.evaluate((element) => Math.round(element.getBoundingClientRect().left)));
   await expect(detail.getByText('Menunggu review', { exact: true })).toHaveCount(1);
   await expect(detail.getByText('Alasan confidence: Sampel kurang · +1 batas', { exact: true })).toBeVisible();
   const typedLabels = await page.locator('.workspace-context .batch-picker, .decision-region .review-panel > .review-meta > label, .snapshot-source-card h4').evaluateAll((elements) => elements.map((element) => { const style = getComputedStyle(element); return { color: style.color, fontSize: Number.parseFloat(style.fontSize), fontWeight: style.fontWeight }; }));
@@ -179,7 +189,10 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
   await expect(bar.getByText('Opsi', { exact: true })).toBeVisible();
   await expect(bar.getByLabel('Tandai golden label (ground truth analyst)')).toBeHidden();
   const height = await bar.evaluate((element) => element.getBoundingClientRect().height);
-  expect(height).toBeLessThanOrEqual(viewport.width === 1440 ? 64 : 152);
+  expect(height).toBeLessThanOrEqual(viewport.width === 1440 ? 64 : 120);
+  const reviewerBorder = await reviewerInput.evaluate((element) => getComputedStyle(element).borderColor);
+  const noteInput = bar.getByLabel('Catatan');
+  expect(await noteInput.evaluate((element) => getComputedStyle(element).borderColor)).toBe(reviewerBorder);
   if (viewport.width === 1440) {
     const rows = await detail.getByRole('table').first().locator('tbody tr').count();
     expect(rows).toBeGreaterThanOrEqual(3);
@@ -195,6 +208,19 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
   if (viewport.width === 390) {
     const actionHeights = await bar.getByRole('button').evaluateAll((buttons) => buttons.map((button) => button.getBoundingClientRect().height));
     expect(actionHeights.every((height) => height >= 44)).toBe(true);
+    const decisionGrid = await bar.locator('.review-panel').evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(' ').map(Number));
+    expect(decisionGrid).toHaveLength(2);
+    expect(decisionGrid[0]).toBe(decisionGrid[1]);
+    const controls = await bar.locator('.review-meta, .decision-note, .review-actions').evaluateAll((elements) => elements.map((element) => { const box = element.getBoundingClientRect(); return { height: box.height, y: box.y }; }));
+    expect(controls[0]!.height).toBe(40);
+    expect(controls[1]!.height).toBe(40);
+    expect(controls[0]!.y).toBe(controls[1]!.y);
+    const actionWidths = await bar.locator('.review-actions button').evaluateAll((buttons) => buttons.map((button) => button.getBoundingClientRect().width));
+    expect(actionWidths).toHaveLength(3);
+    expect(actionWidths[0]).toBeGreaterThan(actionWidths[1]!);
+    const disclosure = detail.locator('.s10-disclosure');
+    expect(Math.abs(actionWidths[1]! - actionWidths[2]!)).toBeLessThanOrEqual(1);
+    expect(await disclosure.evaluate((element) => element.getBoundingClientRect().height)).toBeLessThanOrEqual(48);
   }
   if (viewport.width === 390) {
     await expect(page.locator('.app-brand')).toBeHidden();

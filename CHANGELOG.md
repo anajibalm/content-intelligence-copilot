@@ -34,6 +34,7 @@ dan proyek ini mengikuti [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 - Ringkasan confidence Review kini memakai label Indonesia dan jumlah batas; reason engine mentah tetap tersedia lewat title dan tab Kriteria tanpa mengubah cap tersimpan.
 - Polish Review menyelaraskan filter antrean, status detail, tabel metrik, kartu sumber/waktu, alasan confidence berbahasa Indonesia, dan input Reviewer; seluruhnya diuji pada 1440×900 dan 390×844.
 - Polish Review 2 menetapkan judul klaim responsif, badge status tanpa border, ringkasan antrean, label/form/header tabel seragam, nilai metrik mobile berlabel per baris, dan header mobile ≤52 px; diuji pada build produksi 1440×900 dan 390×844.
+- Polish Review final memadatkan header mobile, menyetarakan input Reviewer/Catatan, menjaga tindakan sticky 44 px tiga kolom, dan menjaga disclosure ringkas tanpa overflow; diuji pada build produksi 1440×900 dan 390×844.
 - Notes dan draft review terikat hipotesis saat navigasi biasa; evidence mempertahankan exact source anchors dan artefak historis.
 - `.gitignore` — ignore `*.tsbuildinfo`, `_bmad/`, `_bmad-output/`
 

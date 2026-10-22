@@ -115,7 +115,7 @@ function HypothesisDetail({ batchId, hypothesisId, contents, onReviewed, onBack 
         <h3 id="evidence-heading">Bukti terhubung</h3>
         {snapshots.length === 0 ? <p className="muted">Snapshot metrik tidak dirujuk sebagai bukti hipotesis.</p> : <>
           {allMetricsValid && <p className="muted">Semua metrik valid.</p>}
-          {missingMetrics > 0 && <p className="muted">{missingMetrics} field kosong disembunyikan. <button className="secondary" type="button" aria-expanded={showNullMetrics} onClick={() => setShowNullMetrics((current) => !current)}>{showNullMetrics ? 'Sembunyikan field kosong' : 'Lihat field kosong'}</button></p>}
+          {missingMetrics > 0 && <p className="muted missing-metrics-notice"><span>{missingMetrics} field kosong disembunyikan.</span> <button className="secondary" type="button" aria-expanded={showNullMetrics} onClick={() => setShowNullMetrics((current) => !current)}>{showNullMetrics ? 'Sembunyikan field kosong' : 'Lihat field kosong'}</button></p>}
           {timeDelta !== null && timeDelta > 3_600_000 && <p className="snapshot-time-warning">Selisih waktu snapshot lebih dari 1 jam: {formatMetricId(timeDelta / 3_600_000, 'awt_seconds').replace(' dtk', ' jam')}</p>}
           <table className="snapshot-table">
             <thead><tr><th scope="col">Metrik</th>{snapshots.map((group) => <th scope="col" key={group.snapshotId}>{contentNames.get(group.contentId) ?? `TikTok ${group.contentId.slice(0, 8)}`}</th>)}<th scope="col">Sumber</th></tr></thead>
