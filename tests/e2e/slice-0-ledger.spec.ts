@@ -269,3 +269,36 @@ for (const width of [1440, 375]) test(`decision controls and Compare hint meet f
   await page.screenshot({ path: `/tmp/cic-pr36-r36-4-decision-controls-${width}.png`, fullPage: true });
   expect(api.leaked).toEqual([]);
 });
+
+for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 }]) test(`Library Compare shared presentation tokens at ${viewport.width}px`, async ({ page }) => {
+  await page.setViewportSize(viewport);
+  const api = await installApi(page);
+  await page.goto(`/?batchId=${batchId}&contentId=${contentId}&view=library`);
+  if (viewport.width > 900) {
+    const libraryHeading = page.getByRole('heading', { name: 'Daftar konten', exact: true });
+    await expect(libraryHeading).toHaveCSS('font-size', '15px');
+    await expect(libraryHeading).toHaveCSS('font-weight', '600');
+    const selectedRow = page.getByRole('region', { name: 'Daftar konten' }).locator('.content-row.selected');
+    await expect(selectedRow).toHaveCSS('background-color', 'rgb(234, 241, 255)');
+    await expect(selectedRow.locator('code')).toHaveCSS('font-size', '12px');
+  }
+  if (process.env.CIC_LC_EVIDENCE_DIR) await page.screenshot({ path: `${process.env.CIC_LC_EVIDENCE_DIR}/LC_LIBRARY_${viewport.width}x${viewport.height}.png`, fullPage: true });
+  await page.getByRole('navigation', { name: 'Workspace analyst' }).getByRole('link', { name: 'Compare', exact: true }).click();
+  const compareHeading = page.getByRole('heading', { name: 'Pilih konten untuk dibandingkan', exact: true });
+  await expect(compareHeading).toHaveCSS('font-size', '15px');
+  await expect(compareHeading).toHaveCSS('font-weight', '600');
+  const choices = page.locator('.compare-choice');
+  await choices.nth(0).click();
+  await choices.nth(1).click();
+  await expect(choices.nth(0)).toHaveCSS('background-color', 'rgb(234, 241, 255)');
+  await expect(choices.nth(0)).toHaveCSS('border-top-color', 'rgb(227, 230, 235)');
+  await page.getByRole('button', { name: 'Buat perbandingan' }).click();
+  const quality = page.locator('.compare-quality');
+  await expect(quality).toHaveText('Kualitas Rendah');
+  await expect(quality).toHaveCSS('background-color', 'rgb(254, 246, 221)');
+  await expect(quality).toHaveCSS('font-size', '12px');
+  await expect(quality).toHaveCSS('border-top-width', '0px');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  if (process.env.CIC_LC_EVIDENCE_DIR) await page.screenshot({ path: `${process.env.CIC_LC_EVIDENCE_DIR}/LC_COMPARE_${viewport.width}x${viewport.height}.png`, fullPage: true });
+  expect(api.leaked).toEqual([]);
+});

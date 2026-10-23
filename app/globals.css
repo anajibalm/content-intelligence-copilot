@@ -663,3 +663,19 @@ button.primary { border-color: var(--accent); background: var(--accent); color: 
 }
 
 .view-batch .batch-copy-cell .copy-id { min-height: 32px !important; height: 32px; padding: 6px 10px !important; font-size: 13px; line-height: 18px; }
+
+/* Library and Compare share review's scan hierarchy: panel 15/600, body 13/400, meta 12/400. */
+.view-library .section-heading h2, .view-compare .compare-panel > .section-heading h2, .view-compare .compare-result-heading h3 { color: var(--ink); font-size: var(--type-panel); font-weight: 600; line-height: 20px; }
+.view-library .content-list, .view-library .content-detail, .view-compare .compare-panel, .view-compare .compare-card { font-size: var(--type-body); font-weight: 400; }
+.view-library .content-name code, .view-library .content-status, .view-library .content-status small, .view-compare .compare-choice span, .view-compare .compare-card .muted, .view-compare .compare-metrics small { color: var(--muted); font-size: var(--type-meta); font-weight: 400; line-height: 18px; }
+.view-library .content-row.selected, .view-library .content-row-select:hover, .view-library .content-row-select:focus-visible { background: var(--queue-active); }
+.view-compare .compare-controls label { color: var(--muted); font-size: var(--type-body); font-weight: 500; }
+.view-compare .compare-controls select { min-height: 34px; padding: 7px 10px; font-size: var(--type-body); }
+.view-compare .compare-choice { min-height: 0; padding: 10px 12px; border-color: var(--button-border); border-radius: 6px; font-size: var(--type-body); font-weight: 500; }
+.view-compare .compare-choice.selected { border-color: var(--button-border); background: var(--queue-active); color: var(--ink); }
+.view-compare .compare-quality { box-sizing: border-box; height: 20px; padding: 2px 8px; border: 0; border-radius: 999px; font-size: var(--type-meta); font-weight: 500; line-height: 16px; }
+.view-compare .compare-quality--valid { background: #ecfdf3; color: #067647; }
+.view-compare .compare-quality--limited { background: #fef6dd; color: #a16207; }
+@media (max-width: 900px) {
+  .view-compare .compare-controls select { min-height: 44px; }
+}
