@@ -463,3 +463,50 @@ test('AC-09 Batch status pills preserve semantic color and single-line geometry'
     expect(processingStyles).toContainEqual({ text: 'Gagal', height: 20, background: 'rgb(253, 236, 236)', color: 'rgb(139, 37, 37)', border: '0px', whiteSpace: 'nowrap' });
   }
 });
+
+test('AC-10 Batch rows contain status reasons and metric card elements without overlap', async ({ page }) => {
+  await installApi(page);
+  const overlap = (left: { left: number; right: number; top: number; bottom: number }, right: { left: number; right: number; top: number; bottom: number }) => Math.max(0, Math.min(left.right, right.right) - Math.max(left.left, right.left)) * Math.max(0, Math.min(left.bottom, right.bottom) - Math.max(left.top, right.top));
+  for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 }]) {
+    await page.setViewportSize(viewport);
+    await page.goto(`/?batchId=${batchA.id}&view=batch`);
+    const members = page.getByRole('region', { name: 'Anggota batch' });
+    if (viewport.width === 1440) {
+      const geometry = await members.locator('.content-row').evaluateAll((rows) => {
+        const rect = (node: Element) => node.getBoundingClientRect();
+        const overlap = (left: DOMRect, right: DOMRect) => Math.max(0, Math.min(left.right, right.right) - Math.max(left.left, right.left)) * Math.max(0, Math.min(left.bottom, right.bottom) - Math.max(left.top, right.top));
+        const visible = (node: Element) => (node as HTMLElement).checkVisibility();
+        return {
+          contained: rows.every((row) => [...row.querySelectorAll('.batch-cell, .batch-status, .batch-status-cell > .quality-reason')].filter(visible).every((node) => { const child = rect(node); const parent = rect(row); return child.left >= parent.left && child.right <= parent.right && child.top >= parent.top && child.bottom <= parent.bottom; })),
+          crossRowIntersections: rows.flatMap((row, index) => [...row.querySelectorAll('.batch-status, .batch-status-cell > .quality-reason')].filter(visible).flatMap((node) => rows.slice(index + 1).flatMap((next) => [...next.querySelectorAll('.batch-status, .batch-status-cell > .quality-reason')].filter(visible).map((other) => overlap(rect(node), rect(other)))))).filter((area) => area > 0),
+        };
+      });
+      expect(geometry).toEqual({ contained: true, crossRowIntersections: [] });
+    } else {
+      const cards = members.locator('.content-row');
+      await expect(cards.nth(0)).toContainText('Konten TikTok');
+      await expect(cards.nth(1)).toContainText('Konten TikTok');
+      await expect(cards.nth(2)).toContainText('Gamma creative');
+      const geometry = await cards.evaluateAll((rows) => rows.slice(0, 3).map((row) => {
+        const nodes = [...row.querySelectorAll<HTMLElement>('.batch-metric-line > span, .badge--warn, .batch-metrics .quality-reason')].filter((node) => node.checkVisibility());
+        const rects = nodes.map((node) => node.getBoundingClientRect());
+        return rects.flatMap((rect, index) => rects.slice(index + 1).map((other) => overlap(rect, other))).filter((area) => area > 0);
+      }));
+      expect(geometry).toEqual([[], [], []]);
+    }
+    const processing = page.locator('.processing-job-status').first();
+    const processingGeometry = await processing.evaluate((node) => {
+      const style = getComputedStyle(node);
+      const range = document.createRange();
+      range.selectNodeContents(node);
+      const text = range.getBoundingClientRect();
+      const box = node.getBoundingClientRect();
+      return { border: style.borderTopWidth, boxShadow: style.boxShadow, before: getComputedStyle(node, '::before').content, after: getComputedStyle(node, '::after').content, width: box.width, textWidth: text.width, horizontalPadding: Number.parseFloat(style.paddingLeft) + Number.parseFloat(style.paddingRight) };
+    });
+    expect(processingGeometry.border).toBe('0px');
+    expect(processingGeometry.boxShadow).toBe('none');
+    expect(processingGeometry.before).toBe('none');
+    expect(processingGeometry.after).toBe('none');
+    expect(Math.abs(processingGeometry.width - processingGeometry.textWidth - processingGeometry.horizontalPadding)).toBeLessThanOrEqual(1);
+  }
+});
