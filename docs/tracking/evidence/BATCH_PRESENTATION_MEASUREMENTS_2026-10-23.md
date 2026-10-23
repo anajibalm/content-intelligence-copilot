@@ -12,20 +12,23 @@ Scope: build produksi lokal branch `feat/batch-presentation-pr`. API di-route-mo
 | Alasan kualitas engine | 12px abu; reason asal data | 12px / 400; `rgb(102, 112, 133)`; `MISSING · NOT_PROVIDED` | 12px / 400; warna sama | PASS |
 | Badge `Cek` | terisi, 12px | 37.34×20px; 12px / 500; amber; border 0; radius 999px | sama | PASS |
 | Status akuisisi `SUCCEEDED` | hijau lembut, tanpa border gelap | `rgb(236, 253, 243)` / `rgb(6, 118, 71)`; 20px; 12px / 500; border 0 | sama | PASS |
+| Dua pill status anggota | masing-masing 20px, `nowrap`, satu baris | akuisisi dan processing: 20px, `nowrap`, 1 baris | sama | PASS |
 | Status processing `FAILED` | merah lembut, tanpa border gelap | `rgb(253, 236, 236)` / `rgb(139, 37, 37)`; 20px; 12px / 500; border 0 | sama | PASS |
+| Alasan processing dalam baris anggota | setiap anak berada dalam bounding box row; interseksi lintas-row 0px² | seluruh `.batch-cell`, pill, dan alasan berada dalam row; 0px² | N/A | PASS |
+| Pill job `Processing …` | `fit-content`; lebar teks + padding 16px; tanpa pseudo/border/shadow/strip | deviasi lebar ≤1px; border 0; shadow `none`; `::before`/`::after` `none` | sama | PASS |
 | Status job processing | `COMPLETED` hijau; berjalan amber; gagal merah | tiga tone; 20px; 12px / 500; border 0; `nowrap` | sama | PASS |
 | Organik/Iklan | kolom terpisah; badge sumber tidak di sel nilai | sel metrik terpisah, tanpa source badge pada nilai | blok metrik terpisah satu kolom per distribution | PASS |
-| Kartu mobile | tidak saling tumpang tindih | N/A | blok `.batch-cell` tidak beririsan; setiap blok dan teks tidak overflow | PASS |
+| Tiga kartu metrik mobile | label, nilai, badge `Cek`, alasan tanpa interseksi | N/A | Konten TikTok, Konten TikTok kedua, Gamma creative: 0px² antar elemen leaf | PASS |
 
-Probe: `CIC_BATCH_EVIDENCE_DIR=docs/tracking/evidence CIC_E2E_STAGING_URL=http://127.0.0.1:3202 mise exec node@22.18.0 -- npx playwright test tests/e2e/lb4-1-batch.spec.ts --grep 'AC-07 readability|AC-08 Batch panels|AC-09 Batch status' --reporter=list`; `AC-07`, `AC-08`, dan `AC-09` lulus pada build produksi lokal. `AC-08` mengukur computed style dan overlap kartu di 1440×900 serta 390×844; `AC-09` mengunci geometri, warna, dan mapping tone status.
+Probe: `CIC_BATCH_EVIDENCE_DIR=docs/tracking/evidence CIC_E2E_STAGING_URL=http://127.0.0.1:3202 mise exec node@22.18.0 -- npx playwright test tests/e2e/lb4-1-batch.spec.ts --grep 'AC-10 Batch rows' --reporter=list`; `AC-10` lulus pada build produksi lokal. Desktop mengukur containment dan interseksi lintas-row; mobile mengukur baris metrik leaf dan menyimpan crop 390px/DPR1.
 
 ## Gambar
 
-| Desktop 1440×900 | Mobile 390×844 |
-|---|---|
-| `docs/tracking/evidence/BATCH_PRESENTATION_1440x900.png` | `docs/tracking/evidence/BATCH_PRESENTATION_390x844.png` |
+| Desktop 1440×900 | Mobile 390×844 | Crop tiga kartu mobile asli |
+|---|---|---|
+| `docs/tracking/evidence/BATCH_PRESENTATION_1440x900.png` | `docs/tracking/evidence/BATCH_PRESENTATION_390x844.png` | `docs/tracking/evidence/BATCH_PRESENTATION_390_CARDS.png` (390×1055, DPR1) |
 
 ## Selisih tersisa
 
-- Tidak ada selisih terhadap kriteria Batch yang terukur.
+- Tidak ada selisih terukur untuk status reason, pill job processing, atau geometri tiga kartu mobile pada fixture route-mocked.
 - Batch 8 integrated, staging, provider, production, dan walkthrough manusia: NOT RUN.

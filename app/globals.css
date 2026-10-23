@@ -625,7 +625,7 @@ button.primary { border-color: var(--accent); background: var(--accent); color: 
 .view-batch .processing-drawer-content .job-source:hover, .view-batch .processing-drawer-content .job-source:focus-visible { text-decoration: underline; }
 .view-batch .batch-table { table-layout: fixed; }
 .view-batch .batch-table th { height: 32px; padding: 0 10px; color: var(--muted); font-size: var(--type-meta); font-weight: 500; line-height: 16px; vertical-align: middle; }
-.view-batch .batch-table td { padding: 10px; color: var(--ink); font-size: var(--type-body); font-weight: 400; vertical-align: top; }
+.view-batch .batch-table td { height: auto; padding: 10px; color: var(--ink); font-size: var(--type-body); font-weight: 400; vertical-align: top; }
 .view-batch .batch-content-link { display: grid; gap: 2px; min-height: 0; padding: 0; border: 0 !important; border-radius: 0; background: transparent !important; color: var(--ink); font-size: var(--type-body); font-weight: 400; }
 .view-batch .batch-content-link strong { font-size: 14px; font-weight: 600; line-height: 20px; }
 .view-batch .batch-content-link code { margin: 0; font: 12px/18px monospace; }
@@ -633,10 +633,11 @@ button.primary { border-color: var(--accent); background: var(--accent); color: 
 .view-batch .batch-metric-line { display: flex; justify-content: space-between; gap: 8px; min-width: 0; font-size: var(--type-body); font-weight: 400; line-height: 18px; text-align: right; }
 .view-batch .batch-metric-line > span:first-child { min-width: 0; text-align: left; }
 .view-batch .batch-metric-line > span:last-child { flex: 0 0 auto; }
-.view-batch .batch-status-cell { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+.view-batch .batch-status-cell { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; min-width: 0; }
 .view-batch .batch-status { box-sizing: border-box; width: fit-content; min-height: 20px; height: 20px; padding: 2px 8px; border: 0; border-radius: 999px; font-size: 12px; font-weight: 500; line-height: 16px; white-space: nowrap; }
 .view-batch .badge--warn { box-sizing: border-box; height: 20px; padding: 2px 8px; border: 0; border-radius: 999px; font-size: 12px; font-weight: 500; line-height: 16px; vertical-align: text-bottom; }
-.view-batch .quality-reason { display: block; margin-top: 4px; color: var(--muted) !important; font-size: var(--type-meta); font-weight: 400; line-height: 18px; overflow-wrap: anywhere; }
+.view-batch .quality-reason { display: block; width: 100%; margin-top: 4px; color: var(--muted) !important; font-size: var(--type-meta); font-weight: 400; line-height: 18px; overflow-wrap: anywhere; }
+.view-batch .quality-reason-text { min-width: 0; }
 @media (max-width: 900px) {
   .view-batch .batch-table, .view-batch .batch-table tbody { display: block; width: 100%; }
   .view-batch .batch-table thead { display: none; }
@@ -649,8 +650,8 @@ button.primary { border-color: var(--accent); background: var(--accent); color: 
   .view-batch .batch-attempts { order: 5; }
   .view-batch .batch-copy-cell { order: 6; }
   .view-batch .batch-metric::before { content: attr(data-label); display: block; margin-bottom: 2px; color: var(--muted); font-size: var(--type-meta); font-weight: 400; line-height: 18px; }
-  .view-batch .batch-metric-line { text-align: left; }
-  .view-batch .batch-metric-line > span:last-child { flex: 0 1 auto; min-width: 0; overflow-wrap: anywhere; }
+  .view-batch .batch-metric-line { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; text-align: left; }
+  .view-batch .batch-metric-line > span:last-child { min-width: 0; overflow-wrap: anywhere; }
   .view-batch .batch-copy-cell .copy-id { min-height: 32px !important; height: 32px; padding: 6px 10px !important; font-size: 13px; line-height: 18px; }
   .view-batch .batch-table .copy-id { opacity: 1; visibility: visible; }
 }

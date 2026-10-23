@@ -466,7 +466,6 @@ test('AC-09 Batch status pills preserve semantic color and single-line geometry'
 
 test('AC-10 Batch rows contain status reasons and metric card elements without overlap', async ({ page }) => {
   await installApi(page);
-  const overlap = (left: { left: number; right: number; top: number; bottom: number }, right: { left: number; right: number; top: number; bottom: number }) => Math.max(0, Math.min(left.right, right.right) - Math.max(left.left, right.left)) * Math.max(0, Math.min(left.bottom, right.bottom) - Math.max(left.top, right.top));
   for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 }]) {
     await page.setViewportSize(viewport);
     await page.goto(`/?batchId=${batchA.id}&view=batch`);
@@ -477,7 +476,7 @@ test('AC-10 Batch rows contain status reasons and metric card elements without o
         const overlap = (left: DOMRect, right: DOMRect) => Math.max(0, Math.min(left.right, right.right) - Math.max(left.left, right.left)) * Math.max(0, Math.min(left.bottom, right.bottom) - Math.max(left.top, right.top));
         const visible = (node: Element) => (node as HTMLElement).checkVisibility();
         return {
-          contained: rows.every((row) => [...row.querySelectorAll('.batch-cell, .batch-status, .batch-status-cell > .quality-reason')].filter(visible).every((node) => { const child = rect(node); const parent = rect(row); return child.left >= parent.left && child.right <= parent.right && child.top >= parent.top && child.bottom <= parent.bottom; })),
+          contained: rows.every((row) => [...row.querySelectorAll('*')].filter(visible).every((node) => { const child = rect(node); const parent = rect(row); return child.left >= parent.left && child.right <= parent.right && child.top >= parent.top && child.bottom <= parent.bottom; })),
           crossRowIntersections: rows.flatMap((row, index) => [...row.querySelectorAll('.batch-status, .batch-status-cell > .quality-reason')].filter(visible).flatMap((node) => rows.slice(index + 1).flatMap((next) => [...next.querySelectorAll('.batch-status, .batch-status-cell > .quality-reason')].filter(visible).map((other) => overlap(rect(node), rect(other)))))).filter((area) => area > 0),
         };
       });
@@ -487,12 +486,27 @@ test('AC-10 Batch rows contain status reasons and metric card elements without o
       await expect(cards.nth(0)).toContainText('Konten TikTok');
       await expect(cards.nth(1)).toContainText('Konten TikTok');
       await expect(cards.nth(2)).toContainText('Gamma creative');
-      const geometry = await cards.evaluateAll((rows) => rows.slice(0, 3).map((row) => {
-        const nodes = [...row.querySelectorAll<HTMLElement>('.batch-metric-line > span, .badge--warn, .batch-metrics .quality-reason')].filter((node) => node.checkVisibility());
-        const rects = nodes.map((node) => node.getBoundingClientRect());
-        return rects.flatMap((rect, index) => rects.slice(index + 1).map((other) => overlap(rect, other))).filter((area) => area > 0);
-      }));
+      const geometry = await cards.evaluateAll((rows) => {
+        const overlap = (left: DOMRect, right: DOMRect) => Math.max(0, Math.min(left.right, right.right) - Math.max(left.left, right.left)) * Math.max(0, Math.min(left.bottom, right.bottom) - Math.max(left.top, right.top));
+        return rows.slice(0, 3).map((row) => {
+          const nodes = [...row.querySelectorAll<HTMLElement>('.batch-metric-line > span, .badge--warn, .batch-metrics .quality-reason-text')].filter((node) => node.checkVisibility());
+          const rects = nodes.map((node) => node.getBoundingClientRect());
+          return rects.flatMap((rect, index) => rects.slice(index + 1).map((other) => overlap(rect, other))).filter((area) => area > 0);
+        });
+      });
       expect(geometry).toEqual([[], [], []]);
+      if (process.env.CIC_BATCH_EVIDENCE_DIR) {
+        await page.setViewportSize({ width: viewport.width, height: 2000 });
+        await cards.nth(0).scrollIntoViewIfNeeded();
+        const crop = await cards.evaluateAll((rows) => {
+          const first = rows[0].getBoundingClientRect();
+          const third = rows[2].getBoundingClientRect();
+          return { y: first.top, height: third.bottom - first.top };
+        });
+        expect(await page.evaluate(() => devicePixelRatio)).toBe(1);
+        await page.screenshot({ path: `${process.env.CIC_BATCH_EVIDENCE_DIR}/BATCH_PRESENTATION_390_CARDS.png`, clip: { x: 0, y: crop.y, width: 390, height: crop.height } });
+      }
+      await page.setViewportSize(viewport);
     }
     const processing = page.locator('.processing-job-status').first();
     const processingGeometry = await processing.evaluate((node) => {

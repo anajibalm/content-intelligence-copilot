@@ -26,6 +26,7 @@ dan proyek ini mengikuti [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 - Batch: tabel anggota responsif; KPI/ranking di atas tabel; data hilang tetap dash, ID konten tanpa judul tampil sebagai judul, serta status akuisisi/processing eksplisit.
 - Batch menyetarakan tabel/kartu anggota ke skala panel 15 px, body 13 px, meta 12 px; reason kualitas engine dan badge status eksplisit; kartu mobile satu kolom tanpa overflow atau tumpang tindih.
 - Batch: status `SUCCEEDED`/`COMPLETED` kini memakai pill hijau, `FAILED` merah, dan status berjalan amber konsisten pada anggota serta drawer processing; geometri tetap 20 px satu baris tanpa mengubah state atau data.
+- Batch mengandung reason status di dalam row, menghapus strip dekoratif pada pill job processing, dan menjaga tiga kartu metrik mobile tanpa interseksi; diuji pada build produksi 1440×900 dan 390×844.
 - Batch, Library, Compare, dan Review memiliki tugas terpisah; hasil generation membuka Review tanpa menyalin form review.
 - Label Indonesia terpusat, fingerprint AI asli/hasil review berdampingan, history append-only ringkas, form Next Test terlipat, serta mobile tanpa page overflow.
 - Review hipotesis merangkum antrean per pasangan konten, menampilkan snapshot bukti berdampingan, metadata sumber/waktu, dan layout keputusan yang diuji pada desktop/mobile.
