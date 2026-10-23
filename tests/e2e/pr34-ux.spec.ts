@@ -189,9 +189,8 @@ test('queue failure has working retry and detail survives queue refresh', async 
   await original.click();
   const detail = page.getByRole('region', { name: 'Detail hipotesis' });
   await detail.getByLabel('Reviewer', { exact: true }).fill('synthetic analyst');
-  await detail.getByRole('button', { name: 'Setujui', exact: true }).click();
   state.failQueue();
-  await page.goBack();
+  await detail.getByRole('button', { name: 'Setujui', exact: true }).click();
   await expect(page.getByText('Synthetic queue read failed')).toBeVisible();
   await queue.getByRole('button', { name: 'Coba lagi', exact: true }).click();
   await queue.getByRole('button', { name: /^Semua/ }).click();
