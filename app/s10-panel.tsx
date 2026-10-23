@@ -1,20 +1,30 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import { labelId } from '../lib/workspace/labels-id.ts';
 
 type Batch = { id: string; name: string; brandId: string };
 type Note = { id: string; body: string; author: string; updatedAt: string };
 type NextTest = { id: string; variableToTest: string; variantA: string; variantB: string; controls: string; expectedResult: string; owner: string; successMetric: string; measurementWindow: string; targetBatchId: string; status: string; updatedAt: string };
 const EMPTY_TEST = { variableToTest: "", variantA: "", variantB: "", controls: "", expectedResult: "", owner: "", successMetric: "", measurementWindow: "", targetBatchId: "" };
-
 export function S10Panel({ hypothesisId, targetBatchId }: { hypothesisId: string; targetBatchId: string }) {
   const [batches, setBatches] = useState<Batch[]>([]);
   const [notes, setNotes] = useState<Note[]>([]);
   const [tests, setTests] = useState<NextTest[]>([]);
-  const [noteBody, setNoteBody] = useState("");
-  const [author, setAuthor] = useState("");
-  const [test, setTest] = useState({ ...EMPTY_TEST, targetBatchId });
+  const [draft] = useState(() => {
+    if (typeof window === 'undefined') return null;
+    try {
+      const value = JSON.parse(window.sessionStorage.getItem(`cic:s10-draft:${hypothesisId}`) ?? 'null') as { noteBody?: unknown; author?: unknown; test?: Record<string, unknown> } | null;
+      if (!value || typeof value !== 'object') return null;
+      const test = { ...EMPTY_TEST, targetBatchId };
+      for (const key of Object.keys(EMPTY_TEST) as Array<keyof typeof EMPTY_TEST>) if (key !== 'targetBatchId' && typeof value.test?.[key] === 'string') test[key] = value.test[key] as string;
+      if (typeof value.test?.targetBatchId === 'string') test.targetBatchId = value.test.targetBatchId;
+      return { noteBody: typeof value.noteBody === 'string' ? value.noteBody : '', author: typeof value.author === 'string' ? value.author : '', test };
+    } catch { return null; }
+  });
+  const [noteBody, setNoteBody] = useState(draft?.noteBody ?? '');
+  const [author, setAuthor] = useState(draft?.author ?? '');
+  const [test, setTest] = useState(draft?.test ?? { ...EMPTY_TEST, targetBatchId });
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [editingNote, setEditingNote] = useState<string | null>(null);
@@ -27,6 +37,10 @@ export function S10Panel({ hypothesisId, targetBatchId }: { hypothesisId: string
     if (!response.ok) throw new Error(body.error ?? "S10 data unavailable");
     setBatches(body.batches ?? []); setNotes(body.notes ?? []); setTests(body.nextTests ?? []);
   }
+  useLayoutEffect(() => {
+    try { window.sessionStorage.setItem(`cic:s10-draft:${hypothesisId}`, JSON.stringify({ noteBody, author, test })); }
+    catch { console.error('S10 draft could not be saved to sessionStorage'); }
+  }, [author, hypothesisId, noteBody, test]);
   useEffect(() => {
     let active = true;
     fetch(`/api/hypotheses/${hypothesisId}/s10`).then(async (response) => {
@@ -43,7 +57,7 @@ export function S10Panel({ hypothesisId, targetBatchId }: { hypothesisId: string
       const response = await fetch(url, { method: editingNote ? "PATCH" : "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(editingNote ? { body: noteBody, author } : { kind: "NOTE", body: noteBody, author }) });
       const body = await response.json() as { error?: string };
       if (!response.ok) throw new Error(body.error ?? "note save failed");
-      setNoteBody(""); setEditingNote(null); await load();
+      setNoteBody(''); setEditingNote(null); window.sessionStorage.removeItem(`cic:s10-draft:${hypothesisId}`); await load();
     } catch (reason) { setError(reason instanceof Error ? reason.message : "note save failed"); } finally { setPending(false); }
   }
   async function saveTest() {
@@ -54,7 +68,7 @@ export function S10Panel({ hypothesisId, targetBatchId }: { hypothesisId: string
       const response = await fetch(url, { method: editingTest ? "PATCH" : "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload) });
       const body = await response.json() as { error?: string };
       if (!response.ok) throw new Error(body.error ?? "Next Test save failed");
-      setTest({ ...EMPTY_TEST, targetBatchId }); setEditingTest(null); await load();
+      setTest({ ...EMPTY_TEST, targetBatchId }); setEditingTest(null); window.sessionStorage.removeItem(`cic:s10-draft:${hypothesisId}`); await load();
     } catch (reason) { setError(reason instanceof Error ? reason.message : "Next Test save failed"); } finally { setPending(false); }
   }
   function editNote(note: Note) { setEditingNote(note.id); setNoteBody(note.body); setAuthor(note.author); }
@@ -65,9 +79,9 @@ export function S10Panel({ hypothesisId, targetBatchId }: { hypothesisId: string
     <h3 id="s10-heading">Notes & Next Test</h3>
     <p className="muted">Catatan adalah konteks manusia, bukan evidence dan tidak menaikkan confidence.</p>
     {error && <p className="error-state" role="alert">{error}</p>}
-    <div className="s10-notes"><h4>Notes tersimpan</h4>{notes.length === 0 && <p className="muted">Belum ada Notes tersimpan.</p>}{notes.map((note) => <article key={note.id}><p>{note.body}</p><small>{note.author} · {note.updatedAt}</small><button className="secondary" type="button" disabled={pending} onClick={() => editNote(note)}>Edit Notes</button></article>)}<label>Penulis<input value={author} onChange={(event) => setAuthor(event.target.value)} /></label><label>Notes<textarea value={noteBody} onChange={(event) => setNoteBody(event.target.value)} /></label><button type="button" onClick={saveNote} disabled={pending || !author.trim() || !noteBody.trim()}>{editingNote ? 'Simpan edit Notes' : 'Simpan Notes'}</button></div>
+    <div className="s10-notes"><h4>Notes tersimpan</h4>{notes.length === 0 && <p className="muted">Belum ada Notes tersimpan.</p>}{notes.map((note) => <article key={note.id}><p>{note.body}</p><small>{note.author} · {note.updatedAt}</small><button className="secondary" type="button" disabled={pending} onClick={() => editNote(note)}>Edit Notes</button></article>)}<label>Penulis<input value={author} onChange={(event) => setAuthor(event.target.value)} /></label><label>Notes<textarea value={noteBody} onChange={(event) => setNoteBody(event.target.value)} /></label><button className="primary" type="button" onClick={saveNote} disabled={pending || !author.trim() || !noteBody.trim()}>{editingNote ? 'Simpan edit Notes' : 'Simpan Notes'}</button></div>
     <div className="s10-next-test"><h4>Next Test tersimpan</h4>{tests.length === 0 && <p className="muted">Belum ada Next Test tersimpan. Saran AI tidak membuat eksperimen otomatis.</p>}{tests.map((item) => <article key={item.id}><strong>{item.variableToTest}</strong><dl className="key-values">{fields.map(([key, label]) => <div key={key}><dt>{label}</dt><dd>{item[key]}</dd></div>)}<div><dt>Batch tujuan</dt><dd>{batches.find((batch) => batch.id === item.targetBatchId)?.name ?? item.targetBatchId}</dd></div></dl><p>Status: {labelId(item.status)}</p><button className="secondary" type="button" disabled={pending} onClick={() => editTest(item)}>Edit Next Test</button><select aria-label={`Status ${item.id}`} value={item.status} disabled={pending} onChange={(event) => changeStatus(item, event.target.value)}>{['PROPOSED', 'ACCEPTED', 'RUNNING', 'COMPLETED', 'CANCELLED'].map((status) => <option value={status} key={status}>{labelId(status)}</option>)}</select></article>)}
-      <details open={testOpen} onToggle={(event) => setTestOpen(event.currentTarget.open)}><summary>Buat uji berikutnya</summary><p className="muted">Isi sembilan field wajib. Draft dan pesan gagal tetap tersedia selama navigasi.</p>{fields.map(([key, label]) => <label key={key}>{label}<input value={test[key]} onChange={(event) => setTest((current) => ({ ...current, [key]: event.target.value }))} /></label>)}<label>Batch tujuan<select aria-label="Batch tujuan" value={test.targetBatchId} onChange={(event) => setTest((current) => ({ ...current, targetBatchId: event.target.value }))}>{batches.map((batch) => <option value={batch.id} key={batch.id}>{batch.name}</option>)}</select></label><button type="button" onClick={saveTest} disabled={pending || fields.some(([key]) => !test[key].trim()) || !test.targetBatchId}>{pending ? 'Menyimpan…' : editingTest ? 'Simpan edit Next Test' : 'Buat Next Test'}</button></details>
+      <details open={testOpen} onToggle={(event) => setTestOpen(event.currentTarget.open)}><summary>Buat uji berikutnya</summary><p className="muted">Isi sembilan field wajib. Draft dan pesan gagal tetap tersedia selama navigasi.</p>{fields.map(([key, label]) => <label key={key}>{label}<input value={test[key]} onChange={(event) => setTest((current) => ({ ...current, [key]: event.target.value }))} /></label>)}<label>Batch tujuan<select aria-label="Batch tujuan" value={test.targetBatchId} onChange={(event) => setTest((current) => ({ ...current, targetBatchId: event.target.value }))}>{batches.map((batch) => <option value={batch.id} key={batch.id}>{batch.name}</option>)}</select></label><button className="primary" type="button" onClick={saveTest} disabled={pending || fields.some(([key]) => !test[key].trim()) || !test.targetBatchId}>{pending ? 'Menyimpan…' : editingTest ? 'Simpan edit Next Test' : 'Buat Next Test'}</button></details>
     </div>
   </section>;
 }

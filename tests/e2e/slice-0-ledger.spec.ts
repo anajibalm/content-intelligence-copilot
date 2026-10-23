@@ -74,7 +74,7 @@ async function installApi(page: Page, options: { holdReviewPost?: Promise<void>;
     }
     if (url.pathname === '/api/hypotheses') {
       if (route.request().method() === 'GET') {
-        if (url.searchParams.has('hypothesisId')) return route.fulfill({ json: { id: hypothesisId, batchId, statement: 'Synthetic hypothesis', confidence: 'LOW', confidenceCaps: [], suggestedNextTest: null, evidence: [] } });
+        if (url.searchParams.has('hypothesisId')) return route.fulfill({ json: { id: hypothesisId, batchId, statement: 'Synthetic hypothesis', state: 'ACTIVE', confidence: 'LOW', confidenceCaps: [], suggestedNextTest: null, comparisons: [], provider: null, model: null, promptVersion: null, schemaVersion: null, ruleVersion: null, inputHash: null, rawOutput: {}, evidence: [] } });
         return route.fulfill({ json: { items: [{ id: hypothesisId, batchId, statement: 'Synthetic hypothesis', confidence: 'LOW', confidenceCaps: [], suggestedNextTest: null, evidence: [], reviewDecision: null }] } });
       }
       return route.fulfill({ status: 201, json: { id: hypothesisId, batchId, statement: 'Synthetic hypothesis', confidence: 'LOW', confidenceCaps: [], suggestedNextTest: null, evidence: [] } });
@@ -181,7 +181,7 @@ test('hypothesis validation, compare adjacency, synthetic disclosure, and copy p
   await page.getByRole('dialog').getByRole('button', { name: 'Tutup' }).click();
   await expect(chip).toBeFocused();
   await expect(page.getByText('Penyimpanan Postgres')).toHaveCount(0);
-  const selectedRow = page.locator('.content-row').first();
+  const selectedRow = page.getByRole('region', { name: 'Daftar konten' }).locator('.content-row').first();
   await expect(selectedRow).toContainText('Organik · Tayangan: Perlu diperiksa · Nilai nol belum memiliki penjelasan atau provenance yang memadai.');
   await selectedRow.getByRole('button', { name: 'Salin ID copy-full-external-id' }).click();
   await expect(selectedRow).toContainText('ID disalin');
@@ -223,7 +223,7 @@ test('copy failure reports feedback without changing selection', async ({ page }
   await page.addInitScript(() => Object.defineProperty(navigator, 'clipboard', { value: { writeText: () => Promise.reject(new Error('clipboard unavailable')) } }));
   const api = await installApi(page);
   await page.goto(`/?batchId=${batchId}&contentId=${contentId}&view=library`);
-  const selectedRow = page.locator('.content-row').first();
+  const selectedRow = page.getByRole('region', { name: 'Daftar konten' }).locator('.content-row').first();
   await selectedRow.getByRole('button', { name: 'Salin ID copy-full-external-id' }).click();
   await expect(selectedRow.getByText('ID gagal disalin', { exact: true })).toBeVisible();
   await expect(page).toHaveURL(new RegExp(`contentId=${contentId}`));
@@ -263,7 +263,7 @@ for (const width of [1440, 375]) test(`decision controls and Compare hint meet f
   await expectTextFloor(page, '.compare-choice span, .compare-metrics small', 12);
   await page.goto(`/?batchId=${batchId}&contentId=${contentId}&view=review&hypothesisId=${hypothesisId}`);
   const review = page.locator('.hypothesis-detail');
-  await review.locator('summary').filter({ hasText: 'Buat uji berikutnya' }).click();
+  await review.locator('.s10-disclosure > summary').click();
   await expectTextFloor(page, '.s10-notes label, .s10-notes input, .s10-notes textarea, .s10-next-test label, .s10-next-test input, .s10-next-test select', 13);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.screenshot({ path: `/tmp/cic-pr36-r36-4-decision-controls-${width}.png`, fullPage: true });

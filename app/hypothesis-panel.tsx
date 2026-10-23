@@ -35,7 +35,7 @@ export default function HypothesisPanel({ batchId, comparisonId, onReview, onGen
   }
   return <section className="hypothesis-panel" aria-labelledby="hypothesis-heading">
     <div className="section-heading"><h2 id="hypothesis-heading">Buat hipotesis</h2><span className="status">{comparisonId ? 'Perbandingan terpilih' : 'Perbandingan belum tersedia'}</span></div>
-    <div className="review-actions"><button type="button" onClick={() => generate()} disabled={!comparisonId || pending}>{pending ? 'Membuat hipotesis…' : 'Buat hipotesis'}</button><button className="secondary" type="button" onClick={() => generate(true)} disabled={!comparisonId || !result || pending}>Buat ulang hipotesis</button></div>
+    <div className="review-actions"><button className="primary" type="button" onClick={() => generate()} disabled={!comparisonId || pending}>{pending ? 'Membuat hipotesis…' : 'Buat hipotesis'}</button><button className="secondary" type="button" onClick={() => generate(true)} disabled={!comparisonId || !result || pending}>Buat ulang hipotesis</button></div>
     {!comparisonId && <p className="muted">Buat perbandingan valid sebelum generation hipotesis atau regeneration.</p>}
     {error && <p className="error-state" role="alert">{error}</p>}
     {result && <div className="hypothesis-result" aria-live="polite"><p>{result.statement}</p><p>Confidence: {labelId(result.confidence)}</p><a href={`?batchId=${batchId}&view=review&hypothesisId=${result.id}`} onClick={(event) => { event.preventDefault(); onReview(result.id); }}>Buka review</a></div>}
