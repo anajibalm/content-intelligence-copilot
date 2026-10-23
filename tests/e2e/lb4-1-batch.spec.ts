@@ -274,7 +274,7 @@ test('AC-04 metric quality states and separate distributions', async ({ page }) 
   await expect(zero.locator('.batch-metric[data-label="Organik"]')).toContainText('Tayangan0');
   await expect(zero.locator('.batch-metric[data-label="Iklan"]')).toContainText('Tayangan1100');
   await expect(zero).not.toContainText('Nilai nol belum memiliki penjelasan');
-  await expect(zero).toContainText('Akuisisi Berhasil · Processing Berhasil');
+  await expect(zero.locator('.batch-status')).toHaveText(['Akuisisi Berhasil', 'Processing Berhasil']);
   const drawer = page.locator('.processing-drawer');
   await expect(drawer.locator(':scope > summary')).toContainText('8 job pada ledger processing · 1 aktif · 1 gagal');
   await expect(drawer.locator('.processing-drawer-content')).toBeVisible();
@@ -431,5 +431,35 @@ test('AC-08 Batch panels and member cards use Review presentation scale without 
     expect(geometry.overflow).toBe(true);
     expect(geometry.intersections).toEqual([]);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  }
+});
+
+test('AC-09 Batch status pills preserve semantic color and single-line geometry', async ({ page }) => {
+  await installApi(page);
+  for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 }]) {
+    await page.setViewportSize(viewport);
+    await page.goto(`/?batchId=${batchA.id}&view=batch`);
+    const members = page.getByRole('region', { name: 'Anggota batch' });
+    const failed = members.locator('.content-row').first().locator('.batch-status');
+    await expect(failed).toHaveCount(2);
+    await expect(failed.nth(0)).toHaveText('Akuisisi Berhasil');
+    await expect(failed.nth(1)).toHaveText('Processing Gagal');
+    const styles = await failed.evaluateAll((nodes) => nodes.map((node) => {
+      const style = getComputedStyle(node);
+      const box = node.getBoundingClientRect();
+      return { height: box.height, lines: Math.round(box.height / Number.parseFloat(style.lineHeight)), background: style.backgroundColor, color: style.color, border: style.borderTopWidth, whiteSpace: style.whiteSpace, fontSize: style.fontSize, fontWeight: style.fontWeight };
+    }));
+    expect(styles).toEqual([
+      { height: 20, lines: 1, background: 'rgb(236, 253, 243)', color: 'rgb(6, 118, 71)', border: '0px', whiteSpace: 'nowrap', fontSize: '12px', fontWeight: '500' },
+      { height: 20, lines: 1, background: 'rgb(253, 236, 236)', color: 'rgb(139, 37, 37)', border: '0px', whiteSpace: 'nowrap', fontSize: '12px', fontWeight: '500' },
+    ]);
+    const processing = page.locator('.processing-job-status');
+    const processingStyles = await processing.evaluateAll((nodes) => nodes.map((node) => {
+      const style = getComputedStyle(node);
+      return { text: node.textContent?.trim(), height: node.getBoundingClientRect().height, background: style.backgroundColor, color: style.color, border: style.borderTopWidth, whiteSpace: style.whiteSpace };
+    }));
+    expect(processingStyles).toContainEqual({ text: 'Selesai', height: 20, background: 'rgb(236, 253, 243)', color: 'rgb(6, 118, 71)', border: '0px', whiteSpace: 'nowrap' });
+    expect(processingStyles).toContainEqual({ text: 'Diproses', height: 20, background: 'rgb(254, 246, 221)', color: 'rgb(161, 98, 7)', border: '0px', whiteSpace: 'nowrap' });
+    expect(processingStyles).toContainEqual({ text: 'Gagal', height: 20, background: 'rgb(253, 236, 236)', color: 'rgb(139, 37, 37)', border: '0px', whiteSpace: 'nowrap' });
   }
 });
