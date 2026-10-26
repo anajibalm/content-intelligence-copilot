@@ -663,3 +663,77 @@ button.primary { border-color: var(--accent); background: var(--accent); color: 
 }
 
 .view-batch .batch-copy-cell .copy-id { min-height: 32px !important; height: 32px; padding: 6px 10px !important; font-size: 13px; line-height: 18px; }
+/* UI conformance pass 1: shared measured tokens and touch geometry. */
+:root { --muted: #475467; }
+.app-shell .section-heading h2, .app-shell .summary-block h2, .app-shell .content-list h2, .app-shell .content-detail h2, .app-shell .compare-panel h2, .app-shell .hypothesis-panel h2, .app-shell .hypothesis-queue h2, .app-shell .hypothesis-claim h2, .app-shell .hypothesis-evidence h3, .app-shell .s10-panel h3, .app-shell .s10-panel h4, .app-shell .detail-evidence h3, .app-shell .review-panel h3, .app-shell h4 { color: var(--ink); font-size: 15px; font-weight: 600; line-height: 20px; }
+.app-shell .muted, .app-shell small, .app-shell time, .app-shell .queue-meta, .app-shell dt, .app-shell th, .app-shell .status { color: var(--muted); font-size: 12px; font-weight: 400; line-height: 18px; }
+.app-shell .muted { margin-top: 0; }
+.app-shell button, .app-shell input:not([type='checkbox']), .app-shell select, .app-shell textarea, .app-shell summary, .app-shell a { font-size: 13px; }
+.app-shell button.secondary, .app-shell input:not([type='checkbox']), .app-shell select, .app-shell textarea { min-height: 44px !important; }
+.app-shell a { display: inline-flex; min-height: 44px; align-items: center; }
+.app-shell input[type='checkbox'] { width: 44px; height: 44px; margin: 0; }
+.app-shell details:not([open]) { padding: 0; }
+.app-shell details:not([open]) > summary { box-sizing: border-box; min-height: 44px; height: 44px; padding: 12px; color: var(--ink); font-size: 15px; font-weight: 600; line-height: 20px; }
+.app-shell .confidence-badge, .app-shell .review-state-badge, .app-shell .ontology-chip, .app-shell .batch-status, .app-shell .state, .app-shell .processing-job-status, .app-shell .badge--warn { box-sizing: border-box; display: inline-flex; align-items: center; width: fit-content; height: 20px; min-height: 20px; padding: 2px 8px; border: 0; border-radius: 999px; font-size: 12px; font-weight: 500; line-height: 16px; white-space: nowrap; }
+.app-shell .confidence-low, .app-shell .batch-status--bad { background: #fdecec; color: #8b2525; }
+.app-shell .review-state-badge, .app-shell .batch-status--warn, .app-shell .badge--warn { background: #fef6dd; color: #8a5b00; }
+.app-shell .ontology-chip, .app-shell .snapshot-source-observed { background: #eef0f3; color: #475467; }
+.app-shell .snapshot-source-derived { background: #eff8ff; color: #175cd3; }
+.app-shell .batch-status--ok, .app-shell .processing-job-status--ok { background: #ecfdf3; color: #067647; }
+.app-shell .compare-result .state { background: #fdecec; color: #8b2525; }
+.app-shell .app-sidebar nav { gap: 8px; }
+.app-shell .review-detail-tabs { gap: 8px; }
+.app-shell .review-detail-tabs button { min-height: 44px; }
+.app-shell .view-batch .batch-content-link, .app-shell .view-batch .copy-id { min-height: 44px !important; height: 44px; }
+.app-shell .view-batch .processing-drawer-content .job-source { min-height: 44px; }
+.app-shell .view-review .review-back { min-height: 44px !important; }
+.app-shell .view-review .decision-options > summary { min-height: 44px; height: 44px; padding: 12px; color: var(--ink); font-size: 15px; font-weight: 600; }
+.app-shell .view-review .decision-region .review-panel > .review-meta input, .app-shell .view-review .decision-region .decision-note input { min-height: 44px; height: 44px; }
+.app-shell .view-review .decision-region .review-actions { gap: 8px; }
+.app-shell .view-review .decision-region .review-actions button { min-height: 44px; height: 44px; }
+.app-shell .view-review .claim-reason { font-size: 12px; font-weight: 400; }
+@media (max-width: 900px) {
+  .app-shell .view-batch .batch-table .copy-id { min-height: 44px !important; height: 44px; }
+}
+.compare-selection > [role='listitem'] { min-width: 0; }
+.compare-metrics { grid-template-columns: minmax(0, 1fr) minmax(0, auto); gap: 8px 12px; align-items: start; }
+.compare-metrics > dt, .compare-metrics > dd { min-width: 0; margin: 0; padding: 0; }
+.compare-metrics > dt { font-size: 13px; line-height: 18px; }
+.compare-metrics > dd { font-size: 13px; line-height: 18px; }
+.compare-metrics > .compare-metric-state { grid-column: 1 / -1; color: var(--muted); font-size: 12px; }
+.view-review .decision-region .review-panel { gap: 8px; }
+.view-review .decision-region .review-actions { gap: 8px; }
+.view-review .decision-region .review-meta, .view-review .decision-region .decision-note { min-width: 0; }
+.view-review .decision-region .decision-options { min-width: 0; }
+.view-review .decision-region .decision-options > summary { margin-bottom: 8px; }
+.view-review .decision-region .review-actions button { min-width: 0; }
+.view-batch .processing-job-head { gap: 8px; }
+.view-batch .processing-drawer-content article { gap: 8px; }
+.view-batch .processing-drawer-content article > .job-source { margin-top: 0; }
+.view-batch .processing-drawer-content article > details { margin-top: 0; }
+.view-batch .batch-status-cell { gap: 8px; }
+.view-batch .batch-status-cell + td { padding-left: 18px; }
+.view-batch .visually-hidden { width: 1px; max-width: 1px; }
+.app-shell details:not([open]) > :not(summary) { display: none !important; }
+.app-shell .view-review .decision-options > summary { margin-bottom: 0; }
+.app-shell .compare-selection { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+.app-shell .compare-metrics > dt { font-size: 12px; font-weight: 400; line-height: 18px; }
+.app-shell .compare-metrics > dd { font-size: 13px; line-height: 18px; }
+.app-shell .compare-metrics > .compare-metric-state { font-size: 13px; }
+.app-shell .view-review .snapshot-table thead th { font-weight: 400; }
+.app-shell .view-review button { font-size: 13px; }
+.app-shell .view-review .decision-region .review-panel, .app-shell .view-review .decision-region .review-meta { gap: 8px; }
+.app-shell .view-review .decision-region .review-meta label, .app-shell .view-review .decision-region .review-meta input, .app-shell .view-review .decision-region .decision-note, .app-shell .view-review .decision-region .decision-note input { min-width: 0; }
+.app-shell .view-batch .batch-status-cell { display: flex; min-width: 140px; flex-direction: column; align-items: flex-start; gap: 8px; }
+.app-shell .view-batch .visually-hidden { font-size: 0; line-height: 1px; }
+.app-shell p.muted { color: var(--muted); font-size: 12px !important; font-weight: 400; line-height: 18px; }
+.app-shell th { color: var(--muted); font-size: 12px !important; font-weight: 400 !important; line-height: 18px; }
+.view-batch .batch-status-cell { min-width: 0; }
+@media (min-width: 851px) and (max-width: 1100px) {
+  .view-review .decision-region { position: static; max-height: none; overflow: visible; padding: 0; border-top: 0; }
+  .view-review .review-detail-open .hypothesis-detail { padding-bottom: 0; }
+}
+@media (max-width: 850px) {
+  .view-review .decision-region { max-height: 130px; }
+  .view-review .decision-region .review-panel { row-gap: 8px; }
+}

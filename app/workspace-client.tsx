@@ -314,7 +314,7 @@ export default function WorkspaceClient() {
           </>}
         </section>
       </div>
-      <footer className="footer-note">Observasi (OBSERVED), perhitungan (DERIVED), ekstraksi AI (EXTRACTED), dan hipotesis (INFERRED) tetap terpisah. Data yang hilang tidak dianggap nol.</footer>
+      <footer className="footer-note">Observasi, perhitungan, ekstraksi AI, dan hipotesis tetap terpisah. Data yang hilang tidak dianggap nol.</footer>
     </main></div>
   );
 }
