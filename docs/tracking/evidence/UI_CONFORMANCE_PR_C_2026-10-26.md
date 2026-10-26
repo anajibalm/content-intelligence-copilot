@@ -4,9 +4,9 @@
 
 - Branch: `test/ui-conformance-pr-c`
 - Base: `origin/task/37` at `5ca77d3339a1d14201f732b69987f45036c5ae22`
-- HEAD at capture: `e9d059ede7b4c6594f01919dc58a1b471d3e4747`
-- PR: not opened at capture
-- Conformance: **NOT COMPLETE**; loop stopped at five iterations with residual violations
+- Source HEAD before receipt commit: `31b1676`
+- PR: [#55](https://github.com/anajibalm/content-intelligence-copilot/pull/55), base `task/37`, OPEN/unmerged
+- Conformance: **NOT COMPLETE**; historical presentation iteration stopped at five iterations with residual violations
 - Owner approval: not recorded
 - Merge: not performed
 
@@ -15,9 +15,11 @@
 - `d4945c5 docs(ui): define conformance loop`
 - `a54b6aa test(ui): add conformance suite`
 - `a9b5fdb test(ui): stabilize conformance evaluator`
-- `e9d059e style(ui): apply conformance presentation fixes`
+- `510d137 docs(ui): record conformance checkpoint`
+- `4aec406 docs(ui): require green E2E loop iterations`
+- `31b1676 Revert "style(ui): apply conformance presentation fixes"`
 
-Documentation and suite commits remain separate. No API, DTO, schema, DB, engine, provider, processing, fixture-value, or conformance-rule change was made after suite creation.
+PR C now contains docs, suite, receipt, and the non-rewriting revert commit only. Presentation commit `e9d059e` is retained in history but its tree changes are absent from current PR C. No API, DTO, schema, DB, engine, provider, processing, or fixture-value change exists.
 
 ## Conformance loop
 
@@ -45,9 +47,9 @@ Corrected-build residuals remain on Review (`I5`, `X2`), Batch (`L3`, `X2`), and
 | `mise exec node@22.18.0 -- npm run validate:fixtures` | PASS |
 | `mise exec node@22.18.0 -- npm run build` | PASS |
 | `git diff --check` | PASS |
-| `env -u CIC_E2E_STAGING_URL mise exec node@22.18.0 -- npm run test:e2e` | FAIL, 40 passed / 13 failed |
+| `env -u CIC_E2E_STAGING_URL mise exec node@22.18.0 -- npm run test:e2e` | PASS, 53/53 |
 
-Full E2E failures: five `lb4-1-batch` tests (`AC-04`, `AC-05`, `AC-08`, `AC-09`, `AC-10`); three `processing-lifecycle` tests; two `review-layout-mock` tests; three `slice-0-ledger` tests; two `workspace-shell` tests. Exact failure contexts remain in the worktree `test-results/` directory and are not committed.
+The 13 failures listed in historical capture belonged to presentation commit `e9d059e`. After non-rewriting revert `31b1676`, all existing E2E passed. This proves presentation changes were the regression source; no E2E assertion was weakened or changed.
 
 ## Evidence paths
 
