@@ -9,6 +9,7 @@ Canonical product behavior lives in `docs/contracts/MVP_CONTRACT_v0.1_FROZEN.md`
 - Run `npm run lint`, `npm run typecheck`, `npm test`, and `npm run build` before declaring a story complete.
 
 - MVP execution/review rules: `VIBE_CODING_PROTOCOL.md` §5. Read before coding; keep frozen domain contracts authoritative.
+- Pekerjaan UI: ikuti docs/UI_CONFORMANCE.md (loop + npm run test:ui-conformance).
 
 ## Bahasa laporan
 
