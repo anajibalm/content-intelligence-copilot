@@ -50,14 +50,14 @@ Pemetaan makna → warna (satu sumber di util presentasi; tes membaca util itu, 
 Hanya di docs/UI_CONFORMANCE.exemptions.json: { rule, page, selector, alasan, owner_approved }. Agent tidak boleh mengisi owner_approved: true. Pengecualian tanpa persetujuan dihitung sebagai pelanggaran.
 
 ## LOOP (servo dengan batas)
-Batas (anti-Goodhart): selama loop, agent TIDAK boleh mengubah ui-conformance.spec.ts, UI_CONFORMANCE.md, exemptions, melonggarkan atau menghapus tes lain, mengubah nilai fixture, atau mengubah semantik review/engine/DTO/query/schema. Hanya presentasi (komponen, CSS, formatter tampilan). Perubahan aturan = PR tersendiri yang disetujui owner.
-Hakim: suite deterministik yang berjalan sebagai proses terpisah dari build. Klaim agent tidak dihitung.
+Batas (anti-Goodhart): selama loop, agent TIDAK boleh mengubah `ui-conformance.spec.ts`, `UI_CONFORMANCE.md`, exemptions, melonggarkan atau menghapus tes lain, mengubah nilai fixture, atau mengubah semantik review/engine/DTO/query/schema. Hanya presentasi (komponen, CSS, formatter tampilan). Perubahan aturan = PR tersendiri yang disetujui owner.
+Hakim: `npm run test:ui-conformance` dan full E2E existing (`npm run test:e2e`) berjalan sebagai proses terpisah dari build. Keduanya wajib hijau untuk menerima setiap iterasi. Klaim agent tidak dihitung.
 1. Bootstrap sesuai VIBE_CODING_PROTOCOL §5. Branch baru dari origin/task/37, worktree baru.
-2. Jalankan npm run test:ui-conformance. Keluaran: violations.json dan summary.md ke ~/cic-evidence/conformance/<branch>/. summary.md juga di-commit ke docs/tracking/evidence/; violations.json tidak di-commit.
-3. Perbaiki pelanggaran per aturan lalu per halaman. Jalankan ulang.
-4. Berhenti bila: nol pelanggaran; atau 5 iterasi; atau pelanggaran identik di dua iterasi berturut-turut. Untuk dua kondisi terakhir, laporkan sisa pelanggaran dan sebabnya, jangan klaim selesai.
-5. Setelah nol: screenshot viewport (bukan full-page) 390 dan 1440, plus crop ukuran asli (DPR1) area yang berubah, ke ~/cic-evidence/<nomor-PR>/. Tanpa baseline pembanding, status visual INCONCLUSIVE, bukan PASS. Cetak path folder apa adanya.
-6. Cek wajib repo: npm run lint, typecheck, npm test, validate:fixtures, build, git diff --check, full E2E pada HEAD yang tepat. Push, PR base task/37, tunggu CI. Satu receipt, update Obsidian (readback), Hindsight sesuai AGENTS.md.
+2. Jalankan production build exact HEAD. Jalankan `npm run test:ui-conformance` dan full E2E existing. Simpan `violations.json` dan `summary.md` ke `~/cic-evidence/conformance/<branch>/`; `violations.json` tidak di-commit. Iterasi awal harus memiliki full E2E hijau.
+3. Jika suite menemukan pelanggaran, perbaiki per aturan lalu per halaman dengan perubahan presentasi saja. Jalankan ulang production build, suite, dan full E2E.
+4. Iterasi hanya diterima jika full E2E hijau dan jumlah pelanggaran tidak meningkat dari iterasi sebelumnya. Jika jumlah pelanggaran naik atau full E2E gagal, revert seluruh source edit iterasi tersebut sebelum lanjut. Jangan melonggarkan hakim untuk menerima iterasi gagal. Berhenti bila: nol pelanggaran; atau 5 iterasi; atau pelanggaran identik di dua iterasi berturut-turut. Untuk kondisi berhenti non-nol, laporkan sisa pelanggaran dan sebabnya, jangan klaim selesai.
+5. Setelah nol: screenshot viewport (bukan full-page) 390 dan 1440, plus crop ukuran asli (DPR1) area yang berubah, ke `~/cic-evidence/<nomor-PR>/`. Tanpa baseline pembanding, status visual INCONCLUSIVE, bukan PASS. Cetak path folder apa adanya.
+6. Cek wajib repo: `npm run lint`, typecheck, `npm test`, validate:fixtures, build, `git diff --check`, full E2E pada HEAD yang tepat. Suite conformance tidak masuk `npm test` atau `test:e2e`. Push, PR base task/37, tunggu CI. Satu receipt, update Obsidian (readback), Hindsight sesuai AGENTS.md.
 7. Berhenti. Jangan merge. Done hanya oleh owner setelah merge dan acceptance.
 
 ## LAPORAN
