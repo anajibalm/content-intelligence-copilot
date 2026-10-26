@@ -4,8 +4,8 @@
 
 - Branch: `test/ui-conformance-pr-c`
 - Base: `origin/task/37` at `5ca77d3339a1d14201f732b69987f45036c5ae22`
-- Source HEAD before receipt commits: `31b1676`
-- Current PR HEAD: `64c508c` (receipt-only correction)
+- Source tree validated: `858b9fac0cf4447c2243e8cbb8d3d6db80474bd0`
+- Receipt commits after source validation are documentation-only.
 - Conformance: **NOT COMPLETE**; historical presentation iteration stopped at five iterations with residual violations
 - Owner approval: not recorded
 - Merge: not performed
@@ -19,6 +19,7 @@
 - `4aec406 docs(ui): require green E2E loop iterations`
 - `31b1676 Revert "style(ui): apply conformance presentation fixes"`
 - `64c508c docs(ui): correct conformance receipt evidence`
+- `803f26c docs(ui): structure conformance receipt`
 
 PR C contains docs, suite, receipt, and non-rewriting revert commit only. Presentation commit `e9d059e` is retained in history but its tree changes are absent from current PR C. No API, DTO, schema, DB, engine, provider, processing, or fixture-value change exists.
 
