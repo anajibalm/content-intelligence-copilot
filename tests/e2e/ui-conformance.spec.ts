@@ -1,5 +1,4 @@
 import { expect, test, type Page } from '@playwright/test';
-import { createRequire } from 'node:module';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
@@ -11,8 +10,7 @@ type StyleToken = { fontSize: string; fontWeight: string; color: string; backgro
 type StyleTokens = Record<string, StyleToken | null>;
 type FixtureContent = { id: string; externalId: string; title: string | null; permalink: string; processingState: string; acquisitionState: string; acquisitionError: string | null; processingError: string | null; attemptCount: number; error: string | null; durationSeconds: number | null; hasFrameEvidence: boolean; snapshots: Array<{ id: string; distribution: string; rawMetrics: Record<string, number | null>; quality: string; qualityByMetric: Record<string, { state: string; reason: string | null }>; derivedMetrics: Record<string, { value: number | null }> }> };
 
-const require = createRequire(import.meta.url);
-const axePath = require.resolve('axe-core/axe.js');
+const axePath = join(process.cwd(), 'node_modules/axe-core/axe.js');
 const batch = fixture.batches[0] as { id: string; name: string; brandName: string; createdAt: string; contentCount: number; contractedVideoCount: number };
 const hypothesisId = '93000000-0000-0000-0000-000000000001';
 const comparisonId = '93000000-0000-0000-0000-000000000002';
@@ -142,7 +140,10 @@ function pageSelector(element: Element) {
 
 async function browserRecords(page: Page, viewport: string, currentPage: string, rule: string, selector: string, target: string, script: string) {
   const results = await page.evaluate(({ ruleName, selectorText, targetText, check }) => {
-    const fn = new Function(`const isVisible = (element) => { const style = getComputedStyle(element); return style.display !== 'none' && style.visibility !== 'hidden' && element.getClientRects().length > 0; }; const pageSelector = (element) => element.id ? '#' + element.id : element.tagName.toLowerCase() + [...element.classList].slice(0, 2).map((value) => '.' + value).join(''); return (${check})(selectorText);`)() as Array<{ selector: string; measured: string }>;
+    const safeCheck = check.replaceAll(String.fromCharCode(10), String.fromCharCode(92, 110)).replaceAll(String.fromCharCode(8), String.fromCharCode(92, 98));
+    const isVisible = (element: Element) => { const style = getComputedStyle(element); return style.display !== 'none' && style.visibility !== 'hidden' && element.getClientRects().length > 0; };
+    const pageSelector = (element: Element) => element.id ? '#' + element.id : element.tagName.toLowerCase() + [...element.classList].slice(0, 2).map((value) => '.' + value).join('');
+    const fn = new Function('selectorText', 'isVisible', 'pageSelector', 'return (' + safeCheck + ')(selectorText);')(selectorText, isVisible, pageSelector) as Array<{ selector: string; measured: string }>;
     return fn.map((item) => ({ rule: ruleName, selector: item.selector, measured: item.measured, target: targetText }));
   }, { ruleName: rule, selectorText: selector, targetText: target, check: script }) as Array<{ rule: string; selector: string; measured: string; target: string }>;
   return results.map((item) => ({ ...item, page: currentPage, viewport }));
