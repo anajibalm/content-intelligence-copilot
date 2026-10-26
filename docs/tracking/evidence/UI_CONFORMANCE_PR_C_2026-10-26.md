@@ -4,8 +4,8 @@
 
 - Branch: `test/ui-conformance-pr-c`
 - Base: `origin/task/37` at `5ca77d3339a1d14201f732b69987f45036c5ae22`
-- Source HEAD before receipt commit: `31b1676`
-- PR: [#55](https://github.com/anajibalm/content-intelligence-copilot/pull/55), base `task/37`, OPEN/unmerged
+- Source HEAD before receipt commits: `31b1676`
+- Current PR HEAD: `64c508c` (receipt-only correction)
 - Conformance: **NOT COMPLETE**; historical presentation iteration stopped at five iterations with residual violations
 - Owner approval: not recorded
 - Merge: not performed
@@ -18,8 +18,9 @@
 - `510d137 docs(ui): record conformance checkpoint`
 - `4aec406 docs(ui): require green E2E loop iterations`
 - `31b1676 Revert "style(ui): apply conformance presentation fixes"`
+- `64c508c docs(ui): correct conformance receipt evidence`
 
-PR C now contains docs, suite, receipt, and the non-rewriting revert commit only. Presentation commit `e9d059e` is retained in history but its tree changes are absent from current PR C. No API, DTO, schema, DB, engine, provider, processing, or fixture-value change exists.
+PR C contains docs, suite, receipt, and non-rewriting revert commit only. Presentation commit `e9d059e` is retained in history but its tree changes are absent from current PR C. No API, DTO, schema, DB, engine, provider, processing, or fixture-value change exists.
 
 ## Conformance loop
 
@@ -36,6 +37,8 @@ Evidence summaries and full violation JSON remain outside Git under `~/cic-evide
 | Target 2 | `origin/feat/library-compare-style` | 818 | B1 32; D1 4; D2 28; I1 54; I2 12; I4 40; I5 156; L2 13; L3 193; L7 6; R0 24; T1 48; T2 32; T3 156; X2 20 |
 
 Historical corrected-build residuals remain on Review (`I5`, `X2`), Batch (`L3`, `X2`), and Compare (`X2`); these counts belong to reverted presentation commit `e9d059e`. No exemption was added; `docs/UI_CONFORMANCE.exemptions.json` remains `[]`.
+
+
 ## Exact HEAD validation — 2026-10-26
 
 - Exact HEAD `858b9fac0cf4447c2243e8cbb8d3d6db80474bd0`; production build PASS.
