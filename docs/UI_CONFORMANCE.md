@@ -27,7 +27,7 @@ L5 | Bar sticky ≤130px dan semua kontrolnya terlihat penuh | 390
 L6 | Ruang kosong bawah dalam kontainer ≤ padding token + 8px | semua
 L7 | Layout mengalir di lebar tengah: tak ada kolom <240px dan tak ada kartu terjepit (bukan hanya dua state) | 768, 1024
 X1 | Pemisah " · " bersepasi di kedua sisi dan tidak memulai baris | semua
-X2 | Tak ada enum mentah huruf kapital (pola [A-Z]{3,}(_[A-Z]+)*, mis. ORGANIC, SUCCEEDED) atau UUID/ID >24 karakter di tampilan utama; hanya di blok teknis | semua
+X2 | Tak ada token mentah yang mengandung underscore atau cocok persis dengan nilai enum engine di tampilan utama; UUID/ID >24 karakter tetap dilarang; akronim valid (KPI, WIB, ID, URL, AI) bukan pelanggaran | semua
 X3 | Angka Indonesia, satu formatter dengan Review: desimal koma ("10,00%", "8,00 s"), ribuan titik ("1.000"). Hanya angka metrik; teks statement tersimpan tidak diubah | semua
 X4 | Waktu "6 Okt 2026, 21.23 WIB"; ISO hanya di blok teknis | semua
 X5 | Satu istilah per konsep; alias terlarang di tampilan utama: Rasio interaksi, pillar, talent class, talenta | semua
