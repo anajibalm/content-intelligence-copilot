@@ -32,10 +32,17 @@ Evidence summaries and full violation JSON remain outside Git under `~/cic-evide
 | Iteration 3 | `origin/task-37` | 474 | D2 8; I2 12; I5 77; L2 13; L3 276; L7 6; T2 16; T3 46; X2 20 |
 | Iteration 4 | `origin/task-37` | 103 | I2 4; I5 22; L3 31; T3 26; X2 20 |
 | Iteration 5 | `origin/task-37` | 103 | I2 4; I5 22; L3 31; T3 26; X2 20 |
-| Corrected build | `origin/task-37` | 47 | I5 22; L3 9; X2 16 |
+| Corrected presentation build (historical `e9d059e`, not current tree) | `origin/task/37` | 47 | I5 22; L3 9; X2 16 |
 | Target 2 | `origin/feat/library-compare-style` | 818 | B1 32; D1 4; D2 28; I1 54; I2 12; I4 40; I5 156; L2 13; L3 193; L7 6; R0 24; T1 48; T2 32; T3 156; X2 20 |
 
-Corrected-build residuals remain on Review (`I5`, `X2`), Batch (`L3`, `X2`), and Compare (`X2`). No exemption was added; `docs/UI_CONFORMANCE.exemptions.json` remains `[]`.
+Historical corrected-build residuals remain on Review (`I5`, `X2`), Batch (`L3`, `X2`), and Compare (`X2`); these counts belong to reverted presentation commit `e9d059e`. No exemption was added; `docs/UI_CONFORMANCE.exemptions.json` remains `[]`.
+## Exact HEAD validation — 2026-10-26
+
+- Exact HEAD `858b9fac0cf4447c2243e8cbb8d3d6db80474bd0`; production build PASS.
+- `npm run test:ui-conformance` against exact production build returned **834 violations**, not 47: B1 36; D1 4; D2 28; I1 54; I2 12; I4 32; I5 156; L2 13; L3 195; L7 6; R0 24; T1 58; T2 32; T3 164; X2 20.
+- Fresh output: `~/cic-evidence/conformance/test-ui-conformance-pr-c-live/summary.md` and `violations.json`.
+- Therefore current PR C conformance remains **NOT COMPLETE**. The 47-violation result is historical evidence from the reverted presentation tree and is not current-HEAD evidence.
+
 
 ## Required gates
 
