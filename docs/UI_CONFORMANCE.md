@@ -9,7 +9,7 @@ Sumber aturan visual semua halaman: Batch, Library, Compare, Review. Tunduk pada
 - Referensi emas: halaman Review (sudah merged).
 
 ## ATURAN
-Setiap pelanggaran dicatat: id aturan, halaman, viewport, selector, nilai terukur, nilai target.
+Setiap pelanggaran dicatat: id aturan, halaman, viewport, selector, nilai terukur, nilai target. Setiap aturan melaporkan semua pelanggaran, bukan hanya yang pertama.
 
 R0 | Nilai computed token (judul panel, isi, meta, badge, disclosure) sama dengan elemen sepadan di Review, toleransi 0 | semua
 T1 | Judul panel 15px/600 warna teks utama | semua
