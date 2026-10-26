@@ -3,6 +3,8 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 import fixture from './fixtures/workspace.json';
+import * as domainVocabulary from '../../lib/domain/types.ts';
+import { ACQUISITION_FAILURE_REASONS } from '../../lib/acquisition/types.ts';
 
 type View = 'batch' | 'library' | 'compare' | 'review';
 type Violation = { rule: string; page: string; viewport: string; selector: string; measured: string; target: string };
@@ -17,6 +19,13 @@ const comparisonId = '93000000-0000-0000-0000-000000000002';
 const viewports = [{ width: 390, height: 844 }, { width: 768, height: 1024 }, { width: 1024, height: 768 }, { width: 1440, height: 900 }];
 const views: View[] = ['batch', 'library', 'compare', 'review'];
 const baseContents = fixture.contentsByBatch[batch.id as keyof typeof fixture.contentsByBatch] as unknown as FixtureContent[];
+const validAcronyms: Record<string, true> = { KPI: true, WIB: true, ID: true, URL: true, AI: true };
+const engineEnumValues = [...new Set<string>([
+  ...Object.values(domainVocabulary).flatMap((value) => Array.isArray(value) ? value : []).filter((value): value is string => typeof value === 'string'),
+  ...ACQUISITION_FAILURE_REASONS,
+])];
+const engineEnumValuesJson = JSON.stringify(engineEnumValues);
+const validAcronymsJson = JSON.stringify(validAcronyms);
 
 function clone<T>(value: T): T {
   return structuredClone(value);
@@ -167,7 +176,7 @@ async function runRules(page: Page, currentPage: string, viewport: { width: numb
   if (viewport.width === 390) add(await browserRecords(page, viewportText, currentPage, 'L5', '.decision-region', '≤130px and controls fully visible', `function(selector) { return [...document.querySelectorAll(selector)].filter(isVisible).flatMap((element) => { const rect = element.getBoundingClientRect(); const controls = [...element.querySelectorAll('button,input,textarea,select')].filter(isVisible); const covered = controls.some((control) => { const box = control.getBoundingClientRect(); return box.top < rect.top || box.bottom > rect.bottom || box.right > innerWidth; }); return rect.height <= 130 && !covered ? [] : [{ selector: pageSelector(element), measured: JSON.stringify({ height: rect.height, covered }) }]; }); }`));
   if (viewport.width === 768 || viewport.width === 1024) add(await browserRecords(page, viewportText, currentPage, 'L7', '.workspace-columns > *, .workspace-summary > *, .compare-selection > *, .compare-cards > *, .analysis-grid > *', 'column/card width ≥240px', `function(selector) { return [...document.querySelectorAll(selector)].filter(isVisible).filter((element) => element.getBoundingClientRect().width > 0 && element.getBoundingClientRect().width < 240).map((element) => ({ selector: pageSelector(element), measured: element.getBoundingClientRect().width + 'px' })); }`));
   add(await browserRecords(page, viewportText, currentPage, 'X1', 'main', 'separator has spaces and does not start line', `function(selector) { return [...document.querySelectorAll(selector)].filter(isVisible).flatMap((element) => { const text = element.innerText; return /(^|\n)·|·(\n|$)/.test(text) ? [{ selector: pageSelector(element), measured: 'separator at line boundary' }] : []; }); }`));
-  add(await browserRecords(page, viewportText, currentPage, 'X2', 'main', 'no raw enum or long ID in primary display', `function(selector) { return [...document.querySelectorAll(selector)].filter(isVisible).flatMap((element) => { const text = element.innerText; const rawEnum = text.match(/\b[A-Z]{3,}(?:_[A-Z]+)*\b/); const longId = text.match(/\b(?:[0-9a-f]{8}-){3}[0-9a-f-]{12,}\b|\b[A-Za-z0-9_-]{25,}\b/i); return rawEnum || longId ? [{ selector: pageSelector(element), measured: (rawEnum?.[0] ?? longId?.[0]) ?? 'raw identifier' }] : []; }); }`));
+  add(await browserRecords(page, viewportText, currentPage, 'X2', 'main', 'no underscore token, raw engine enum, or long ID in primary display', `function(selector) { return [...document.querySelectorAll(selector)].filter(isVisible).flatMap((element) => { const text = element.innerText; const engineEnumValues = new Set(${engineEnumValuesJson}); const validAcronyms = ${validAcronymsJson}; const rawToken = text.match(/\\b[A-Za-z0-9]+(?:_[A-Za-z0-9]+)*\\b/g)?.find((value) => value.includes('_') || (engineEnumValues.has(value) && !validAcronyms[value])); const longId = text.match(/\\b(?:[0-9a-f]{8}-){3}[0-9a-f-]{12,}\\b|\\b[A-Za-z0-9_-]{25,}\\b/i); return rawToken || longId ? [{ selector: pageSelector(element), measured: (rawToken ?? longId?.[0]) ?? 'raw identifier' }] : []; }); }`));
   add(await browserRecords(page, viewportText, currentPage, 'X3', '.metric-card, .snapshot-value, .compare-metrics dd, .batch-table .num, .summary-line', 'Indonesian decimal comma and thousands dot', `function(selector) { return [...document.querySelectorAll(selector)].filter(isVisible).flatMap((element) => { const text = element.textContent ?? ''; return /\b\d+\.\d+%?|\b\d{4,}\b/.test(text) ? [{ selector: pageSelector(element), measured: text.trim() }] : []; }); }`));
   add(await browserRecords(page, viewportText, currentPage, 'X4', 'main', 'localized time, no ISO', `function(selector) { return [...document.querySelectorAll(selector)].filter(isVisible).flatMap((element) => /\b\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(element.innerText) ? [{ selector: pageSelector(element), measured: 'ISO timestamp' }] : []); }`));
   add(await browserRecords(page, viewportText, currentPage, 'X5', 'main', 'one Indonesian term per concept', `function(selector) { return [...document.querySelectorAll(selector)].filter(isVisible).flatMap((element) => /Rasio interaksi|\bpillar\b|talent class|\btalenta\b/i.test(element.innerText) ? [{ selector: pageSelector(element), measured: element.innerText.trim() }] : []); }`));
