@@ -5,6 +5,7 @@ import { homedir } from 'node:os';
 import fixture from './fixtures/workspace.json';
 import * as domainVocabulary from '../../lib/domain/types.ts';
 import { ACQUISITION_FAILURE_REASONS } from '../../lib/acquisition/types.ts';
+import uiExemptions from '../../docs/UI_CONFORMANCE.exemptions.json';
 
 type View = 'batch' | 'library' | 'compare' | 'review';
 type Violation = { rule: string; page: string; viewport: string; selector: string; measured: string; target: string };
@@ -26,6 +27,7 @@ const engineEnumValues: Record<string, true> = Object.fromEntries([
 ].map((value) => [value, true] as const));
 const engineEnumValuesJson = JSON.stringify(engineEnumValues);
 const validAcronymsJson = JSON.stringify(validAcronyms);
+const approvedExemptions = uiExemptions as Array<{ rule: string; page: string; selector: string; owner_approved: boolean }>;
 
 function clone<T>(value: T): T {
   return structuredClone(value);
@@ -148,14 +150,14 @@ function pageSelector(element: Element) {
 }
 
 async function browserRecords(page: Page, viewport: string, currentPage: string, rule: string, selector: string, target: string, script: string) {
-  const results = await page.evaluate(({ ruleName, selectorText, targetText, check }) => {
+  const results = await page.evaluate(({ ruleName, pageName, selectorText, targetText, check, exemptions }) => {
     const safeCheck = check.replaceAll(String.fromCharCode(10), String.fromCharCode(92, 110)).replaceAll(String.fromCharCode(8), String.fromCharCode(92, 98));
     const isVisible = (element: Element) => { const style = getComputedStyle(element); return style.display !== 'none' && style.visibility !== 'hidden' && element.getClientRects().length > 0; };
     const pageSelector = (element: Element) => element.id ? '#' + element.id : element.tagName.toLowerCase() + [...element.classList].slice(0, 2).map((value) => '.' + value).join('');
     const fn = new Function('selectorText', 'isVisible', 'pageSelector', 'return (' + safeCheck + ')(selectorText);')(selectorText, isVisible, pageSelector) as Array<{ selector: string; measured: string }>;
-    return fn.map((item) => ({ rule: ruleName, selector: item.selector, measured: item.measured, target: targetText }));
-  }, { ruleName: rule, selectorText: selector, targetText: target, check: script }) as Array<{ rule: string; selector: string; measured: string; target: string }>;
-  return results.map((item) => ({ ...item, page: currentPage, viewport }));
+    return fn.filter((item) => !exemptions.some((exemption) => exemption.rule === ruleName && exemption.owner_approved && (exemption.page === 'semua' || exemption.page === pageName) && [...document.querySelectorAll(exemption.selector)].some((element) => pageSelector(element) === item.selector))).map((item) => ({ rule: ruleName, selector: item.selector, measured: item.measured, target: targetText }));
+  }, { ruleName: rule, pageName: currentPage, selectorText: selector, targetText: target, check: script, exemptions: approvedExemptions });
+  return (results as Array<{ rule: string; selector: string; measured: string; target: string }>).map((item) => ({ ...item, page: currentPage, viewport }));
 }
 
 async function runRules(page: Page, currentPage: string, viewport: { width: number; height: number }, reviewTokens: StyleTokens, violations: Violation[]) {
@@ -176,7 +178,7 @@ async function runRules(page: Page, currentPage: string, viewport: { width: numb
   if (viewport.width === 390) add(await browserRecords(page, viewportText, currentPage, 'L5', '.decision-region', '≤130px and controls fully visible', `function(selector) { return [...document.querySelectorAll(selector)].filter(isVisible).flatMap((element) => { const rect = element.getBoundingClientRect(); const controls = [...element.querySelectorAll('button,input,textarea,select')].filter(isVisible); const coveredControls = controls.filter((control) => { const box = control.getBoundingClientRect(); return box.top < rect.top || box.bottom > rect.bottom || box.right > innerWidth; }); const regionViolation = rect.height > 130 ? [{ selector: pageSelector(element), measured: JSON.stringify({ height: rect.height, covered: coveredControls.length > 0 }) }] : []; const controlViolations = coveredControls.map((control) => ({ selector: pageSelector(control), measured: JSON.stringify({ height: rect.height, covered: true }) })); return [...regionViolation, ...controlViolations]; }); }`));
   if (viewport.width === 768 || viewport.width === 1024) add(await browserRecords(page, viewportText, currentPage, 'L7', '.workspace-columns > *, .workspace-summary > *, .compare-selection > *, .compare-cards > *, .analysis-grid > *', 'column/card width ≥240px', `function(selector) { return [...document.querySelectorAll(selector)].filter(isVisible).filter((element) => element.getBoundingClientRect().width > 0 && element.getBoundingClientRect().width < 240).map((element) => ({ selector: pageSelector(element), measured: element.getBoundingClientRect().width + 'px' })); }`));
   add(await browserRecords(page, viewportText, currentPage, 'X1', 'main', 'separator has spaces and does not start line', `function(selector) { return [...document.querySelectorAll(selector)].filter(isVisible).flatMap((element) => [...element.innerText.matchAll(/(^|\\n)·|·(\\n|$)/g)].map((match, index) => ({ selector: pageSelector(element) + ' [separator ' + (index + 1) + ']', measured: match[0] }))); }`));
-  add(await browserRecords(page, viewportText, currentPage, 'X2', 'main', 'no underscore token, raw engine enum, or long ID in primary display', `function(selector) { return [...document.querySelectorAll(selector)].filter(isVisible).flatMap((element) => { const text = element.innerText; const engineEnumValues = ${engineEnumValuesJson}; const validAcronyms = ${validAcronymsJson}; const tokens = text.match(/\\b(?:(?:[0-9a-fA-F]{8}-){3}[0-9a-fA-F-]{12,}|[A-Za-z0-9_-]{25,}|[A-Za-z0-9]+(?:_[A-Za-z0-9]+)*)\\b/g) ?? []; return tokens.filter((value) => value.includes('_') || (engineEnumValues[value] === true && validAcronyms[value] !== true) || value.length >= 25).map((value) => ({ selector: pageSelector(element), measured: value })); }); }`));
+  add(await browserRecords(page, viewportText, currentPage, 'X2', 'main', 'no underscore token, raw engine enum, or long ID in primary display', `function(selector) { const root = document.querySelector(selector); if (!root) return []; const tokens = /\\b(?:(?:[0-9a-fA-F]{8}-){3}[0-9a-fA-F-]{12,}|[A-Za-z0-9_-]{25,}|[A-Za-z0-9]+(?:_[A-Za-z0-9]+)*)\\b/g; const engineEnumValues = ${engineEnumValuesJson}; const validAcronyms = ${validAcronymsJson}; const result = []; const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT); let node; while (node = walker.nextNode()) { const element = node.parentElement; if (!element || !isVisible(element)) continue; for (const value of node.textContent?.match(tokens) ?? []) if (value.includes('_') || (engineEnumValues[value] === true && validAcronyms[value] !== true) || value.length >= 25) result.push({ selector: pageSelector(element), measured: value }); } return result; }`));
   add(await browserRecords(page, viewportText, currentPage, 'X3', '.metric-card, .snapshot-value, .compare-metrics dd, .batch-table .num, .summary-line', 'Indonesian decimal comma and thousands dot', `function(selector) { return [...document.querySelectorAll(selector)].filter(isVisible).flatMap((element) => [...(element.textContent ?? '').matchAll(/\\b\\d+\\.\\d+%?|\\b\\d{4,}\\b/g)].map((match) => ({ selector: pageSelector(element), measured: match[0] }))); }`));
   add(await browserRecords(page, viewportText, currentPage, 'X4', 'main', 'localized time, no ISO', `function(selector) { return [...document.querySelectorAll(selector)].filter(isVisible).flatMap((element) => [...element.innerText.matchAll(/\\b\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}/g)].map((match) => ({ selector: pageSelector(element), measured: 'ISO timestamp: ' + match[0] }))); }`));
   add(await browserRecords(page, viewportText, currentPage, 'X5', 'main', 'one Indonesian term per concept', `function(selector) { return [...document.querySelectorAll(selector)].filter(isVisible).flatMap((element) => [...element.innerText.matchAll(/Rasio interaksi|\\bpillar\\b|talent class|\\btalenta\\b/gi)].map((match) => ({ selector: pageSelector(element), measured: match[0] }))); }`));
