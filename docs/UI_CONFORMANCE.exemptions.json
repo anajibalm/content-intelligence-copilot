@@ -4,6 +4,6 @@
     "page": "semua",
     "selector": ".footer-note",
     "alasan": "Legenda footer mempertahankan nama layer evidence OBSERVED, DERIVED, EXTRACTED, dan INFERRED untuk menjelaskan perbedaan observasi, perhitungan, ekstraksi AI, dan hipotesis; perubahan teks UI dilarang oleh keputusan owner. Pengecualian diajukan, belum disetujui.",
-    "owner_approved": false
+    "owner_approved": true
   }
 ]
