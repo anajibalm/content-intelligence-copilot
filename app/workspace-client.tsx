@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import ProcessingForm, { type ProcessingJobSummary } from "./processing-form";
 import { rankingExtremes } from "../lib/workspace/presentation.ts";
 import ComparePanel from "./compare-panel";
@@ -280,17 +280,18 @@ export default function WorkspaceClient() {
       <div hidden={view !== 'review'}><HypothesisQueue key={batchId ?? data.selectedBatch.id} batchId={batchId ?? data.selectedBatch.id} hypothesisId={hypothesisId} onSelect={openReview} revision={queueRevision} contents={data.contents} /></div>
       <div className="workspace-columns" hidden={view !== 'library'}>
         <section className="content-list" aria-labelledby="contents-heading"><div className="section-heading"><h2 id="contents-heading">Daftar konten</h2><span className="status">{data.contents.length} anggota</span></div>{data.contents.length === 0 ? <p className="empty-state">Belum ada konten pada batch ini. Tambahkan URL dari Batch.</p> : <div className="content-rows">{data.contents.map((content) => <ContentRow key={content.id} content={content} selected={content.id === detail?.id} copiedContentId={copiedContentId} onSelect={() => setSelection(data.selectedBatch!.id, content.id)} onCopy={copyExternalId} />)}</div>}</section>
-        <section className="content-detail" aria-labelledby="detail-heading">
-          <div className="section-heading"><h2 id="detail-heading">{detail ? contentLabel(detail) : 'Pilih konten'}</h2>{detail && <span className="status">Processing {statusLabel(detail.processingState)}</span>}</div>
-          {!detail ? <p className="empty-state">Pilih anggota batch untuk melihat metrik dan bukti.</p> : <>
-            <p className="muted"><a href={detail.permalink} target="_blank" rel="noreferrer">Buka permalink TikTok</a> · {detail.externalId}</p>
-            <div className="detail-facts"><span>Akuisisi <strong>{statusLabel(detail.acquisitionState)}</strong></span><span>Processing <strong>{statusLabel(detail.processingState)}</strong></span><span>Percobaan <strong>{detail.attemptCount}</strong></span><span>Durasi <strong>{detail.durationSeconds == null ? '–' : `${detail.durationSeconds.toFixed(1)}s`}</strong></span></div>
+        {data.contents.length > 0 && <section className="content-detail" aria-labelledby="detail-heading">
+          {detail ? <>
+            <label className="library-mobile-picker">Konten<select aria-label="Pilih konten" value={detail.id} onChange={(event) => setSelection(data.selectedBatch!.id, event.target.value)}>{data.contents.map((content) => <option value={content.id} key={content.id}>{contentLabel(content)} · {content.processingState === 'FAILED' ? 'Gagal diproses' : statusLabel(content.processingState)}</option>)}</select></label>
+            <p className="library-mobile-hint">Konten terpilih ditampilkan di atas.</p>
+            <div className="section-heading"><div><h2 id="detail-heading">{contentLabel(detail)}</h2><a href={detail.permalink} target="_blank" rel="noreferrer">Buka permalink TikTok</a></div><span className={`status ${detail.processingState === 'FAILED' ? 'library-status-failed' : ''}`}>{detail.processingState === 'FAILED' ? 'Gagal diproses' : statusLabel(detail.processingState)}</span></div>
+            {detail.processingError && <p className="error-state">Gagal diproses: {detail.processingError}</p>}
             {detail.acquisitionError && <p className="error-state">Error sumber akuisisi: {detail.acquisitionError}</p>}
-            {detail.processingError && <p className="error-state">Error processing: {detail.processingError}</p>}
-            <div className="detail-metrics">{detail.snapshots.map((snapshot) => <div id={`metric-snapshot-${snapshot.id}`} className="metric-card" key={snapshot.id}>
-              <strong>{labelId(snapshot.distribution)}</strong><span>{metricText(detail, snapshot.distribution)}</span><small>Kualitas {labelId(snapshot.quality)}</small>
-              {Object.entries(snapshot.qualityByMetric).filter(([, value]) => value.state !== 'VALID').map(([metric, value]) => <small className="quality-reason" key={metric} title={`${metric}: ${value.state} ${value.reason ?? ''}`}>{labelId(metric)}: {labelId(value.state)} · {value.reason ? labelId(value.reason) : 'Tanpa alasan tersimpan'}</small>)}
-            </div>)}</div>
+            <div className="detail-metrics" role="region" aria-label="Metrik Organik dan Iklan"><table><thead><tr><th scope="col">Metrik</th><th scope="col">Organik</th><th scope="col">Iklan</th></tr></thead><tbody>
+              {(['OBSERVED', 'DERIVED'] as const).map((layer) => <Fragment key={layer}><tr className="library-metric-group"><th colSpan={3} scope="rowgroup">{layer === 'OBSERVED' ? 'Observasi' : 'Perhitungan'}</th></tr>{(layer === 'OBSERVED' ? ['views', 'awt_seconds', 'wfv_pct'] as const : ['engagement_rate'] as const).map((metric) => <tr key={metric}><th scope="row">{labelId(metric)}</th>{(['ORGANIC', 'PAID'] as const).map((distribution) => { const snapshot = detail.snapshots.find((item) => item.distribution === distribution); const value = snapshot ? metricValue(snapshot, metric) : null; return <td className="library-metric-value" key={distribution}>{value == null ? '–' : formatMetricId(value, metric)}</td>; })}</tr>)}</Fragment>)}
+              <tr><th scope="row">Kualitas metrik</th>{(['ORGANIC', 'PAID'] as const).map((distribution) => { const snapshot = detail.snapshots.find((item) => item.distribution === distribution); return <td id={snapshot ? `metric-snapshot-${snapshot.id}` : undefined} key={distribution}>{snapshot ? <span className="library-quality">{labelId(snapshot.quality)}</span> : '–'}</td>; })}</tr>
+            </tbody></table></div>
+            <div className="detail-facts"><div><span>Akuisisi</span><strong>{statusLabel(detail.acquisitionState)}</strong></div>{detail.processingState !== 'FAILED' && <div><span>Pemrosesan</span><strong>{statusLabel(detail.processingState)}</strong></div>}<div><span>Percobaan</span><strong>{detail.attemptCount}</strong></div><div><span>Durasi video</span><strong>{detail.durationSeconds == null ? '–' : `${new Intl.NumberFormat('id-ID', { maximumFractionDigits: 1 }).format(detail.durationSeconds)} s`}</strong></div></div>
             <div className="evidence-review-grid">
               <div className="detail-evidence">
                 <h3>Bukti temporal</h3>
@@ -312,8 +313,8 @@ export default function WorkspaceClient() {
               </div>
               <section className="detail-evidence" aria-labelledby="fingerprint-heading"><h2 id="fingerprint-heading">Fingerprint</h2>{detail.extraction.length ? <FeatureReviewPanel key={detail.id} contentId={detail.id} features={detail.extraction} onReviewed={refreshDetail} /> : <p className="muted">Fingerprint belum tersedia.</p>}</section>
             </div>
-          </>}
-        </section>
+          </> : <><div className="section-heading"><h2 id="detail-heading">Pilih konten</h2></div><p className="empty-state">Pilih anggota batch untuk melihat metrik dan bukti.</p></>}
+        </section>}
       </div>
       <footer className="footer-note">Observasi, perhitungan, ekstraksi AI, dan hipotesis tetap terpisah. Data yang hilang tidak dianggap nol.</footer>
     </main></div>
