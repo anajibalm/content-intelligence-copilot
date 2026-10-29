@@ -124,7 +124,7 @@ async function installReviewApi(page: Page) {
     if (url.pathname.endsWith('/review') || url.pathname.endsWith('/s10')) return route.fallback();
     if (route.request().method() === 'GET' && !url.searchParams.has('hypothesisId')) return route.fulfill({ json: { items: [] } });
     if (route.request().method() === 'GET') {
-      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ id: hypothesisId, batchId, statement: 'Synthetic S9 hypothesis', confidence: 'LOW', confidenceCaps: [], suggestedNextTest: { action: 'Repeat synthetic test' }, evidence: [] }) });
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ id: hypothesisId, batchId, statement: 'Synthetic S9 hypothesis', confidence: 'LOW', confidenceCaps: [], comparisons: [], suggestedNextTest: { action: 'Repeat synthetic test' }, evidence: [] }) });
       return;
     }
     if (route.request().method() !== 'POST') return route.continue();
@@ -200,11 +200,12 @@ test('Approve, Edit, Reject hypothesis controls persist reviewed statement after
   await expect(panel.getByText('Hasil review terbaru: Reviewed hypothesis B')).toBeVisible();
   await panel.getByRole('button', { name: 'Setujui' }).click();
   await expect(panel.getByText('Hasil review terbaru: Reviewed hypothesis B')).toBeVisible();
-  await panel.getByLabel('Alasan penolakan (wajib untuk Tolak)').selectOption('OVERCLAIM');
   await panel.getByRole('button', { name: 'Tolak', exact: true }).click();
+  await panel.getByLabel('Alasan penolakan (wajib untuk Tolak)').selectOption('OVERCLAIM');
+  await panel.getByRole('button', { name: 'Simpan penolakan' }).click();
   await expect(panel.getByText('Ditolak', { exact: true })).toBeVisible();
   await page.goto(persistedUrl);
-  await expect(page.getByText('Synthetic S9 hypothesis', { exact: true })).toBeVisible();
+  await expect(page.locator('.hypothesis-detail .statement-presentation').getByText('Synthetic S9 hypothesis', { exact: true })).toBeVisible();
   await expect(page.getByText('Hasil review terbaru: Reviewed hypothesis B')).toBeVisible();
   await expect(page.locator('.hypothesis-detail .review-history li')).toHaveCount(3);
   expect(api.hypothesisGenerations).toBe(1);

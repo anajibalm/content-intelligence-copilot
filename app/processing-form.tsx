@@ -3,13 +3,23 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { labelId } from '../lib/workspace/labels-id.ts';
 
-type ProcessingJob = { id: string; contentId: string; sourceUrl: string; status: string; attemptCount: number; error: string | null };
+export type ProcessingJobSummary = { count: number | null; active: number; failed: number; state: 'loading' | 'loaded' | 'error' };
+
+type ProcessingJob = { id: string; contentId: string | null; sourceUrl: string; status: string; attemptCount: number; error: string | null };
 
 function terminal(status: string) {
-  return status === "COMPLETED" || status === "FAILED";
+  return status === 'COMPLETED' || status === 'FAILED';
 }
 
-export default function ProcessingForm({ batchId, onAccepted, onSettled }: { batchId: string; onAccepted: (contentId: string) => void; onSettled: () => void }) {
+function jobTone(status: string) {
+  return status === 'COMPLETED' ? 'ok' : status === 'FAILED' ? 'bad' : 'warn';
+}
+
+function jobSummary(items: ProcessingJob[], state: ProcessingJobSummary['state'], count: number | null = items.length): ProcessingJobSummary {
+  return { count, active: items.filter((job) => !terminal(job.status)).length, failed: items.filter((job) => job.status === 'FAILED').length, state };
+}
+
+export default function ProcessingForm({ batchId, onAccepted, onSettled, onJobSummaryChange }: { batchId: string; onAccepted: (contentId: string) => void; onSettled: () => void; onJobSummaryChange: (summary: ProcessingJobSummary) => void }) {
   const [url, setUrl] = useState("");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
@@ -20,13 +30,13 @@ export default function ProcessingForm({ batchId, onAccepted, onSettled }: { bat
   const [refreshVersion, setRefreshVersion] = useState(0);
   const jobsRef = useRef<ProcessingJob[]>([]);
   const currentBatch = useRef(batchId);
-  const callbacks = useRef({ onAccepted, onSettled });
+  const callbacks = useRef({ onAccepted, onSettled, onJobSummaryChange });
   const submitController = useRef<AbortController | null>(null);
 
   useEffect(() => {
     currentBatch.current = batchId;
-    callbacks.current = { onAccepted, onSettled };
-  }, [batchId, onAccepted, onSettled]);
+    callbacks.current = { onAccepted, onSettled, onJobSummaryChange };
+  }, [batchId, onAccepted, onSettled, onJobSummaryChange]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -39,6 +49,7 @@ export default function ProcessingForm({ batchId, onAccepted, onSettled }: { bat
     let timer: number | undefined;
     let failures = 0;
     const active = () => !controller.signal.aborted && currentBatch.current === batchId;
+    callbacks.current.onJobSummaryChange(jobSummary([], 'loading', null));
     const refresh = async () => {
       try {
         const response = await fetch(`/api/processing?batchId=${encodeURIComponent(batchId)}`, { signal: controller.signal });
@@ -48,6 +59,7 @@ export default function ProcessingForm({ batchId, onAccepted, onSettled }: { bat
         const settled = body.items.some((job) => terminal(job.status) && jobsRef.current.some((previous) => previous.id === job.id && !terminal(previous.status)));
         jobsRef.current = body.items;
         setJobs(body.items);
+        callbacks.current.onJobSummaryChange(jobSummary(body.items, 'loaded'));
         setStatusLoaded(true);
         setStatusError(null);
         failures = 0;
@@ -57,6 +69,7 @@ export default function ProcessingForm({ batchId, onAccepted, onSettled }: { bat
         if (!active()) return;
         failures++;
         setStatusError(`${String((error as Error).message)} · attempt ${failures}/3`);
+        callbacks.current.onJobSummaryChange(jobSummary([], 'error', null));
         if (failures < 3) timer = window.setTimeout(() => void refresh(), 2000);
       }
     };
@@ -89,10 +102,10 @@ export default function ProcessingForm({ batchId, onAccepted, onSettled }: { bat
       if (!response.ok) throw new Error(body.error ?? "Processing submission failed");
       jobsRef.current = [body, ...jobsRef.current.filter((job) => job.id !== body.id)];
       setJobs(jobsRef.current);
-      setMessage(`Diterima · ${labelId(body.status)}`);
+      callbacks.current.onJobSummaryChange(jobSummary(jobsRef.current, 'loaded'));
       if (!retryId) setUrl('');
       setRefreshVersion((version) => version + 1);
-      callbacks.current.onAccepted(body.contentId);
+      if (body.contentId) callbacks.current.onAccepted(body.contentId);
     } catch (error) {
       if (active()) setMessage(String((error as Error).message));
     } finally {
@@ -102,14 +115,13 @@ export default function ProcessingForm({ batchId, onAccepted, onSettled }: { bat
 
   return (
     <form className="ingest-form" onSubmit={submit}>
-      <label htmlFor="tiktok-url">URL TikTok publik</label>
+      <label htmlFor="tiktok-url" aria-label="URL TikTok publik">Tautan TikTok publik</label>
       <div className="form-row">
         <input id="tiktok-url" name="url" type="url" required value={url} onChange={(event) => setUrl(event.target.value)} placeholder="https://www.tiktok.com/@.../video/..." />
-        <button type="submit" disabled={busy}>{busy ? 'Mengirim…' : 'Proses video'}</button>
+        <button className="primary" type="submit" disabled={busy}>{busy ? 'Mengirim…' : 'Proses video'}</button>
       </div>
       <p className="form-message" aria-live="polite">{message}</p>
-      {statusError && <div role="alert"><p>{statusError}</p><button className="secondary" type="button" onClick={() => setRefreshVersion((version) => version + 1)}>Coba lagi status</button></div>}
-      <div className="batch-processing" aria-label="Status processing batch"><h2>Status processing</h2><p className="muted">{jobs.length} job pada ledger processing. Anggota konten dihitung terpisah; konten impor atau seed tidak selalu memiliki job.</p>{jobs.length === 0 ? <p>{statusLoaded ? 'Belum ada job processing pada batch ini.' : 'Memuat status processing…'}</p> : jobs.map((job) => <article key={job.id}><a href={`/?batchId=${encodeURIComponent(batchId)}&contentId=${encodeURIComponent(job.contentId)}&view=library`} title={job.sourceUrl}>Buka konten</a> <a className="job-source" href={job.sourceUrl} target="_blank" rel="noreferrer" title={job.sourceUrl}>URL TikTok</a> · {labelId(job.status)}{job.error && <p className="error-state">{job.error}</p>}{job.status === 'FAILED' && <button className="secondary" type="button" disabled={busy} onClick={() => enqueue(job.sourceUrl, job.id)}>{retryingId === job.id ? 'Mengirim ulang…' : 'Coba lagi'}</button>}<details><summary>Detail job</summary><p>{job.id} · {job.sourceUrl} · {job.status} · Percobaan {job.attemptCount}</p></details></article>)}</div>
+      <details className="processing-drawer" role="region" aria-label="Status processing batch" open={statusError !== null || (statusLoaded && jobs.length === 0) || jobs.some((job) => job.status === 'FAILED' || !terminal(job.status))}><summary><span>Processing</span><span className="processing-summary">{statusError ? 'Status gagal dimuat' : !statusLoaded ? 'Memuat...' : `${jobs.length} job pada ledger processing · ${jobs.filter((job) => !terminal(job.status)).length} aktif · ${jobs.filter((job) => job.status === 'FAILED').length} gagal`}{statusLoaded && jobs.length === 0 && !statusError && <span> · Belum ada job processing pada batch ini.</span>}</span></summary><div className="processing-drawer-content">{statusError && <div role="alert"><p>{statusError}</p><button className="secondary" type="button" onClick={() => setRefreshVersion((version) => version + 1)}>Coba lagi status</button></div>}<p className="muted">{statusError ? 'Status job gagal dimuat.' : !statusLoaded ? 'Memuat status job...' : 'Anggota konten dihitung terpisah; konten impor atau seed tidak selalu memiliki job.'}</p>{statusError || !statusLoaded || jobs.length === 0 ? null : jobs.map((job) => <article key={job.id}><div className="processing-job-head">{job.contentId && <a href={`/?batchId=${encodeURIComponent(batchId)}&contentId=${encodeURIComponent(job.contentId)}&view=library`}>Buka konten</a>}<span className={`processing-job-status processing-job-status--${jobTone(job.status)}`}>{labelId(job.status)}</span></div><a className="job-source" href={job.sourceUrl} target="_blank" rel="noreferrer">{job.sourceUrl}</a>{job.error && <p className="error-state">{job.error}</p>}{job.status === 'FAILED' && <button className="secondary" type="button" disabled={busy} onClick={() => enqueue(job.sourceUrl, job.id)}>{retryingId === job.id ? 'Mengirim ulang...' : 'Coba lagi'}</button>}<details><summary>Detail job</summary><p>{job.id} · {job.sourceUrl} · {job.status} · Percobaan {job.attemptCount}</p></details></article>)}</div></details>
     </form>
   );
 }
