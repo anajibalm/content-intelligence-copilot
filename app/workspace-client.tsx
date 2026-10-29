@@ -7,6 +7,7 @@ import ComparePanel from "./compare-panel";
 import HypothesisPanel from "./hypothesis-panel";
 import { FeatureReviewPanel } from "./review-panel";
 import HypothesisQueue from './hypothesis-queue';
+import { formatMetricId } from '../lib/hypothesis/presentation.ts';
 import { VIEW_LABELS, labelId, metricTextId } from '../lib/workspace/labels-id.ts';
 type Snapshot = {
   id: string;
@@ -69,7 +70,7 @@ function metricText(content: Content, distribution: "ORGANIC" | "PAID") {
   if (!snapshot) return '–';
   const values = (["views", "awt_seconds", "wfv_pct", "engagement_rate"] as MetricName[]).map((metric) => {
     const value = metricValue(snapshot, metric);
-    return `${labelId(metric)} ${metricTextId(value, metric)}`;
+    return `${labelId(metric)} ${formatMetricId(value, metric)}`;
   });
   return `${values.join(' · ')} · ${labelId(snapshot.quality)}`;
 }
