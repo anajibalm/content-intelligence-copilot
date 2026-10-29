@@ -663,3 +663,73 @@ button.primary { border-color: var(--accent); background: var(--accent); color: 
 }
 
 .view-batch .batch-copy-cell .copy-id { min-height: 32px !important; height: 32px; padding: 6px 10px !important; font-size: 13px; line-height: 18px; }
+/* UI conformance pass 1: shared measured tokens and touch geometry. */
+ .app-shell .view-batch .section-heading h2, .app-shell .view-batch .summary-block h2, .app-shell .view-batch .content-list h2, .app-shell .view-batch .content-detail h2, .app-shell .view-batch .compare-panel h2, .app-shell .view-batch .hypothesis-panel h2, .app-shell .view-batch .hypothesis-queue h2, .app-shell .view-batch .hypothesis-claim h2, .app-shell .view-batch .hypothesis-evidence h3, .app-shell .view-batch .s10-panel h3, .app-shell .view-batch .s10-panel h4, .app-shell .view-batch .detail-evidence h3, .app-shell .view-batch .review-panel h3, .app-shell .view-batch h4, .app-shell .view-library .section-heading h2, .app-shell .view-library .summary-block h2, .app-shell .view-library .content-list h2, .app-shell .view-library .content-detail h2, .app-shell .view-library .compare-panel h2, .app-shell .view-library .hypothesis-panel h2, .app-shell .view-library .hypothesis-queue h2, .app-shell .view-library .hypothesis-claim h2, .app-shell .view-library .hypothesis-evidence h3, .app-shell .view-library .s10-panel h3, .app-shell .view-library .s10-panel h4, .app-shell .view-library .detail-evidence h3, .app-shell .view-library .review-panel h3, .app-shell .view-library h4, .app-shell .view-compare .section-heading h2, .app-shell .view-compare .summary-block h2, .app-shell .view-compare .content-list h2, .app-shell .view-compare .content-detail h2, .app-shell .view-compare .compare-panel h2, .app-shell .view-compare .hypothesis-panel h2, .app-shell .view-compare .hypothesis-queue h2, .app-shell .view-compare .hypothesis-claim h2, .app-shell .view-compare .hypothesis-evidence h3, .app-shell .view-compare .s10-panel h3, .app-shell .view-compare .s10-panel h4, .app-shell .view-compare .detail-evidence h3, .app-shell .view-compare .review-panel h3, .app-shell .view-compare h4 { color: var(--ink); font-size: 15px; font-weight: 600; line-height: 20px; }
+ .app-shell .view-batch .muted, .app-shell .view-batch small, .app-shell .view-batch time, .app-shell .view-batch .queue-meta, .app-shell .view-batch dt, .app-shell .view-batch th, .app-shell .view-batch .status, .app-shell .view-library .muted, .app-shell .view-library small, .app-shell .view-library time, .app-shell .view-library .queue-meta, .app-shell .view-library dt, .app-shell .view-library th, .app-shell .view-library .status, .app-shell .view-compare .muted, .app-shell .view-compare small, .app-shell .view-compare time, .app-shell .view-compare .queue-meta, .app-shell .view-compare dt, .app-shell .view-compare .status { color: var(--muted); font-size: 12px; font-weight: 400; line-height: 18px; }
+ .app-shell .view-batch .muted, .app-shell .view-library .muted, .app-shell .view-compare .muted { margin-top: 0; }
+ .app-shell .view-batch button, .app-shell .view-batch input:not([type='checkbox']), .app-shell .view-batch select, .app-shell .view-batch textarea, .app-shell .view-batch summary, .app-shell .view-batch a, .app-shell .view-library button, .app-shell .view-library input:not([type='checkbox']), .app-shell .view-library select, .app-shell .view-library textarea, .app-shell .view-library summary, .app-shell .view-library a, .app-shell .view-compare button, .app-shell .view-compare input:not([type='checkbox']), .app-shell .view-compare select, .app-shell .view-compare textarea, .app-shell .view-compare summary, .app-shell .view-compare a { font-size: 13px; }
+ .app-shell .view-batch button.secondary, .app-shell .view-batch input:not([type='checkbox']), .app-shell .view-batch select, .app-shell .view-batch textarea, .app-shell .view-library button.secondary, .app-shell .view-library input:not([type='checkbox']), .app-shell .view-library select, .app-shell .view-library textarea, .app-shell .view-compare button.secondary, .app-shell .view-compare input:not([type='checkbox']), .app-shell .view-compare select, .app-shell .view-compare textarea { min-height: 44px !important; }
+ .app-shell .view-batch a, .app-shell .view-library a, .app-shell .view-compare a { display: inline-flex; min-height: 44px; align-items: center; }
+ .app-shell .view-batch input[type='checkbox'], .app-shell .view-library input[type='checkbox'], .app-shell .view-compare input[type='checkbox'] { width: 44px; height: 44px; margin: 0; }
+ .app-shell .view-batch details:not([open]), .app-shell .view-library details:not([open]), .app-shell .view-compare details:not([open]) { padding: 0; }
+ .app-shell .view-batch details:not([open]) > summary, .app-shell .view-library details:not([open]) > summary, .app-shell .view-compare details:not([open]) > summary { box-sizing: border-box; min-height: 44px; height: 44px; padding: 12px; color: var(--ink); font-size: 15px; font-weight: 600; line-height: 20px; }
+ .app-shell .view-batch .confidence-badge, .app-shell .view-batch .ontology-chip, .app-shell .view-batch .batch-status, .app-shell .view-batch .state, .app-shell .view-batch .processing-job-status, .app-shell .view-batch .badge--warn, .app-shell .view-library .confidence-badge, .app-shell .view-library .review-state-badge, .app-shell .view-library .ontology-chip, .app-shell .view-library .state, .app-shell .view-compare .confidence-badge, .app-shell .view-compare .review-state-badge, .app-shell .view-compare .ontology-chip, .app-shell .view-compare .state { box-sizing: border-box; display: inline-flex; align-items: center; width: fit-content; height: 20px; min-height: 20px; padding: 2px 8px; border: 0; border-radius: 999px; font-size: 12px; font-weight: 500; line-height: 16px; white-space: nowrap; }
+ .app-shell .view-batch .confidence-low, .app-shell .view-batch .batch-status--bad, .app-shell .view-library .confidence-low, .app-shell .view-compare .confidence-low { background: #fdecec; color: #8b2525; }
+ .app-shell .view-library .confidence-badge.confidence-low, .app-shell .view-compare .confidence-badge.confidence-low { color: #b91c1c; }
+ .app-shell .view-batch .batch-status--warn, .app-shell .view-batch .badge--warn, .app-shell .view-library .review-state-badge, .app-shell .view-library .badge--warn, .app-shell .view-compare .review-state-badge, .app-shell .view-compare .badge--warn { background: #fef6dd; color: #a16207; }
+ .app-shell .view-batch .ontology-chip, .app-shell .view-library .ontology-chip, .app-shell .view-compare .ontology-chip { background: #eef0f3; color: #475467; }
+ .app-shell .view-library .snapshot-source-observed, .app-shell .view-compare .snapshot-source-observed { background: #eef0f3; color: #475467; }
+ .app-shell .view-library .snapshot-source-derived, .app-shell .view-compare .snapshot-source-derived { background: #eff8ff; color: #175cd3; }
+ .app-shell .view-batch .batch-status--ok, .app-shell .view-batch .processing-job-status--ok { background: #ecfdf3; color: #067647; }
+ .app-shell .view-compare .compare-result .state { background: #fdecec; color: #8b2525; }
+ .app-shell .view-batch .app-sidebar nav, .app-shell .view-library .app-sidebar nav, .app-shell .view-compare .app-sidebar nav { gap: 8px; }
+ .app-shell .view-batch .review-detail-tabs, .app-shell .view-library .review-detail-tabs, .app-shell .view-compare .review-detail-tabs { gap: 8px; }
+ .app-shell .view-batch .review-detail-tabs button, .app-shell .view-library .review-detail-tabs button, .app-shell .view-compare .review-detail-tabs button { min-height: 44px; }
+ .app-shell .view-batch .processing-drawer-content .job-source { min-height: 44px; }
+ .app-shell .view-batch .batch-copy-cell .copy-id { min-height: 32px !important; height: 32px; padding: 6px 10px !important; font-size: 13px; line-height: 18px; }
+ @media (max-width: 900px) { .app-shell .view-batch .batch-table .copy-id { min-height: 32px !important; height: 32px; } }
+ .compare-selection > [role='listitem'] { min-width: 0; }
+ .compare-metrics { grid-template-columns: minmax(0, 1fr) minmax(0, auto); gap: 8px 12px; align-items: start; }
+ .compare-metrics > dt, .compare-metrics > dd { min-width: 0; margin: 0; padding: 0; }
+ .compare-metrics > dt { font-size: 13px; line-height: 18px; }
+ .compare-metrics > dd { font-size: 13px; line-height: 18px; }
+ .compare-metrics > .compare-metric-state { grid-column: 1 / -1; color: var(--muted); font-size: 12px; }
+ .view-batch .processing-job-head { gap: 8px; }
+ .view-batch .processing-drawer-content article { gap: 8px; }
+ .view-batch .processing-drawer-content article > .job-source { margin-top: 0; }
+ .view-batch .processing-drawer-content article > details { margin-top: 0; }
+ .view-batch .batch-status-cell { gap: 8px; }
+ .view-batch .batch-status-cell + td { padding-left: 18px; }
+ .view-batch .visually-hidden { width: 1px; max-width: 1px; }
+ .app-shell .view-batch details:not([open]) > :not(summary), .app-shell .view-library details:not([open]) > :not(summary), .app-shell .view-compare details:not([open]) > :not(summary) { display: none !important; }
+ .app-shell .compare-selection { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+ .app-shell .compare-metrics > dt { font-size: 13px; font-weight: 400; line-height: 18px; }
+ .app-shell .compare-metrics > dd { font-size: 13px; line-height: 18px; }
+ .app-shell .compare-metrics > .compare-metric-state { font-size: 13px; }
+ .app-shell .view-batch .batch-status-cell { display: flex; min-width: 140px; flex-direction: column; align-items: flex-start; gap: 8px; }
+ .app-shell .view-batch .visually-hidden { font-size: 0; line-height: 1px; }
+ .app-shell .view-batch p.muted, .app-shell .view-library p.muted, .app-shell .view-compare p.muted { color: var(--muted); font-size: 12px !important; font-weight: 400; line-height: 18px; }
+ .app-shell .view-library th, .app-shell .view-compare th { color: var(--muted); font-size: 12px !important; font-weight: 400 !important; line-height: 18px; }
+ .app-shell .view-batch .hypothesis-claim h2, .app-shell .view-library .hypothesis-claim h2, .app-shell .view-compare .hypothesis-claim h2 { font-size: 15px; font-weight: 600; }
+ .view-batch .batch-status-cell { min-width: 0; }
+ /* UI conformance pass 2: Batch badge parity, status-column containment, and touch targets. */
+ .app-shell .view-batch .confidence-badge.confidence-low { color: #b91c1c; }
+ @media (min-width: 901px) and (max-width: 1100px) {
+   .app-shell .view-batch .batch-status-cell { min-width: 0; }
+   .view-batch .batch-table th:first-child { width: 18%; }
+   .view-batch .batch-table th:nth-child(2), .view-batch .batch-table th:nth-child(3) { width: 19%; }
+   .view-batch .batch-table th:nth-last-child(3) { width: 22%; }
+   .view-batch .batch-table th:nth-last-child(2) { width: 8%; }
+ }
+ @media (max-width: 900px) {
+   .app-shell .view-batch .batch-content-link { min-height: 44px; height: 44px; }
+   .app-shell .view-batch .batch-copy-cell .copy-id { position: relative; min-width: 44px; min-height: 32px !important; height: 44px; padding: 6px 10px !important; }
+   .app-shell .view-batch .batch-copy-cell .copy-id::before { position: absolute; inset: -6px 0; content: ''; }
+ }
+ .app-shell .view-batch .batch-table th { font-weight: 500; }
+ @media (max-width: 850px) {
+   .app-shell .view-library .content-row-select { min-height: 44px; }
+   .app-shell .view-library .content-id .copy-id { position: relative; height: 32px; min-height: 32px !important; }
+   .app-shell .view-library .content-id .copy-id::before { position: absolute; inset: -6px 0; content: ''; }
+ }
+ .app-shell .view-batch .batch-metric-line > span:last-child { font-variant-numeric: tabular-nums; }

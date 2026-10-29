@@ -115,7 +115,7 @@ export default function ProcessingForm({ batchId, onAccepted, onSettled, onJobSu
 
   return (
     <form className="ingest-form" onSubmit={submit}>
-      <label htmlFor="tiktok-url">URL TikTok publik</label>
+      <label htmlFor="tiktok-url" aria-label="URL TikTok publik">Tautan TikTok publik</label>
       <div className="form-row">
         <input id="tiktok-url" name="url" type="url" required value={url} onChange={(event) => setUrl(event.target.value)} placeholder="https://www.tiktok.com/@.../video/..." />
         <button className="primary" type="submit" disabled={busy}>{busy ? 'Mengirim…' : 'Proses video'}</button>
